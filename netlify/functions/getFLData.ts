@@ -10,7 +10,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
     console.log("Connected to database.");
 
     const database = client.db("ankiologernasnotioneringsledger");
-    const collection = database.collection("föreläsningsdata");
+    const collection = database.collection("forelasningsdata");
 
     console.log("Attempting to fetch data...");
     const FLData = await collection.findOne({
