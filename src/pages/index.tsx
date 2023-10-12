@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import LectureTitle from "@/components/LectureTitle";
+import Lecture from "types/lecture";
 
 type WeekData = {
   week: string;

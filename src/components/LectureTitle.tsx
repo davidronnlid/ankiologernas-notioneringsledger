@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from "../styles/LectureTitle.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
+import Lecture from "types/lecture";
 
 interface Props {
   week: string;

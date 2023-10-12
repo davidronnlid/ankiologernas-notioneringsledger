@@ -1,4 +1,4 @@
-interface Lecture {
+export default interface Lecture {
   title: string;
   lecturer?: string;
   date: string;
