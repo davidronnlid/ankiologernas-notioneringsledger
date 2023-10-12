@@ -14,7 +14,6 @@ export default function Layout({
   keywords = "Ankiologernas Notioneringsledger",
   children,
 }: LayoutProps) {
-  const router = useRouter();
   return (
     <div>
       <Head>

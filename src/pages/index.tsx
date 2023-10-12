@@ -19,10 +19,10 @@ export default function Home() {
         if (!response.ok) {
           throw new Error("Failed to fetch lecture data");
         }
-        console.log("in fetch(/.netlify/functions/getFLData)", response.json());
         return response.json();
       })
       .then((data) => {
+        console.log("Fetched data:", data);
         setLectureData(data);
       })
       .catch((error) => {
@@ -33,9 +33,6 @@ export default function Home() {
   return (
     <Layout>
       <Typography>Hi we are on the home page</Typography>
-      {/* {lectureData.map((item, index) => (
-        <LectureTitle key={index} week={item.week} lectures={item.lectures} />
-      ))} */}
     </Layout>
   );
 }
