@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import LectureTitle from "@/components/LectureTitle";
 import { Typography } from "@material-ui/core";
 
 type Lecture = {
