@@ -25,6 +25,7 @@ export default function Home() {
         console.log("Fetched data:", data);
         if (data && !data.error && data.events) {
           setEventsData(data.events);
+          console.log("setEventsData", data.events);
         } else if (data.message) {
           console.error(data.message);
         }
