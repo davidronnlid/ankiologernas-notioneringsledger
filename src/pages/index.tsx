@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Typography } from "@material-ui/core";
 
-type Lecture = {
-  week: string;
-  lectures: string[];
+type Event = {
+  date: string;
+  title: string;
+  //... other properties of the event
 };
 
-type LectureData = Lecture[];
+type EventData = Event[];
 
 export default function Home() {
-  const [lectureData, setLectureData] = useState<LectureData>([]);
+  const [eventsData, setEventsData] = useState<EventData>([]);
 
   useEffect(() => {
     fetch("/.netlify/functions/getFLData")
@@ -22,13 +23,12 @@ export default function Home() {
       })
       .then((data) => {
         console.log("Fetched data:", data);
-        if (data && !data.error && !data.message) {
-          setLectureData(data);
+        if (data && !data.error && data.events) {
+          setEventsData(data.events);
         } else if (data.message) {
           console.error(data.message);
         }
       })
-
       .catch((error) => {
         console.error("Error fetching lecture data:", error);
       });
@@ -37,6 +37,13 @@ export default function Home() {
   return (
     <Layout>
       <Typography>Hi we are on the home page</Typography>
+      <ul>
+        {eventsData.map((event, index) => (
+          <li key={index}>
+            {event.date} - {event.title}
+          </li>
+        ))}
+      </ul>
     </Layout>
   );
 }
