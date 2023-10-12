@@ -6,13 +6,6 @@ const uri: string = process.env.MONGODB_URI!;
 const lectureDetails = [
   {
     id: uuidv4(),
-    title: "Transplantation",
-    lecturer: "Olle Korsgren",
-    date: "2023-10-16",
-    time: "13:15 - 17:00",
-  },
-  {
-    id: uuidv4(),
 
     title: "Autoimmunitetsdiagnostik",
     lecturer: "Johan Rönnelid",
