@@ -4,7 +4,8 @@ import { ThemeProvider } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import theme from "../theme";
 import { AppProps } from "next/app";
-import store from "../store/store";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "../store/store";
 import { Provider } from "react-redux";
 
 function MyApp(props: AppProps) {
@@ -21,14 +22,15 @@ function MyApp(props: AppProps) {
   return (
     <>
       <Provider store={store}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Component {...pageProps} />
-        </ThemeProvider>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Component {...pageProps} />
+          </ThemeProvider>
+        </PersistGate>
       </Provider>
     </>
   );
 }
 
-// withRedux wrapper that passes the store to the App Component
 export default MyApp;

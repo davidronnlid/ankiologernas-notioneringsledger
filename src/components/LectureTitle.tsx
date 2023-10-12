@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "../styles/LectureTitle.module.css";
 import { Typography } from "@mui/material";
+import VemNotionerar from "./VemNotionerar";
 
 interface Lecture {
   title: string;
@@ -58,16 +59,15 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
             }
 
             return (
-              <li
-                key={lecture.title}
-                className={lectureClass}
-                onClick={() => toggleLecture(lecture.title)}
-              >
-                {expandedLectures.includes(lecture.title) ? " ▼ " : " ► "}
+              <li key={lecture.title} className={lectureClass}>
+                <span
+                  onClick={() => toggleLecture(lecture.title)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {expandedLectures.includes(lecture.title) ? " ▼ " : " ► "}
+                </span>
                 {lecture.title}{" "}
-                {expandedLectures.includes(lecture.title) && (
-                  <div>Lecture Details Here</div>
-                )}
+                {expandedLectures.includes(lecture.title) && <VemNotionerar />}
               </li>
             );
           })}

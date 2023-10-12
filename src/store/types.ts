@@ -1,6 +1,7 @@
 interface User {
   username?: string;
-  // other fields if you have any...
+  full_name: string;
+  id: string;
 }
 
 interface AuthState {

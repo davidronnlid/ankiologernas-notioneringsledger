@@ -1,12 +1,24 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authReducer";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage";
+
+const persistConfig = {
+  key: "root",
+  storage,
+  whitelist: ["auth"],
+};
+
+const persistedAuthReducer = persistReducer(persistConfig, authReducer);
 
 const store = configureStore({
   reducer: {
-    auth: authReducer,
+    auth: persistedAuthReducer,
   },
 });
 
 export type AppDispatch = typeof store.dispatch;
 
-export default store;
+const persistor = persistStore(store);
+
+export { store, persistor };
