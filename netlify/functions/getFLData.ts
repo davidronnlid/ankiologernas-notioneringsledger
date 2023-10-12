@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 
 const uri: string = process.env.MONGODB_URI!;
 
@@ -15,7 +15,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
 
     console.log("Attempting to fetch data...");
     const FLData = await collection.findOne({
-      _id: new ObjectId("65281700d658feb9baf909f9"),
+      id: "65281ffb177959af1ebb987c",
     });
 
     console.log("Data fetched: ", FLData);
