@@ -3,13 +3,6 @@ import styles from "../styles/LectureTitle.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 
-interface Lecture {
-  title: string;
-  lecturer?: string;
-  date: string;
-  time: string;
-}
-
 interface Props {
   week: string;
   lectures: Lecture[];
