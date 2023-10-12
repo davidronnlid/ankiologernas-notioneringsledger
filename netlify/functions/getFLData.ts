@@ -1,5 +1,4 @@
 import { MongoClient } from "mongodb";
-const { v4: uuidv4 } = require("uuid");
 
 const uri: string = process.env.MONGODB_URI!;
 
