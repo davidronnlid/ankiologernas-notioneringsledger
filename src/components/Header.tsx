@@ -1,10 +1,10 @@
-import React from 'react';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
-import useScrollTrigger from '@material-ui/core/useScrollTrigger';
+import React from "react";
+import AppBar from "@material-ui/core/AppBar";
+import Toolbar from "@material-ui/core/Toolbar";
+import Typography from "@material-ui/core/Typography";
+import useScrollTrigger from "@material-ui/core/useScrollTrigger";
 
-import Slide from '@material-ui/core/Slide';
+import Slide from "@material-ui/core/Slide";
 
 interface Props {
   children: React.ReactElement;
@@ -27,7 +27,9 @@ export default function Header() {
       <HideOnScroll>
         <AppBar elevation={0}>
           <Toolbar>
-            <Typography variant="h6">Scroll to Hide App Bar</Typography>
+            <Typography variant="h6">
+              Ankiologernas Notioneringsledger
+            </Typography>
           </Toolbar>
         </AppBar>
       </HideOnScroll>

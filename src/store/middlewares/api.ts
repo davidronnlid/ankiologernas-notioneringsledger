@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 import {
   apiCallBegan,
   apiCallFailed,
   apiCallSuccess,
-} from '@/customActions/api';
-import { MiddlewareAPI, Dispatch } from 'redux';
-import { ApiAction } from '@/types';
+} from "@/customActions/api";
+import { MiddlewareAPI, Dispatch } from "redux";
+import { ApiAction } from "@/types";
 
 const api =
   ({ dispatch }: MiddlewareAPI) =>
@@ -51,7 +51,7 @@ const api =
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
         error.response && error.response.data.message
           ? error.response.data.message
