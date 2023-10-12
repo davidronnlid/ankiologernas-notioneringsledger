@@ -1,9 +1,10 @@
 import { MongoClient, ObjectId } from "mongodb";
 
 const uri: string = process.env.MONGODB_URI!;
-const client: MongoClient = new MongoClient(uri);
 
 export const handler = async (event: any, context: any): Promise<any> => {
+  const client: MongoClient = new MongoClient(uri);
+
   try {
     console.log("Attempting to connect to database...");
     await client.connect();
@@ -19,15 +20,19 @@ export const handler = async (event: any, context: any): Promise<any> => {
 
     console.log("Data fetched: ", FLData);
 
+    await client.close();
+
     return {
       statusCode: 200,
       body: JSON.stringify(FLData),
     };
-  } catch (error) {
-    console.error("Error in function:", error); // This will log the specific error
+  } catch (error: any) {
+    console.error("Error in function:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Failed fetching user data" }),
+      body: JSON.stringify({ error: error.message }),
     };
+  } finally {
+    await client.close();
   }
 };
