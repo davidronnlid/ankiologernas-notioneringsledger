@@ -75,6 +75,7 @@ const lectureDetails = [
     time: "14:15 - 16:00",
   },
 ];
+console.log(lectureDetails);
 
 export const handler = async (event: any, context: any): Promise<any> => {
   const client: MongoClient = new MongoClient(uri);
