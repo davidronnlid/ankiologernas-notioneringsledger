@@ -60,7 +60,9 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                   {expandedLectures.includes(lecture.title) ? " ▼ " : " ► "}
                 </span>
                 {lecture.title}{" "}
-                {expandedLectures.includes(lecture.title) && <VemNotionerar />}
+                {expandedLectures.includes(lecture.title) && (
+                  <VemNotionerar lectureID={lecture.id} />
+                )}
               </li>
             );
           })}

@@ -3,4 +3,5 @@ interface Lecture {
   lecturer?: string;
   date: string;
   time: string;
+  id: string;
 }

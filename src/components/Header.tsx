@@ -109,7 +109,7 @@ export default function Header() {
                     marginLeft: "2rem",
                   }}
                 >
-                  Signed in as {full_name}
+                  Inloggad som {full_name}
                 </Button>
               </>
             ) : (

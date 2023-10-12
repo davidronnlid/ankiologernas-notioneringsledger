@@ -3,7 +3,25 @@ import { useSelector } from "react-redux";
 import { useState, useEffect } from "react";
 import { RootState } from "store/types";
 
-function VemNotionerar() {
+interface Props {
+  lectureID: string;
+}
+
+const updateCheckboxStateToDB = async (
+  lectureID: string,
+  newCheckboxState: Record<string, boolean>,
+  confirmed: boolean
+) => {
+  fetch("/.netlify/functions/CRUDFLData", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ lectureID, newCheckboxState, confirmed }),
+  });
+};
+
+const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   const [confirmed, setConfirmed] = useState<boolean>(false);
   const [confirmedDisabled, setConfirmedDisabled] = useState<boolean>(true);
 
@@ -28,15 +46,15 @@ function VemNotionerar() {
       [name]: isChecked,
     }));
 
-    // If the current checkbox being modified is the user's own name
     if (full_name?.includes(name)) {
-      // If unchecked, set confirmed to false, but keep the confirmed checkbox enabled
       if (!isChecked) {
         setConfirmed(false);
       }
-      // Always enable the confirmed checkbox when the user's name checkbox is modified
       setConfirmedDisabled(false);
     }
+    const newCheckedNames = { ...checkedNames, [name]: isChecked };
+    setCheckedNames(newCheckedNames);
+    updateCheckboxStateToDB(lectureID, newCheckedNames, confirmed);
   };
 
   useEffect(() => {
@@ -89,6 +107,6 @@ function VemNotionerar() {
       />
     </div>
   );
-}
+};
 
 export default VemNotionerar;

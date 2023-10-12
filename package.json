@@ -11,6 +11,7 @@
     "@reduxjs/toolkit": "^1.9.7",
     "axios": "^0.21.1",
     "clsx": "latest",
+    "date-fns": "^2.30.0",
     "mongodb": "^6.1.0",
     "netlify-identity-widget": "^1.9.2",
     "next": "^12.3.4",
