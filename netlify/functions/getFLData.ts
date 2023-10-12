@@ -15,15 +15,17 @@ export const handler = async (event: any, context: any): Promise<any> => {
 
     console.log("Attempting to fetch data...");
 
-    const FLData = await collection.find({
-      date: { $regex: /2023/ },
-    });
+    const FLData = await collection
+      .find({
+        date: { $regex: /2023/ },
+      })
+      .toArray();
 
     console.log("Data fetched: ", FLData);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(FLData),
+      body: JSON.stringify({ events: FLData }), // Wrap data in an object
     };
   } catch (error: any) {
     console.error("Error in function:", error);
