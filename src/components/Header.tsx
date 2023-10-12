@@ -5,7 +5,7 @@ import Typography from "@material-ui/core/Typography";
 import useScrollTrigger from "@material-ui/core/useScrollTrigger";
 import netlifyIdentity from "netlify-identity-widget";
 import { useDispatch } from "react-redux";
-import { signIn, signOut } from "../store/customActions/authActions";
+import { signIn, signOut } from "../store/slices/authReducer";
 
 import Slide from "@material-ui/core/Slide";
 import { Button } from "@mui/material";
