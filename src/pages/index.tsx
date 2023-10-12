@@ -36,14 +36,16 @@ export default function Home() {
 
   return (
     <Layout>
-      <Typography>Hi we are on the home page</Typography>
-      <ul>
-        {eventsData.map((event, index) => (
-          <li key={index}>
-            {event.date} - {event.title}
-          </li>
-        ))}
-      </ul>
+      <>
+        <Typography>Hi we are on the home page</Typography>
+        <ul>
+          {eventsData.map((event, id) => (
+            <li key={id}>
+              {event.date} - {event.title}
+            </li>
+          ))}
+        </ul>
+      </>
     </Layout>
   );
 }
