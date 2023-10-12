@@ -20,8 +20,6 @@ export const handler = async (event: any, context: any): Promise<any> => {
 
     console.log("Data fetched: ", FLData);
 
-    await client.close();
-
     return {
       statusCode: 200,
       body: JSON.stringify(FLData),
@@ -33,6 +31,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
       body: JSON.stringify({ error: error.message }),
     };
   } finally {
+    console.log("Closing database connection...");
     await client.close();
   }
 };
