@@ -9,7 +9,9 @@ exports.handler = async (event, context) => {
     const database = client.db("ankiologernasnotioneringsledger");
     const collection = database.collection("föreläsningsdata");
 
-    const FLData = await collection.findOne({ id: "test-id" });
+    const FLData = await collection.findOne({
+      _id: "6527fb275df508523ec4db74",
+    });
 
     return {
       statusCode: 200,
