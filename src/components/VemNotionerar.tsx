@@ -2,28 +2,17 @@ import { Checkbox, FormControlLabel } from "@mui/material";
 import { useSelector } from "react-redux";
 import { useState, useEffect } from "react";
 import { RootState } from "store/types";
+import { useDispatch } from "react-redux";
+import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
 
 interface Props {
   lectureID: string;
 }
 
-const updateCheckboxStateToDB = async (
-  lectureID: string,
-  newCheckboxState: Record<string, boolean>,
-  confirmed: boolean
-) => {
-  fetch("/.netlify/functions/CRUDFLData", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ lectureID, newCheckboxState, confirmed }),
-  });
-};
-
 const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   const [confirmed, setConfirmed] = useState<boolean>(false);
   const [confirmedDisabled, setConfirmedDisabled] = useState<boolean>(true);
+  const dispatch = useDispatch();
 
   // Extract full_name from Redux store's auth slice
   const full_name = useSelector(
@@ -52,9 +41,12 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
       }
       setConfirmedDisabled(false);
     }
-    const newCheckedNames = { ...checkedNames, [name]: isChecked };
-    setCheckedNames(newCheckedNames);
-    updateCheckboxStateToDB(lectureID, newCheckedNames, confirmed);
+    const newCheckboxState = { ...checkedNames, [name]: isChecked }; // renamed variable here
+    setCheckedNames(newCheckboxState);
+
+    dispatch(
+      updateCheckboxStateThunk({ lectureID, newCheckboxState, confirmed }) // use newCheckboxState here instead of newCheckedNames
+    );
   };
 
   useEffect(() => {
