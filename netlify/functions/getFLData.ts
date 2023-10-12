@@ -15,7 +15,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
 
     console.log("Attempting to fetch data...");
     const FLData = await collection.findOne({
-      _id: new ObjectId("6527fb275df508523ec4db74"),
+      _id: new ObjectId("65281700d658feb9baf909f9"),
     });
 
     console.log("Data fetched: ", FLData);
