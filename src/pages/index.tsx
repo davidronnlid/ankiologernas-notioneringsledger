@@ -23,8 +23,13 @@ export default function Home() {
       })
       .then((data) => {
         console.log("Fetched data:", data);
-        setLectureData(data);
+        if (data && !data.error && !data.message) {
+          setLectureData(data);
+        } else if (data.message) {
+          console.error(data.message);
+        }
       })
+
       .catch((error) => {
         console.error("Error fetching lecture data:", error);
       });
