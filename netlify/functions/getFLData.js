@@ -1,4 +1,4 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 
 const uri = process.env.MONGODB_URI; // This will use the connection string you set in Netlify's environment variables
 const client = new MongoClient(uri);
@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
     const collection = database.collection("föreläsningsdata");
 
     const FLData = await collection.findOne({
-      _id: "6527fb275df508523ec4db74",
+      _id: ObjectId("6527fb275df508523ec4db74"), // Use ObjectId function here
     });
 
     return {
