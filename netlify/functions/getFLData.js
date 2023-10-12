@@ -1,7 +1,7 @@
 const { MongoClient } = require("mongodb");
 
 const uri = process.env.MONGODB_URI; // This will use the connection string you set in Netlify's environment variables
-const client = new MongoClient(uri, { useUnifiedTopology: true });
+const client = new MongoClient(uri);
 
 exports.handler = async (event, context) => {
   try {
