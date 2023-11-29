@@ -2,12 +2,8 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import LectureTitle from "@/components/LectureTitle";
-import Lecture from "types/lecture";
-
-type WeekData = {
-  week: string;
-  lectures: Lecture[];
-};
+import { WeekData } from "@/types";
+import Table from "@/components/Table";
 
 export default function Index() {
   const [weeksData, setWeeksData] = useState<WeekData[]>([]);
@@ -62,7 +58,19 @@ export default function Index() {
             []
           );
 
+          groupedByWeek.forEach((week: WeekData) => {
+            week.totals = { Mattias: 0, Albin: 0, David: 0 };
+
+            week.lectures.forEach((lecture) => {
+              // Safely access the checkboxState using optional chaining (?.)
+              if (lecture.checkboxState?.Mattias) week.totals.Mattias += 1;
+              if (lecture.checkboxState?.Albin) week.totals.Albin += 1;
+              if (lecture.checkboxState?.David) week.totals.David += 1;
+            });
+          });
+
           setWeeksData(groupedByWeek);
+          console.log("Updated weeks data", weeksData);
         } else if (data.message) {
           console.error(data.message);
         }
@@ -82,6 +90,9 @@ export default function Index() {
             lectures={weekData.lectures}
           />
         ))}
+        <Table weeksData={weeksData} />
+
+        {/* Table that summarizes total checkboxStates that were true for Mattias, Albin, and David respectively. And specifically per course week. */}
       </>
     </Layout>
   );

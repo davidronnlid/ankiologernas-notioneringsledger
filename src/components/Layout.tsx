@@ -1,6 +1,6 @@
 import Head from "next/head";
 
-import { Container } from "@material-ui/core";
+import { Box, Container } from "@material-ui/core";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -21,7 +21,9 @@ export default function Layout({
         <meta name="keywords" content={keywords} />
       </Head>
       <Header />
-      <Container maxWidth="lg">{children}</Container>
+      <Box my={5}>
+        <Container maxWidth="lg">{children}</Container>
+      </Box>
       <Footer />
     </div>
   );

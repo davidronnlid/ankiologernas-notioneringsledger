@@ -1,5 +1,6 @@
-import { AxiosRequestConfig } from 'axios';
-import { Action } from 'redux';
+import { AxiosRequestConfig } from "axios";
+import { Action } from "redux";
+import Lecture from "./lecture";
 
 /** API MIDDLEWARE | apiCallBegan action payload */
 export interface ApiCallBeganPayload extends AxiosRequestConfig {
@@ -22,3 +23,9 @@ export interface LayoutProps {
   keywords?: string;
   children: React.ReactElement;
 }
+
+export type WeekData = {
+  week: string;
+  lectures: Lecture[];
+  totals: { Mattias: number; Albin: number; David: number };
+};
