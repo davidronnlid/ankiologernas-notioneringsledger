@@ -5,15 +5,17 @@ export const updateCheckboxStateThunk = createAsyncThunk(
   async (params: {
     lectureID: string;
     newCheckboxState: Record<string, boolean>;
-    confirmed: boolean;
   }) => {
-    const response = await fetch(".functions/CRUDFLData", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    });
+    const response = await fetch(
+      "http://localhost:8888/.netlify/functions/CRUDFLData",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to update checkbox state");

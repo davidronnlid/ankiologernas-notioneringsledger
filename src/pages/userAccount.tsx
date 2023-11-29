@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
-import { Typography } from "@material-ui/core";
+import { Button, Typography } from "@material-ui/core";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
@@ -14,16 +15,21 @@ function UserAccount() {
   const router = useRouter();
 
   // If not authenticated, redirect to login
-  if (!isAuthenticated) {
-    router.push("/login");
-    return null;
-  }
+  // if (!isAuthenticated) {
+  //   router.push("/");
+  //   return null;
+  // }
 
   return (
     <Layout>
-      <Typography>
-        {full_name ? `Welcome, ${full_name}!` : "User account details here"}
-      </Typography>
+      <>
+        <Typography>
+          {full_name ? `Welcome, ${full_name}!` : "User account details here"}
+        </Typography>
+        <Button>
+          <Link href="/">Gå till Notioneringsledger</Link>
+        </Button>
+      </>
     </Layout>
   );
 }

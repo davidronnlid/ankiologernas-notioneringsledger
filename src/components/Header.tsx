@@ -63,22 +63,19 @@ export default function Header() {
       };
       console.log("User from netlifyIdentity:", user);
       dispatch(signIn(userData));
-      alert("Successfully logged in!");
+      router.push("/useraccount");
     });
 
     // Listen for logout events
     netlifyIdentity.on("logout", () => {
       dispatch(signOut());
       persistor.purge();
-
-      alert("Successfully logged out!");
     });
   }, []);
 
   const router = useRouter();
 
   const handleSignup = () => {
-    router.push("/useraccount");
     netlifyIdentity.open("signup");
   };
 
@@ -121,7 +118,7 @@ export default function Header() {
                   marginLeft: "2rem",
                 }}
               >
-                SIGN IN
+                LOGGA IN
               </Button>
             )}
           </Toolbar>

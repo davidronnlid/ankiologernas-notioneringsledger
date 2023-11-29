@@ -13,7 +13,7 @@ export default function Index() {
   const [weeksData, setWeeksData] = useState<WeekData[]>([]);
 
   useEffect(() => {
-    fetch("/.netlify/functions/CRUDFLData")
+    fetch("http://localhost:8888/.netlify/functions/CRUDFLData")
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch lecture data");

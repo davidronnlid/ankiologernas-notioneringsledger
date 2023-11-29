@@ -11,17 +11,6 @@ interface Props {
 
 const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
   const [isExpandedWeek, setIsExpandedWeek] = useState(true);
-  const [expandedLectures, setExpandedLectures] = useState<string[]>([]);
-
-  const toggleLecture = (title: string) => {
-    setExpandedLectures((prev) => {
-      if (prev.includes(title)) {
-        return prev.filter((t) => t !== title);
-      } else {
-        return [...prev, title];
-      }
-    });
-  };
 
   const toggleExpandedWeek = () => {
     setIsExpandedWeek((prevState) => !prevState);
@@ -53,18 +42,30 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
             }
 
             return (
-              <li key={lecture.title} className={lectureClass}>
-                <span
-                  onClick={() => toggleLecture(lecture.title)}
-                  style={{ cursor: "pointer" }}
+              <>
+                {" "}
+                <li
+                  key={lecture.title}
+                  className={lectureClass}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
                 >
-                  {expandedLectures.includes(lecture.title) ? " ▼ " : " ► "}
-                </span>
-                {lecture.title}{" "}
-                {expandedLectures.includes(lecture.title) && (
-                  <VemNotionerar lectureID={lecture.id} />
-                )}
-              </li>
+                  <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                    {lecture.title}
+                  </Typography>
+                  <div style={{ display: "flex" }}>
+                    <VemNotionerar
+                      lectureID={lecture.id}
+                      checkboxState={lecture.checkboxState}
+                    />
+                  </div>
+                </li>
+                <hr></hr>
+              </>
             );
           })}
         </ol>

@@ -1,5 +1,5 @@
 .footerContainer {
-  position: absolute;
+  position: sticky;
   bottom: 0;
   width: 100%;
   background-color: #f5f5f5;
