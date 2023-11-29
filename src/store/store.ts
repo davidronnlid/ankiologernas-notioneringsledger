@@ -3,11 +3,12 @@ import thunk from "redux-thunk";
 import authReducer from "./slices/authReducer";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
+import updateCheckboxReducer from "./slices/updateCheckbox";
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth"],
+  whitelist: ["auth", "checkbox"],
 };
 
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
@@ -15,6 +16,7 @@ const persistedAuthReducer = persistReducer(persistConfig, authReducer);
 const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
+    checkbox: updateCheckboxReducer,
   },
   middleware: new MiddlewareArray().concat(thunk),
 });

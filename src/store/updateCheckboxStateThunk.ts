@@ -7,7 +7,7 @@ export const updateCheckboxStateThunk = createAsyncThunk(
     newCheckboxState: Record<string, boolean>;
     confirmed: boolean;
   }) => {
-    const response = await fetch("/.netlify/functions/CRUDFLData", {
+    const response = await fetch("/netlify/functions/CRUDFLData", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

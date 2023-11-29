@@ -1,13 +1,21 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
 
+interface CheckboxState {
+  loading: "idle" | "pending";
+  error: null | string | undefined;
+  modifiedCount: number;
+}
+
+const initialState: CheckboxState = {
+  loading: "idle",
+  error: null,
+  modifiedCount: 0,
+};
+
 const checkboxSlice = createSlice({
   name: "checkbox",
-  initialState: {
-    loading: "idle",
-    error: null,
-    modifiedCount: 0,
-  },
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
