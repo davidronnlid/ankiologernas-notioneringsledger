@@ -4,6 +4,17 @@ import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import LectureTitle from "@/components/LectureTitle";
 import { WeekData } from "@/types";
 import Table from "@/components/Table";
+import Lecture from "types/lecture";
+import { Typography } from "@material-ui/core";
+import React from "react";
+
+const coursePeriods = [
+  {
+    title: "Medicinsk Mikrobiologi",
+    startDate: "2023-11-10",
+    endDate: "2024-01-05",
+  },
+];
 
 export default function Index() {
   const [weeksData, setWeeksData] = useState<WeekData[]>([]);
@@ -23,34 +34,63 @@ export default function Index() {
             (a: any, b: any) =>
               new Date(a.date).getTime() - new Date(b.date).getTime()
           );
+
+          // Initialize a map to hold the week number within each course
+          const courseWeekNumbers = new Map();
+
           const groupedByWeek = sortedLectures.reduce(
-            (acc: any, lecture: any) => {
+            (acc: any, lecture: Lecture) => {
               const date = parseISO(lecture.date);
               let weekFound = false;
 
-              for (let week of acc) {
-                const start = startOfWeek(parseISO(week.lectures[0].date), {
-                  weekStartsOn: 1,
-                });
-                const end = endOfWeek(parseISO(week.lectures[0].date), {
-                  weekStartsOn: 1,
-                });
-                if (isWithinInterval(date, { start, end })) {
-                  week.lectures.push(lecture);
-                  week.lectures.sort(
-                    (a: any, b: any) =>
-                      new Date(a.date).getTime() - new Date(b.date).getTime()
-                  );
-                  weekFound = true;
-                  break;
-                }
-              }
+              // Determine which course the lecture belongs to, if any
+              const course = coursePeriods.find((period) =>
+                isWithinInterval(date, {
+                  start: parseISO(period.startDate),
+                  end: parseISO(period.endDate),
+                })
+              );
 
-              if (!weekFound) {
-                acc.push({
-                  week: `Vecka ${acc.length + 1}`,
-                  lectures: [lecture],
-                });
+              // If the lecture is within a course period
+              if (course) {
+                if (!courseWeekNumbers.has(course.title)) {
+                  courseWeekNumbers.set(course.title, 1);
+                }
+
+                for (let week of acc) {
+                  // Check if the week belongs to the same course and is within the same week interval
+                  if (
+                    week.course === course.title &&
+                    isWithinInterval(date, {
+                      start: startOfWeek(parseISO(week.lectures[0].date), {
+                        weekStartsOn: 1,
+                      }),
+                      end: endOfWeek(parseISO(week.lectures[0].date), {
+                        weekStartsOn: 1,
+                      }),
+                    })
+                  ) {
+                    week.lectures.push(lecture);
+                    weekFound = true;
+                    break;
+                  }
+                }
+
+                // If this lecture didn't fit into an existing week, start a new week
+                if (!weekFound) {
+                  acc.push({
+                    week: `Vecka ${courseWeekNumbers.get(course.title)}`,
+                    course: course.title,
+                    lectures: [lecture],
+                  });
+                  courseWeekNumbers.set(
+                    course.title,
+                    courseWeekNumbers.get(course.title) + 1
+                  );
+                }
+              } else {
+                // If the lecture is not within any course period, proceed as before
+                // ...
               }
 
               return acc;
@@ -83,16 +123,31 @@ export default function Index() {
   return (
     <Layout>
       <>
-        {weeksData.map((weekData) => (
-          <LectureTitle
-            key={weekData.week}
-            week={weekData.week}
-            lectures={weekData.lectures}
-          />
-        ))}
-        <Table weeksData={weeksData} />
+        {coursePeriods.map((course) => {
+          // Find all weeks that belong to this course
+          const courseWeeks = weeksData.filter(
+            (weekData) => weekData.course === course.title
+          );
 
-        {/* Table that summarizes total checkboxStates that were true for Mattias, Albin, and David respectively. And specifically per course week. */}
+          return (
+            <>
+              {/* Render the course title once */}
+              {courseWeeks.length > 0 && (
+                <Typography variant="h4">{course.title}</Typography>
+              )}
+
+              {/* Then render all weeks that belong to this course */}
+              {courseWeeks.map((weekData) => (
+                <LectureTitle
+                  key={weekData.week}
+                  week={weekData.week}
+                  lectures={weekData.lectures}
+                />
+              ))}
+            </>
+          );
+        })}
+        <Table weeksData={weeksData} />
       </>
     </Layout>
   );

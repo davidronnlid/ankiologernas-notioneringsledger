@@ -28,4 +28,5 @@ export type WeekData = {
   week: string;
   lectures: Lecture[];
   totals: { Mattias: number; Albin: number; David: number };
+  course: string;
 };

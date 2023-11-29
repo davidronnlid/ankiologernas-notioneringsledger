@@ -3,20 +3,11 @@ import styles from "../styles/LectureTitle.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 import Lecture from "types/lecture";
-import { any } from "prop-types";
 
 interface Props {
   week: string;
   lectures: Lecture[];
 }
-
-const coursePeriods = [
-  {
-    name: "Medicinsk Mikrobiologi",
-    startDate: new Date(2023, 10, 10), // 10th November 2023
-    endDate: new Date(2024, 0, 5), // 5th January 2024
-  },
-];
 
 const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
   const [isExpandedWeek, setIsExpandedWeek] = useState(true);
@@ -55,41 +46,14 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
       ? `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`
       : "";
 
-  const getCourseInfo = (lectureDate: any) => {
-    for (const period of coursePeriods) {
-      if (lectureDate >= period.startDate && lectureDate <= period.endDate) {
-        const start: any = new Date(
-          period.startDate.getFullYear(),
-          period.startDate.getMonth(),
-          period.startDate.getDate()
-        );
-        const diffTime = Math.abs(lectureDate - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const weekNumber = Math.floor(diffDays / 7) + 1;
-        return { courseName: period.name, weekNumber: `Vecka ${weekNumber}` };
-      }
-    }
-    // Return null if the lecture does not belong to any course period
-    return null;
-  };
-  // Check the first lecture date to determine the course and week number
-  const firstLectureDate = new Date(lectures[0].date);
-  const courseInfo = getCourseInfo(firstLectureDate);
-
   return (
     <div>
-      {courseInfo && (
-        <Typography variant="h5" className={styles.courseHeader}>
-          {courseInfo.courseName}
-        </Typography>
-      )}
       <Typography
         variant="h6"
         className={styles.header}
         onClick={toggleExpandedWeek}
       >
-        {isExpandedWeek ? "▼ " : "► "}{" "}
-        {courseInfo ? courseInfo.weekNumber : week} ({weekRange})
+        {isExpandedWeek ? "▼ " : "► "} {week} ({weekRange})
       </Typography>
 
       {isExpandedWeek && (
