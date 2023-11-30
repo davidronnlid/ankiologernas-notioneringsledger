@@ -5,4 +5,5 @@ export default interface Lecture {
   time: string;
   id: string;
   checkboxState: Record<string, boolean>;
+  lectureNumber: number;
 }

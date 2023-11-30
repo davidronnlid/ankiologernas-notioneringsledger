@@ -7,6 +7,11 @@ import Table from "@/components/Table";
 import Lecture from "types/lecture";
 import { Typography } from "@material-ui/core";
 import React from "react";
+import {
+  calculateTotals,
+  calculateTotalHoursPerPerson,
+  calculateDuration,
+} from "../functions/calculateDuration";
 
 const coursePeriods = [
   {
@@ -18,6 +23,8 @@ const coursePeriods = [
 
 export default function Index() {
   const [weeksData, setWeeksData] = useState<WeekData[]>([]);
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
   useEffect(() => {
     fetch("http://localhost:8888/.netlify/functions/CRUDFLData")
@@ -30,15 +37,37 @@ export default function Index() {
       .then((data) => {
         console.log("Fetched data:", data);
         if (data && !data.error && data.events) {
+          const lectureNumberCounters = new Map(
+            coursePeriods.map((course) => [course.title, 0])
+          );
+
           const sortedLectures = data.events.sort(
             (a: any, b: any) =>
               new Date(a.date).getTime() - new Date(b.date).getTime()
           );
+          const lecturesWithNumbers = sortedLectures.map((lecture: Lecture) => {
+            // Determine the course of the lecture, if any
+            const course = coursePeriods.find((period) =>
+              isWithinInterval(parseISO(lecture.date), {
+                start: parseISO(period.startDate),
+                end: parseISO(period.endDate),
+              })
+            );
 
+            if (course) {
+              // Increment the counter for the specific course
+              const currentCount = lectureNumberCounters.get(course.title) || 0;
+              lectureNumberCounters.set(course.title, currentCount + 1);
+              // Assign the incremented number to the lecture
+              return { ...lecture, lectureNumber: currentCount + 1 };
+            } else {
+              return lecture; // If lecture does not belong to a course, do not assign a number
+            }
+          });
           // Initialize a map to hold the week number within each course
           const courseWeekNumbers = new Map();
 
-          const groupedByWeek = sortedLectures.reduce(
+          const groupedByWeek = lecturesWithNumbers.reduce(
             (acc: any, lecture: Lecture) => {
               const date = parseISO(lecture.date);
               let weekFound = false;
@@ -98,19 +127,29 @@ export default function Index() {
             []
           );
 
-          groupedByWeek.forEach((week: WeekData) => {
-            week.totals = { Mattias: 0, Albin: 0, David: 0 };
+          const updatedWeeksData = calculateTotals(groupedByWeek);
+          const finalWeeksData = calculateTotalHoursPerPerson(updatedWeeksData);
 
-            week.lectures.forEach((lecture) => {
-              // Safely access the checkboxState using optional chaining (?.)
-              if (lecture.checkboxState?.Mattias) week.totals.Mattias += 1;
-              if (lecture.checkboxState?.Albin) week.totals.Albin += 1;
-              if (lecture.checkboxState?.David) week.totals.David += 1;
+          finalWeeksData.forEach((weekData) => {
+            weekData.wishedTotal = { Mattias: 0, Albin: 0, David: 0 }; // Initialize wishedTotal
+
+            weekData.lectures.forEach((lecture) => {
+              const lectureDate = new Date(
+                lecture.date + "T" + lecture.time.split(" - ")[0]
+              );
+              if (lectureDate > currentDate) {
+                // If the lecture date is in the future, add its duration to the wishedTotal
+                Object.keys(weekData.wishedTotal).forEach((person) => {
+                  weekData.wishedTotal[person] += lecture.checkboxState[person]
+                    ? calculateDuration(lecture.time)
+                    : 0;
+                });
+              }
             });
           });
 
-          setWeeksData(groupedByWeek);
-          console.log("Updated weeks data", weeksData);
+          setWeeksData(finalWeeksData);
+          console.log("final weeks data", weeksData);
         } else if (data.message) {
           console.error(data.message);
         }

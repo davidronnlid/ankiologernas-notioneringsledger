@@ -3,6 +3,7 @@ import styles from "../styles/LectureTitle.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 import Lecture from "types/lecture";
+import { calculateDuration } from "../functions/calculateDuration";
 
 interface Props {
   week: string;
@@ -10,7 +11,7 @@ interface Props {
 }
 
 const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
-  const [isExpandedWeek, setIsExpandedWeek] = useState(true);
+  const [isExpandedWeek, setIsExpandedWeek] = useState(false);
 
   const toggleExpandedWeek = () => {
     setIsExpandedWeek((prevState) => !prevState);
@@ -62,11 +63,13 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
             const lectureDate = new Date(lecture.date);
             lectureDate.setHours(0, 0, 0, 0);
 
-            let lectureClass = styles.future;
+            let bgColor;
             if (lectureDate.getTime() === currentDate.getTime()) {
-              lectureClass = styles.today;
+              bgColor = "#453501"; // Yellow background for today's lectures
             } else if (lectureDate < currentDate) {
-              lectureClass = styles.past;
+              bgColor = "#0d4501"; // Green background for past lectures
+            } else {
+              bgColor = "black"; // Black background for future lectures
             }
 
             // Get Swedish three-letter format for the weekday and capitalize the first letter
@@ -74,48 +77,21 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
               .toLocaleDateString("sv-SE", { weekday: "short" })
               .replace(/^\w/, (c) => c.toUpperCase());
 
-            // Function to calculate the duration of the lecture
-            const calculateDuration = (time: string) => {
-              const [startTime, endTime] = time.split("-").map((t) => t.trim());
-              const [startHours, startMinutes] = startTime
-                .split(":")
-                .map(Number);
-              const [endHours, endMinutes] = endTime.split(":").map(Number);
-
-              const startTotalMinutes = startHours * 60 + startMinutes;
-              const endTotalMinutes = endHours * 60 + endMinutes;
-
-              // Calculate total duration in minutes
-              let durationMinutes = endTotalMinutes - startTotalMinutes;
-
-              // Subtract the 15 minutes breaks from the total duration before calculating blocks
-              // Every full hour has a 15-minute break
-              const fullHours = Math.floor(durationMinutes / 60);
-              durationMinutes -= fullHours * 15;
-
-              // Calculate the number of 45-minute lecture blocks
-              // Do not round up, as we've already subtracted the breaks
-              const lectureBlocks = Math.floor(durationMinutes / 45);
-
-              return `${lectureBlocks}h`;
-            };
-
             const lectureDuration = calculateDuration(lecture.time);
 
             // Metadata string that includes the lecturer's name, the weekday, the time, and the duration
-            const metadata = `${lecture.lecturer} - ${swedishWeekDay}, ${lecture.time} (${lectureDuration})`;
+            const metadata = `${lecture.lecturer} - ${swedishWeekDay}, ${lecture.time} (${lectureDuration}h)`;
 
             return (
               <li
                 key={lecture.id}
-                className={lectureClass}
                 style={{
-                  background: "black",
-                  color: "white",
+                  background: bgColor,
+                  color: bgColor === "black" ? "white" : "black",
                   border: "1px solid gold",
-                  borderRadius: "5px", // Slight rounding of corners for the "card" look
+                  borderRadius: "5px",
                   padding: "10px",
-                  margin: "10px 0", // Add some space between cards
+                  margin: "10px 0",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "start",
@@ -126,7 +102,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                   variant="body1"
                   sx={{ fontWeight: "bold", color: "white" }}
                 >
-                  {lecture.title}
+                  {`${lecture.lectureNumber}: ${lecture.title}`}
                 </Typography>
                 {/* Metadata Typography for lecturer, weekday, time, and duration */}
                 <Typography

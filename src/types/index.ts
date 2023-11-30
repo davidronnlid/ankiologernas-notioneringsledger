@@ -27,6 +27,10 @@ export interface LayoutProps {
 export type WeekData = {
   week: string;
   lectures: Lecture[];
-  totals: { Mattias: number; Albin: number; David: number };
+  totals: { [key: string]: number };
+  totalHours: { [key: string]: number };
+  wishedTotal: {
+    [key: string]: number;
+  };
   course: string;
 };
