@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["path/to/your/typescript/functions/**/*.ts"],
+  "include": ["./netlify/functions/*.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
