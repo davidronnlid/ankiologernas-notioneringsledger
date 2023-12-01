@@ -1,7 +1,6 @@
 [build]
 command = "npm run build"
 functions = ".netlify/functions" # Compiled output directory for functions
-publish = ".next/static"
 
 [functions]
 directory = "netlify/functions"
