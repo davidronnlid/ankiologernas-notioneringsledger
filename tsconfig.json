@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES6",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -17,20 +13,12 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "baseUrl": "./src",
-    "outDir": "/netlify/functions", // specify the output directory for compiled files
+    "outDir": "./netlify/functions", // specify the output directory for compiled files
     "paths": {
-      "@/shared-components/*": [
-        "shared-components/*"
-      ],
-      "@/components/*": [
-        "components/*"
-      ],
-      "@/types": [
-        "types/index.ts"
-      ],
-      "@/customActions/*": [
-        "store/customActions/*"
-      ]
+      "@/shared-components/*": ["shared-components/*"],
+      "@/components/*": ["components/*"],
+      "@/types": ["types/index.ts"],
+      "@/customActions/*": ["store/customActions/*"]
     },
     "incremental": true,
     "module": "esnext"
@@ -39,9 +27,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "./netlify/functions/*.ts"
+    "./.netlify/functions/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
