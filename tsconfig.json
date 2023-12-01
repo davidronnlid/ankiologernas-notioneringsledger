@@ -27,7 +27,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "netlify/functions/CRUDFLData.ts"
+    "./netlify/functions/CRUDFLData.ts"
   ], // include your functions folder here
   "exclude": ["node_modules"]
 }
