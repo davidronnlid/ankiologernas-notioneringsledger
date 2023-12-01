@@ -23,6 +23,12 @@
     },
     "incremental": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "netlify/functions/*.ts"], // include your functions folder here
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "netlify/functions/*.ts",
+    "netlify/functions/CRUDFLData.js"
+  ], // include your functions folder here
   "exclude": ["node_modules"]
 }
