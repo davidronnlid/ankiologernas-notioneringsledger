@@ -1,2 +1,6 @@
 [build]
-  functions = ".netlify/functions"
+  command = "npm run build" # Replace with your actual build command
+  functions = "netlify/functions" # Directory with your compiled functions
+
+[functions]
+  node_bundler = "zisi" # Use Netlify's Zip-it-and-ship-it for bundling
