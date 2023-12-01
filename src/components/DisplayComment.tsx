@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import styles from "../styles/Comment.module.css";
 import { IconButton, Typography } from "@material-ui/core";
 import { Comment } from "types/lecture";
 import DeleteIcon from "@material-ui/icons/Delete";
 import { RootState } from "store/types";
 import { useSelector } from "react-redux";
+import Image from "next/image";
 
 interface DisplayCommentsProps {
   lectureId: string;
@@ -18,6 +19,10 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
+  const profile_pic = useSelector(
+    (state: RootState) => state.auth.user?.profile_pic
+  );
+
   const handleDeleteComment = async (lectureId: string, commentId: string) => {
     // API call to delete the comment
     console.log("lectureId", lectureId, "commentId", commentId);
@@ -50,8 +55,14 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
       {comments.length > 0 ? (
         comments.map((comment) => (
           <div key={comment.commentId} className={styles.comment}>
-            <div className={styles.commentHeader}>
-              <span className={styles.commentFullName}>{comment.fullName}</span>
+            <div className={styles.commentImageWrapper}>
+              <Image
+                src={profile_pic ? profile_pic : ""}
+                alt="User profile image"
+                width={40}
+                height={40}
+                layout="responsive"
+              />
             </div>
             <Typography variant="body2" className={styles.commentText}>
               {comment.comment}

@@ -1,41 +1,49 @@
 .commentsContainer {
-  margin-top: 8px; /* Reduced from 16px for less space between comments and other elements */
+  margin-top: 16px;
 }
 
 .comment {
-  background-color: #f9f9f9; /* Slightly off-white to reduce contrast and make it less dominant */
-  border: 1px solid #e0e0e0; /* Lighter border for a subtler look */
-  border-radius: 4px;
-  padding: 4px 8px; /* Reduced padding for a more compact look */
-  margin-bottom: 8px; /* Reduced margin for less space between comments */
+  background-color: #ffffff; /* Choose a light color for the card background */
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+  border-radius: 8px; /* Rounded corners for the card */
+  padding: 12px;
+  margin-bottom: 12px;
   display: flex;
-  align-items: center; /* Align items in a row */
-  gap: 8px; /* Add some space between the avatar, text, and button */
+  align-items: center; /* Align items in the center vertically */
+  gap: 10px; /* Space between the image and the text */
 }
 
 .commentHeader {
-  display: flex;
-  justify-content: start; /* Align items to the start */
-  align-items: center;
-  width: 100%; /* Ensure full width to space out name and delete button */
+  flex-grow: 1; /* Allow the header to take up as much space as possible */
 }
 
 .commentFullName {
   font-weight: bold;
-  font-size: 0.85rem; /* Smaller font size for names */
+  color: #333; /* Dark text for better readability */
 }
 
 .commentText {
-  font-size: 0.8rem; /* Smaller font size for comments */
-  margin-top: 4px; /* Reduced margin-top */
-  word-break: break-word; /* Ensure long words do not overflow */
+  color: #555; /* Slightly lighter text for the comment body */
+  margin-top: 4px;
 }
 
 .commentDeleteButton {
-  margin-left: auto; /* Push the delete button to the right */
-  padding: 4px; /* Reduced padding for the button */
+  color: #999; /* A subtle color for the delete button */
+  transition: color 0.3s ease; /* Transition for hover effect */
+}
+
+.commentDeleteButton:hover {
+  color: #e53935; /* A reddish color when hovered for emphasis */
 }
 
 .commentIcon {
-  font-size: 0.8rem; /* Smaller icon size */
+  font-size: 1rem; /* Adjust icon size as needed */
+}
+.commentImageWrapper {
+  border-radius: 50%;
+  overflow: hidden;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ddd; /* Light grey border */
 }
