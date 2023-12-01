@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../styles/LectureTitle.module.css";
+import styles from "../styles/Comment.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 import Lecture from "types/lecture";
@@ -50,7 +50,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
       : "";
 
   return (
-    <div>
+    <div className={styles.defaultBoxShadow}>
       <Typography
         variant="h6"
         className={styles.header}
@@ -90,7 +90,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                 style={{
                   background: bgColor,
                   color: bgColor === "black" ? "white" : "black",
-                  border: "1px solid gold",
+                  border: "1px solid black",
                   borderRadius: "5px",
                   padding: "10px",
                   margin: "10px 0",
@@ -99,6 +99,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                   alignItems: "start",
                   gap: "4px",
                 }}
+                className={styles.defaultBoxShadow}
               >
                 <Typography
                   variant="body1"
@@ -117,11 +118,13 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                   lectureID={lecture.id}
                   checkboxState={lecture.checkboxState}
                 />
-                <PostComment lectureId={lecture.id} />
-                <DisplayComments
-                  lectureId={lecture.id}
-                  comments={lecture.comments || []}
-                />
+                <div className={styles.commentsContainer}>
+                  <DisplayComments
+                    lectureId={lecture.id}
+                    comments={lecture.comments || []}
+                  />
+                  <PostComment lectureId={lecture.id} />
+                </div>
               </li>
             );
           })}

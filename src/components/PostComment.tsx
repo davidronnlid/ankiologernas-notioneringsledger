@@ -1,8 +1,9 @@
 import React, { useState, FormEvent } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/types";
-import { Button } from "@material-ui/core";
+import { IconButton, TextareaAutosize } from "@material-ui/core";
 import styles from "../styles/Comment.module.css";
+import Chat from "@material-ui/icons/Chat";
 
 interface PostCommentProps {
   lectureId: string;
@@ -47,15 +48,17 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
   return (
     <div className={styles.commentContainer}>
       <form onSubmit={handleSubmit} className={styles.commentForm}>
-        <textarea
-          className={styles.commentTextarea}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a comment..."
-        />
-        <Button className={styles.commentButton} type="submit">
-          Post Comment
-        </Button>
+        <div className={styles.commentTextareaContainer}>
+          <TextareaAutosize
+            className={styles.commentTextarea}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Skriv kommentar..."
+          />
+          <IconButton type="submit" className={styles.commentSubmitIcon}>
+            <Chat />
+          </IconButton>
+        </div>
       </form>
     </div>
   );

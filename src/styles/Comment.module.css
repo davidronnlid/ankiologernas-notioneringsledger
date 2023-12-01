@@ -1,17 +1,19 @@
 .commentsContainer {
-  margin-top: 16px;
+  background-color: #f9f9f9; /* Example background color */
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.1rem;
 }
 
 .comment {
   background-color: #ffffff; /* Choose a light color for the card background */
   border: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
   border-radius: 8px; /* Rounded corners for the card */
-  padding: 12px;
-  margin-bottom: 12px;
   display: flex;
   align-items: center; /* Align items in the center vertically */
   gap: 10px; /* Space between the image and the text */
+  margin-bottom: 8px; /* Reduced space between comments */
+  padding: 12px; /* Padding inside each comment */
+  box-shadow: none; /* Remove the shadow if you want a flat design */
 }
 
 .commentHeader {
@@ -40,10 +42,124 @@
 .commentIcon {
   font-size: 1rem; /* Adjust icon size as needed */
 }
+
 .commentImageWrapper {
   border-radius: 50%;
   overflow: hidden;
   width: 40px;
   height: 40px;
-  border: 2px solid #ddd; /* Light grey border */
+}
+
+/* Additional styles for PostComment component */
+.commentContainer {
+  padding: 0;
+  background: none;
+}
+
+.commentForm {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  gap: 0.5rem;
+}
+
+.commentTextarea {
+  flex-grow: 1;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  resize: none; /* Disables the resize handle */
+  border-radius: 0.5rem;
+}
+
+.commentTextarea:focus {
+  outline: none;
+}
+
+.commentButton {
+  align-self: flex-end;
+  padding: 6px 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.commentButton:hover {
+  background-color: #43a047;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .commentForm {
+    gap: 0.3rem;
+  }
+
+  .commentTextarea {
+    font-size: 0.8rem;
+  }
+
+  .commentButton {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+}
+.commentTextareaContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  margin-top: 0; /* Ensure no extra space above the textarea */
+  margin-bottom: 0; /* Ensure no extra space below the textarea */
+  border-radius: 0.5rem;
+}
+
+.commentTextarea:focus {
+  outline: none;
+}
+
+.commentSubmitIcon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  background-color: white; /* Make the button background transparent */
+  border: none; /* Remove border */
+  color: #4caf50;
+  padding: 0.5rem;
+  box-shadow: none;
+}
+
+.commentSubmitIcon svg {
+  font-size: 1.5rem; /* Increase icon size */
+}
+.commentSubmitIcon:focus {
+  outline: none;
+}
+.comment,
+.commentContainer {
+  background-color: #fff; /* White background for individual comments and textarea */
+  margin-bottom: 8px; /* Space between comments */
+}
+
+.comment:last-of-type,
+.commentContainer {
+  margin-bottom: 0;
+}
+.weekHeader {
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 5rem;
+}
+
+.defaultBoxShadow {
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+  padding: 0.8rem;
+  margin: 0.8rem;
+}
+.comment:not(:last-child) {
+  margin-bottom: 0; /* Remove the bottom margin */
 }

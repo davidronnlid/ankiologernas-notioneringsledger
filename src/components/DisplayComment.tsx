@@ -49,9 +49,6 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
   };
   return (
     <div className={styles.commentsContainer}>
-      <Typography variant="subtitle2" style={{ color: "white" }}>
-        Kommentarer:
-      </Typography>
       {comments.length > 0 ? (
         comments.map((comment) => (
           <div key={comment.commentId} className={styles.comment}>
@@ -82,8 +79,8 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
           </div>
         ))
       ) : (
-        <Typography variant="body2" style={{ color: "white" }}>
-          Inga kommentarer.
+        <Typography variant="body2" style={{ color: "lightgrey" }}>
+          Inga kommentarer än.
         </Typography>
       )}
     </div>
