@@ -30,8 +30,8 @@
   },
   "scripts": {
     "dev": "next",
-    "build": "next build && npm run build:functions",
-    "build:functions": "tsc --project ./netlify/functions/tsconfig.json",    "start": "next start",
+    "build": "next build",
+    "start": "next start",
     "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest"
   },
   "devDependencies": {
