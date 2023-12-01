@@ -1,33 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": false,
-    "skipLibCheck": true,
+    "target": "ES2018",
+    "module": "CommonJS",
+    "outDir": "./netlify/functions",
+    "rootDir": "./",
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": false, // change this to false to enable emitting files
     "esModuleInterop": true,
-    "module": "CommonJS", // change this to CommonJS for Node.js environment
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "baseUrl": "./src",
-    "outDir": "./.netlify/functions", // specify the output directory for compiled files
-    "paths": {
-      "@/shared-components/*": ["shared-components/*"],
-      "@/components/*": ["components/*"],
-      "@/types": ["types/index.ts"],
-      "@/customActions/*": ["store/customActions/*"]
-    },
-    "incremental": true
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    "netlify/functions/CRUDFLData.ts"
-  ], // include your functions folder here
-  "exclude": ["node_modules"]
+  "include": ["path/to/your/typescript/functions/**/*.ts"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
 }
