@@ -61,7 +61,7 @@ const Table: React.FC<TableProps> = ({ weeksData }) => {
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
             {weeksData.map((weekData, index) => (
               <Typography key={`${weekData.week}-${index}`} variant="body2">
-                <b>{weekData.week}</b> FL:h:w:{" "}
+                <b>{weekData.week}</b> - FL:h:w -{" "}
                 {formatFLHours(
                   weekData.totals[person] ?? 0,
                   weekData.totalHours[person] ?? 0,
@@ -71,7 +71,7 @@ const Table: React.FC<TableProps> = ({ weeksData }) => {
             ))}
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
             <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-              Total FL:h:w:{" "}
+              Kursens total - FL:h:w -{" "}
               {formatFLHours(
                 personTotals.FL,
                 personTotals.hours,

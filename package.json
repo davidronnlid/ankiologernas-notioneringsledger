@@ -6,6 +6,7 @@
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@material-ui/core": "latest",
+    "@material-ui/icons": "^4.11.3",
     "@mui/material": "^5.14.13",
     "@mui/styles": "^5.14.13",
     "@netlify/functions": "^2.4.0",
@@ -24,6 +25,7 @@
     "redux": "^4.1.0",
     "redux-persist": "^6.0.0",
     "redux-thunk": "^2.4.2",
+    "uuid": "^9.0.1",
     "uuidv4": "^6.2.13"
   },
   "scripts": {

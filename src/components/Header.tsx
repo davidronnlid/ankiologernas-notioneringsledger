@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { signIn, signOut } from "../store/slices/authReducer";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 
 import Slide from "@material-ui/core/Slide";
 import { Button } from "@mui/material";
@@ -36,9 +37,12 @@ export default function Header() {
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated
   );
-  const full_name = useSelector(
-    (state: RootState) => state.auth.user?.full_name
+
+  const profile_pic = useSelector(
+    (state: RootState) => state.auth.user?.profile_pic
   );
+
+  console.log("profile_pic", profile_pic);
 
   useEffect(() => {
     netlifyIdentity.init();
@@ -82,40 +86,75 @@ export default function Header() {
   return (
     <React.Fragment>
       <HideOnScroll>
-        <AppBar elevation={0}>
-          <Toolbar>
-            <Link href="/" passHref>
-              <Typography
-                variant="h6"
-                component="a"
-                style={{ cursor: "pointer" }}
-              >
-                Ankiologernas Notioneringsledger
-              </Typography>
-            </Link>
-
-            {isAuthenticated ? (
-              <>
-                {" "}
-                <Typography style={{ marginLeft: "2rem" }}></Typography>
-                <Button
-                  onClick={handleSignup}
+        <AppBar
+          elevation={0}
+          style={{ position: "relative", minHeight: "6rem" }}
+        >
+          <Toolbar
+            style={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "0 3rem",
+            }}
+          >
+            <div
+              style={{ position: "absolute", top: "1.5rem", left: "1.5rem" }}
+            >
+              <Link href="/" passHref>
+                <a
                   style={{
-                    backgroundColor: "black",
-                    color: "white",
-                    marginLeft: "2rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
                   }}
                 >
-                  Inloggad som {full_name}
+                  <div style={{ borderRadius: "50%", overflow: "hidden" }}>
+                    <Image
+                      src={"/images/logo.png"}
+                      alt="Ankiologerna Logo"
+                      width={40}
+                      height={40}
+                      layout="fixed"
+                    />
+                  </div>
+                  <Typography variant="h6">
+                    Ankiologernas Notioneringsledger
+                  </Typography>
+                </a>
+              </Link>
+            </div>
+
+            {isAuthenticated && (
+              <div
+                style={{ position: "absolute", top: "1.5rem", right: "1.5rem" }}
+              >
+                <Button onClick={handleSignup} style={{ padding: 0 }}>
+                  <div style={{ borderRadius: "50%", overflow: "hidden" }}>
+                    <Image
+                      src={
+                        profile_pic
+                          ? profile_pic
+                          : "/images/default_profile.png"
+                      } // Set a default profile picture
+                      alt="User profile image"
+                      width={40}
+                      height={40}
+                      layout="fixed"
+                    />
+                  </div>
                 </Button>
-              </>
-            ) : (
+              </div>
+            )}
+
+            {!isAuthenticated && (
               <Button
                 onClick={handleSignup}
                 style={{
+                  position: "absolute",
+                  top: "1.5rem",
+                  right: "1.5rem",
                   backgroundColor: "black",
                   color: "white",
-                  marginLeft: "2rem",
                 }}
               >
                 LOGGA IN

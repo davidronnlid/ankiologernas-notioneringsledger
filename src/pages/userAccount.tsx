@@ -12,13 +12,6 @@ function UserAccount() {
   const full_name = useSelector(
     (state: RootState) => state.auth.user?.full_name
   ); // assuming the user object has a 'username' property
-  const router = useRouter();
-
-  // If not authenticated, redirect to login
-  // if (!isAuthenticated) {
-  //   router.push("/");
-  //   return null;
-  // }
 
   return (
     <Layout>

@@ -1,0 +1,41 @@
+.commentsContainer {
+  margin-top: 8px; /* Reduced from 16px for less space between comments and other elements */
+}
+
+.comment {
+  background-color: #f9f9f9; /* Slightly off-white to reduce contrast and make it less dominant */
+  border: 1px solid #e0e0e0; /* Lighter border for a subtler look */
+  border-radius: 4px;
+  padding: 4px 8px; /* Reduced padding for a more compact look */
+  margin-bottom: 8px; /* Reduced margin for less space between comments */
+  display: flex;
+  align-items: center; /* Align items in a row */
+  gap: 8px; /* Add some space between the avatar, text, and button */
+}
+
+.commentHeader {
+  display: flex;
+  justify-content: start; /* Align items to the start */
+  align-items: center;
+  width: 100%; /* Ensure full width to space out name and delete button */
+}
+
+.commentFullName {
+  font-weight: bold;
+  font-size: 0.85rem; /* Smaller font size for names */
+}
+
+.commentText {
+  font-size: 0.8rem; /* Smaller font size for comments */
+  margin-top: 4px; /* Reduced margin-top */
+  word-break: break-word; /* Ensure long words do not overflow */
+}
+
+.commentDeleteButton {
+  margin-left: auto; /* Push the delete button to the right */
+  padding: 4px; /* Reduced padding for the button */
+}
+
+.commentIcon {
+  font-size: 0.8rem; /* Smaller icon size */
+}

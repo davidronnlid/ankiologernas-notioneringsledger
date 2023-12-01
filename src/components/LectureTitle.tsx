@@ -4,6 +4,8 @@ import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 import Lecture from "types/lecture";
 import { calculateDuration } from "../functions/calculateDuration";
+import PostComment from "./PostComment";
+import DisplayComments from "./DisplayComment";
 
 interface Props {
   week: string;
@@ -114,6 +116,11 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                 <VemNotionerar
                   lectureID={lecture.id}
                   checkboxState={lecture.checkboxState}
+                />
+                <PostComment lectureId={lecture.id} />
+                <DisplayComments
+                  lectureId={lecture.id}
+                  comments={lecture.comments || []}
                 />
               </li>
             );
