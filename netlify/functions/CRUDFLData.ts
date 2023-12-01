@@ -1,4 +1,7 @@
-const { v4: uuidv4 } = require("uuid");
+import { MongoClient } from "mongodb";
+import { v4 as uuidv4 } from "uuid";
+
+const uri: string = process.env.MONGODB_URI!;
 
 const headers = {
   "Access-Control-Allow-Origin": "*", // Adjust this to restrict to specific domains if needed
@@ -6,7 +9,7 @@ const headers = {
   "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, OPTIONS",
 };
 
-export const handler = async (event, context) => {
+export const handler = async (event: any, context: any): Promise<any> => {
   // Immediately respond to preflight requests (CORS)
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -15,7 +18,8 @@ export const handler = async (event, context) => {
     };
   }
 
-  const client = new MongoClient(process.env.MONGODB_URI);
+  const client: MongoClient = new MongoClient(uri);
+
   try {
     console.log("Attempting to connect to database...");
     await client.connect();
@@ -105,7 +109,7 @@ export const handler = async (event, context) => {
     }
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in function:", error);
     return {
       statusCode: 500,

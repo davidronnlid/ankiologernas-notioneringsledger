@@ -3,7 +3,7 @@ module.exports = {
     return [
       {
         source: "/.netlify/functions/CRUDFLData",
-        destination: process.env.NEXT_PUBLIC_API_URL, // Proxy to Netlify Dev
+        destination: "http://localhost:8888", // Proxy to Netlify Dev
       },
     ];
   },

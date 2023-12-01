@@ -1,6 +1,2 @@
 [build]
-  command = "npm run build" # Ensure this command runs the TypeScript compiler and your build process
-  functions = "netlify/functions" # Directory with your compiled functions
-
-[functions]
-  node_bundler = "zisi" # Use Netlify's Zip-it-and-ship-it for bundling
+  functions = ".netlify/functions" # Directory with your compiled functions
