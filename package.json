@@ -30,7 +30,9 @@
   },
   "scripts": {
     "dev": "next",
-    "build": "next build",
+    "build": "tsc && next build",
+    "build:functions": "tsc --project ./functions/tsconfig.json",
+    "postbuild": "npm run build:functions",
     "start": "next start",
     "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest"
   },
