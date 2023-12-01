@@ -4,4 +4,4 @@ functions = "netlify/functions" # Compiled output directory for functions
 publish = ".next"
 
 [functions]
-directory = ".netlify/functions"
+directory = "netlify/functions"
