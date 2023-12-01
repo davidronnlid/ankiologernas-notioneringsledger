@@ -4,11 +4,11 @@ export default function Footer() {
   return (
     <div className={styles.footerContainer}>
       <hr></hr>
-      <h1>
+      <p className={styles.footerText}>
         Ankiologernas Notioneringsledger är utvecklad i syfte att underlätta för
         Mattias Österdahl, Albin Lindberg och David Rönnlid att effektivt skapa
         amazing ankikort.
-      </h1>
+      </p>
     </div>
   );
 }
