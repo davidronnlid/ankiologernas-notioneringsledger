@@ -30,8 +30,8 @@ export default function Index() {
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL
-        : "";
-    fetch(`${apiUrl}/.netlify/functions/CRUDFLData`)
+        : "/netlify";
+    fetch(`${apiUrl}/functions/CRUDFLData`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch lecture data");

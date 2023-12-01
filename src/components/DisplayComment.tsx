@@ -30,10 +30,10 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
       const apiUrl =
         process.env.NODE_ENV === "development"
           ? process.env.NEXT_PUBLIC_API_URL
-          : "";
+          : "/netlify";
 
       const response = await fetch(
-        `${apiUrl}/.netlify/functions/CRUDFLData?lectureId=${lectureId}&commentId=${commentId}`,
+        `${apiUrl}/functions/CRUDFLData?lectureId=${lectureId}&commentId=${commentId}`,
         {
           method: "DELETE",
           headers: {
