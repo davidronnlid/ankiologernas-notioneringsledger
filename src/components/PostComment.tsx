@@ -25,7 +25,7 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
       const apiUrl =
         process.env.NODE_ENV === "development"
           ? process.env.NEXT_PUBLIC_API_URL
-          : "/netlify";
+          : "/.netlify";
       const response = await fetch(`${apiUrl}/functions/CRUDFLData`, {
         method: "POST",
         headers: {
