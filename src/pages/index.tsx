@@ -30,7 +30,7 @@ export default function Index() {
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL
-        : "/netlify";
+        : "/.netlify";
     fetch(`${apiUrl}/functions/CRUDFLData`)
       .then((response) => {
         if (!response.ok) {
