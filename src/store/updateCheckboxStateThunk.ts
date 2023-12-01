@@ -6,16 +6,15 @@ export const updateCheckboxStateThunk = createAsyncThunk(
     lectureID: string;
     newCheckboxState: Record<string, boolean>;
   }) => {
-    const response = await fetch(
-      "http://localhost:8888/.netlify/functions/CRUDFLData",
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      }
-    );
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    const response = await fetch(`${apiUrl}/.netlify/functions/CRUDFLData`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to update checkbox state");

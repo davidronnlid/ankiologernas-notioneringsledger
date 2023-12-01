@@ -27,7 +27,9 @@ export default function Index() {
   currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
   useEffect(() => {
-    fetch("http://localhost:8888/.netlify/functions/CRUDFLData")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    fetch(`${apiUrl}/.netlify/functions/CRUDFLData`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch lecture data");

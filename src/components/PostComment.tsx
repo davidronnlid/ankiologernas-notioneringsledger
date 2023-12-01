@@ -22,16 +22,15 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
     console.log("adding comment to lecture: ", lectureId);
 
     try {
-      const response = await fetch(
-        "http://localhost:8888/.netlify/functions/CRUDFLData",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ lectureId, comment, fullName }),
-        }
-      );
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+      const response = await fetch(`${apiUrl}/.netlify/functions/CRUDFLData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ lectureId, comment, fullName }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
