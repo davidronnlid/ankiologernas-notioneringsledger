@@ -1,19 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2018",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": false,
+    "allowJs": true, // set to true if you want to allow javascript files to be compiled
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
+    "noEmit": false, // change this to false to enable emitting files
     "esModuleInterop": true,
-    "module": "esnext",
+    "module": "CommonJS", // change this to CommonJS for Node.js environment
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "baseUrl": "./src",
+    "outDir": "./netlify/functions", // specify the output directory for compiled files
     "paths": {
       "@/shared-components/*": ["shared-components/*"],
       "@/components/*": ["components/*"],
@@ -22,6 +23,6 @@
     },
     "incremental": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".netlify/CRUDFLData.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "netlify/functions/*.ts"], // include your functions folder here
   "exclude": ["node_modules"]
 }
