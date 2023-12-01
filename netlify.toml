@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build" # Replace with your actual build command
+  command = "npm run build" # Ensure this command runs the TypeScript compiler and your build process
   functions = "netlify/functions" # Directory with your compiled functions
 
 [functions]
