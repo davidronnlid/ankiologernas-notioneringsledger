@@ -27,7 +27,10 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
     // API call to delete the comment
     console.log("lectureId", lectureId, "commentId", commentId);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl =
+        process.env.NODE_ENV === "development"
+          ? process.env.NEXT_PUBLIC_API_URL
+          : "";
 
       const response = await fetch(
         `${apiUrl}/.netlify/functions/CRUDFLData?lectureId=${lectureId}&commentId=${commentId}`,

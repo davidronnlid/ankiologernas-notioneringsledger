@@ -6,8 +6,10 @@ export const updateCheckboxStateThunk = createAsyncThunk(
     lectureID: string;
     newCheckboxState: Record<string, boolean>;
   }) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
+    const apiUrl =
+      process.env.NODE_ENV === "development"
+        ? process.env.NEXT_PUBLIC_API_URL
+        : "";
     const response = await fetch(`${apiUrl}/.netlify/functions/CRUDFLData`, {
       method: "PUT",
       headers: {

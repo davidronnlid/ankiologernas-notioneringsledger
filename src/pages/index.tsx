@@ -27,8 +27,10 @@ export default function Index() {
   currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
+    const apiUrl =
+      process.env.NODE_ENV === "development"
+        ? process.env.NEXT_PUBLIC_API_URL
+        : "";
     fetch(`${apiUrl}/.netlify/functions/CRUDFLData`)
       .then((response) => {
         if (!response.ok) {
