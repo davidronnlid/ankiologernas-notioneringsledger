@@ -14,8 +14,8 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
-  const allowedNames = ["David Rönnlid", "Albin Lindber", "Mattias Österdahl"];
-  const isAllowedToComment = allowedNames.includes(fullName);
+  const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+  const isAllowedToComment = fullName ? allowedNames.includes(fullName) : false;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
