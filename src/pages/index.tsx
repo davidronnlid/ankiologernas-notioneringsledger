@@ -49,6 +49,7 @@ export default function Index() {
             (a: any, b: any) =>
               new Date(a.date).getTime() - new Date(b.date).getTime()
           );
+          console.log("sortedLectures is: ", sortedLectures);
           const lecturesWithNumbers = sortedLectures.map((lecture: Lecture) => {
             // Determine the course of the lecture, if any
             const course = coursePeriods.find((period) =>
@@ -132,7 +133,15 @@ export default function Index() {
           );
 
           const updatedWeeksData = calculateTotals(groupedByWeek);
+          console.log(
+            "🚀 ~ file: index.tsx:136 ~ .then ~ updatedWeeksData:",
+            updatedWeeksData
+          );
           const finalWeeksData = calculateTotalHoursPerPerson(updatedWeeksData);
+          console.log(
+            "🚀 ~ file: index.tsx:138 ~ .then ~ finalWeeksData:",
+            finalWeeksData
+          );
 
           finalWeeksData.forEach((weekData) => {
             weekData.wishedTotal = { Mattias: 0, Albin: 0, David: 0 }; // Initialize wishedTotal
@@ -142,9 +151,9 @@ export default function Index() {
                 lecture.date + "T" + lecture.time.split(" - ")[0]
               );
               if (lectureDate > currentDate) {
-                // If the lecture date is in the future, add its duration to the wishedTotal
                 Object.keys(weekData.wishedTotal).forEach((person) => {
                   weekData.wishedTotal[person] += lecture.checkboxState[person]
+                    .confirm
                     ? calculateDuration(lecture.time)
                     : 0;
                 });

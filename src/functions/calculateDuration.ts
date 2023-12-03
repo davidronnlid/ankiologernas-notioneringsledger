@@ -31,14 +31,16 @@ export const calculateTotals = (groupedByWeek: WeekData[]) => {
     week.totals = { Mattias: 0, Albin: 0, David: 0 };
 
     week.lectures.forEach((lecture: Lecture) => {
-      if (lecture.checkboxState?.Mattias) week.totals.Mattias += 1;
-      if (lecture.checkboxState?.Albin) week.totals.Albin += 1;
-      if (lecture.checkboxState?.David) week.totals.David += 1;
+      if (lecture.checkboxState?.Mattias.confirm) week.totals.Mattias += 1;
+      if (lecture.checkboxState?.Albin.confirm) week.totals.Albin += 1;
+      if (lecture.checkboxState?.David.confirm) week.totals.David += 1;
     });
   });
 
   return groupedByWeek;
 };
+
+// Function to calculate total number of hours that a person has notionerat
 export const calculateTotalHoursPerPerson = (
   groupedByWeek: WeekData[]
 ): WeekData[] => {
@@ -50,9 +52,12 @@ export const calculateTotalHoursPerPerson = (
       const duration = calculateDuration(lecture.time);
 
       // Add duration to each person's total if they have notionerat (checkboxState is true)
-      if (lecture.checkboxState?.Mattias) week.totalHours.Mattias += duration;
-      if (lecture.checkboxState?.Albin) week.totalHours.Albin += duration;
-      if (lecture.checkboxState?.David) week.totalHours.David += duration;
+      if (lecture.checkboxState?.Mattias.confirm)
+        week.totalHours.Mattias += duration;
+      if (lecture.checkboxState?.Albin.confirm)
+        week.totalHours.Albin += duration;
+      if (lecture.checkboxState?.David.confirm)
+        week.totalHours.David += duration;
     });
   });
 

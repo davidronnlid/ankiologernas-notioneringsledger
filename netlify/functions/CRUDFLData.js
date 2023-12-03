@@ -43,12 +43,18 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ events: FLData }), // Wrap data in an object
       };
     } else if (event.httpMethod === "PUT") {
-      const { lectureID, newCheckboxState } = JSON.parse(event.body);
-      console.log(lectureID, newCheckboxState);
+      const { lectureID, newCheckboxState, newUnwishState } = JSON.parse(
+        event.body
+      );
+      console.log(lectureID, newCheckboxState, newUnwishState);
 
       const updateResult = await collection.updateOne(
         { id: lectureID },
-        { $set: { checkboxState: newCheckboxState } },
+        {
+          $set: {
+            checkboxState: newCheckboxState,
+          },
+        },
         { upsert: true }
       );
 

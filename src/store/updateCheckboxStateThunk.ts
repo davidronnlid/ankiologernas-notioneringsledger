@@ -1,11 +1,9 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import { CheckboxState } from "types/lecture";
 
 export const updateCheckboxStateThunk = createAsyncThunk(
   "checkbox/updateState",
-  async (params: {
-    lectureID: string;
-    newCheckboxState: Record<string, boolean>;
-  }) => {
+  async (params: { lectureID: string; newCheckboxState: CheckboxState }) => {
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL

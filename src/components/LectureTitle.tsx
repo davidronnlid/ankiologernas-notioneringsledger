@@ -118,6 +118,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                   lectureID={lecture.id}
                   checkboxState={lecture.checkboxState}
                 />
+
                 <div className={styles.commentsContainer}>
                   <DisplayComments
                     lectureId={lecture.id}

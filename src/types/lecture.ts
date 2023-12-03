@@ -4,13 +4,20 @@ export interface Comment {
   commentId: string;
 }
 
+export interface CheckboxState {
+  [key: string]: {
+    confirm: boolean;
+    unwish: boolean;
+  };
+}
+
 export default interface Lecture {
   title: string;
   lecturer?: string;
   date: string;
   time: string;
   id: string;
-  checkboxState: Record<string, boolean>;
+  checkboxState: CheckboxState;
   lectureNumber: number;
   comments?: Comment[];
 }

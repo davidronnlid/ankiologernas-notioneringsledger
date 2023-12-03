@@ -24,15 +24,18 @@ const initialTotals: Totals = {
 };
 
 const Table: React.FC<TableProps> = ({ weeksData }) => {
-  // Calculate totals for FL and hours using the correct typing
-  const totals = weeksData.reduce<Totals>((acc, weekData: WeekData) => {
-    Object.keys(acc).forEach((person) => {
-      acc[person].FL += weekData.totals[person] ?? 0;
-      acc[person].hours += weekData.totalHours[person] ?? 0;
-      acc[person].wishedHours += weekData.wishedTotal[person] ?? 0;
-    });
-    return acc;
-  }, initialTotals);
+  // Calculate totals for FL, hours, and wishedHours using the correct typing
+  const totals = weeksData.reduce<Totals>(
+    (acc, weekData: WeekData) => {
+      Object.keys(acc).forEach((person) => {
+        acc[person].FL += weekData.totals[person] ?? 0;
+        acc[person].hours += weekData.totalHours[person] ?? 0;
+        acc[person].wishedHours += weekData.wishedTotal[person] ?? 0;
+      });
+      return acc;
+    },
+    { ...initialTotals }
+  );
 
   // Create a function to format the FL:h values
   const formatFLHours = (fl: number, hours: number, wished: number): string => {
