@@ -93,6 +93,7 @@ export default function Header() {
           style={{
             position: "relative",
             minHeight: "6rem",
+            background: "#3e3e3e",
           }}
         >
           <Toolbar

@@ -5,13 +5,14 @@ import LectureTitle from "@/components/LectureTitle";
 import { WeekData } from "@/types";
 import Table from "@/components/Table";
 import Lecture from "types/lecture";
-import { Typography } from "@material-ui/core";
+import { Button, Typography } from "@material-ui/core";
 import React from "react";
 import {
   calculateTotals,
   calculateTotalHoursPerPerson,
   calculateDuration,
 } from "../functions/calculateDuration";
+import Link from "next/link";
 
 const coursePeriods = [
   {
@@ -185,7 +186,18 @@ export default function Index() {
             <>
               {/* Render the course title once */}
               {courseWeeks.length > 0 && (
-                <Typography variant="h4">{course.title}</Typography>
+                <>
+                  <Typography variant="h4">{course.title}</Typography>{" "}
+                  <Link href="/lecture-list" passHref>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      style={{ marginBottom: "3rem" }}
+                    >
+                      Fyll i snabbt
+                    </Button>
+                  </Link>
+                </>
               )}
 
               {/* Then render all weeks that belong to this course */}

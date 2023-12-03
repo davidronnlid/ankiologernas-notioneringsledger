@@ -14,7 +14,7 @@ export default function Layout({
   children,
 }: LayoutProps) {
   return (
-    <div>
+    <div style={{ background: "#4b4b4b", color: "white" }}>
       <Head>
         <title>{title}</title>
         <meta name="description" content={description} />

@@ -1,14 +1,45 @@
+import { Box } from "@material-ui/core";
 import styles from "../styles/Footer.module.css";
+import Image from "next/image";
 
 export default function Footer() {
   return (
     <div className={styles.footerContainer}>
-      <hr></hr>
-      <p className={styles.footerText}>
-        Ankiologernas Notioneringsledger är utvecklad i syfte att underlätta för
-        Mattias Österdahl, Albin Lindberg och David Rönnlid att effektivt skapa
-        amazing ankikort.
-      </p>
+      <span className={styles.footerText}>
+        Ankiologernas Notioneringsledger är utvecklad i syfte att underlätta för{" "}
+        <Image
+          src={"/images/mattias.png"}
+          alt="Mattias Österdahl"
+          width={40}
+          height={40}
+          layout="fixed"
+        />
+        ,{" "}
+        <Image
+          src={"/images/albin.png"}
+          alt="Albin Lindberg"
+          width={40}
+          height={40}
+          layout="fixed"
+        />{" "}
+        och{" "}
+        <Image
+          src={"/images/david.png"}
+          alt="David Rönnlid"
+          width={40}
+          height={40}
+          layout="fixed"
+        />{" "}
+        att effektivt skapa amazing ankikort.
+      </span>
+      <Box py={1}></Box>
+      <Image
+        src={"/images/banner.png"}
+        alt="Ankiologerna Banner"
+        width={565 / 3}
+        height={250 / 3}
+        layout="responsive"
+      />{" "}
     </div>
   );
 }
