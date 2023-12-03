@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -80,6 +80,8 @@ export default function Header() {
   const router = useRouter();
 
   const handleSignup = () => {
+    console.log("called handleSignup");
+
     netlifyIdentity.open("signup");
   };
 
@@ -88,7 +90,10 @@ export default function Header() {
       <HideOnScroll>
         <AppBar
           elevation={0}
-          style={{ position: "relative", minHeight: "6rem" }}
+          style={{
+            position: "relative",
+            minHeight: "6rem",
+          }}
         >
           <Toolbar
             style={{
@@ -131,11 +136,7 @@ export default function Header() {
                 <Button onClick={handleSignup} style={{ padding: 0 }}>
                   <div style={{ borderRadius: "50%", overflow: "hidden" }}>
                     <Image
-                      src={
-                        profile_pic
-                          ? profile_pic
-                          : "/images/default_profile.png"
-                      } // Set a default profile picture
+                      src={profile_pic ? profile_pic : "/images/banner.png"}
                       alt="User profile image"
                       width={40}
                       height={40}

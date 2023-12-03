@@ -14,6 +14,8 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
+  const allowedNames = ["David Rönnlid", "Albin Lindber", "Mattias Österdahl"];
+  const isAllowedToComment = allowedNames.includes(fullName);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,7 +47,10 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
       // Optionally handle error in UI
     }
   };
-
+  if (!isAllowedToComment) {
+    // If the user's name is not in the list, do not show the comment box
+    return null; // or some other appropriate response
+  }
   return (
     <div className={styles.commentContainer}>
       <form onSubmit={handleSubmit} className={styles.commentForm}>

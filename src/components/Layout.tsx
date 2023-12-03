@@ -19,6 +19,7 @@ export default function Layout({
         <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
+        <link rel="icon" href="/images/logo.png" />
       </Head>
       <Header />
       <Box my={5}>
