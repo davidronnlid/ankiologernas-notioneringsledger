@@ -78,7 +78,8 @@ const VemNotionerar: React.FC<Props> = ({ lectureID, checkboxState }) => {
                   }}
                 />
               }
-              label={``} // Modified label
+              label={`${name}`} // Modified label
+              labelPlacement="start"
               sx={{
                 // Apply a color to the text itself
                 ".MuiTypography-root": {
@@ -96,7 +97,6 @@ const VemNotionerar: React.FC<Props> = ({ lectureID, checkboxState }) => {
                 "& .MuiFormControlLabel-label": {
                   color: isAbleToCheck ? "white" : "grey", // Ensures label color is set
                 },
-                marginRight: "-8px",
               }}
             />
             <FormControlLabel
@@ -115,7 +115,7 @@ const VemNotionerar: React.FC<Props> = ({ lectureID, checkboxState }) => {
                   }}
                 />
               }
-              label={`${name}`} // Modified label
+              label={``} // Modified label
               sx={{
                 // Apply a color to the text itself
                 ".MuiTypography-root": {

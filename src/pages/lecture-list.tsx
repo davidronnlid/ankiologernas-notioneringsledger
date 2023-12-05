@@ -109,7 +109,7 @@ export default function LectureList() {
               {lectureChunks.map((chunk, chunkIndex) => (
                 <TableRow key={chunkIndex}>
                   {chunk.map((lecture, index) => (
-                    <TableCell align="center" key={lecture.id}>
+                    <TableCell key={lecture.id}>
                       <Tooltip
                         title={
                           <React.Fragment>
