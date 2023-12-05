@@ -53,7 +53,7 @@ const VemNotionerar: React.FC<Props> = ({ lectureID, checkboxState }) => {
   };
 
   const canCheck = (label: string) => {
-    return full_name?.includes(label);
+    return full_name?.toLowerCase().includes(label.toLowerCase());
   };
 
   return (

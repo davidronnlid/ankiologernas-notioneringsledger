@@ -32,7 +32,7 @@ const authSlice = createSlice({
           profilePicUrl = "/images/albin.png";
           break;
         default:
-          profilePicUrl = "/images/david.png";
+          profilePicUrl = "/images/alt_logo.png";
       }
 
       state.isAuthenticated = true;
