@@ -32,14 +32,6 @@ export default function Footer() {
         />{" "}
         att effektivt skapa amazing ankikort.
       </span>
-      {/* <Box py={1}></Box>
-      <Image
-        src={"/images/banner.png"}
-        alt="Ankiologerna Banner"
-        width={565 / 3}
-        height={250 / 3}
-        layout="responsive"
-      />{" "} */}
     </div>
   );
 }

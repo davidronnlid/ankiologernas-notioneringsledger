@@ -229,7 +229,7 @@ export default function Index() {
               </>
             );
           })}
-          <Table weeksData={lecturesData.lectures} />
+          <Table />
         </>
       )}
     </Layout>

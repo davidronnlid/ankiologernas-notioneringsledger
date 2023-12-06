@@ -4,10 +4,6 @@ import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 
-interface TableProps {
-  weeksData: WeekData[];
-}
-
 interface PersonTotals {
   FL: number;
   hours: number;
@@ -25,7 +21,7 @@ const initialTotals: Totals = {
   David: { FL: 0, hours: 0, wishedHours: 0 },
 };
 
-const Table: React.FC<TableProps> = ({ weeksData }) => {
+const Table: React.FC = () => {
   // Calculate totals for FL, hours, and wishedHours using the correct typing
 
   const lecturesData = useSelector(
