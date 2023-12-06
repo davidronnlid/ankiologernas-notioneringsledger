@@ -12,6 +12,7 @@ import {
 import Lecture from "types/lecture";
 import VemNotionerar from "@/components/VemNotionerar";
 import Link from "next/link";
+import ZoomInSharpIcon from "@mui/icons-material/ZoomInSharp";
 
 const courseTitle = "Medicinsk Mikrobiologi";
 
@@ -77,25 +78,24 @@ export default function LectureList() {
   return (
     <Layout>
       <>
-        <Typography variant="h4" gutterBottom>
-          {courseTitle}
+        <Typography variant="h4" gutterBottom style={{ marginBottom: "3rem" }}>
+          {courseTitle}{" "}
+          <Link href="/" passHref>
+            <Button
+              style={{
+                background: "transparent",
+                boxShadow: "none",
+                color: "white",
+                width: "3rem",
+              }}
+              variant="contained"
+              color="primary"
+              size="large"
+            >
+              <ZoomInSharpIcon />
+            </Button>
+          </Link>
         </Typography>
-
-        <Link href="/" passHref>
-          <Button
-            style={{
-              width: "6rem",
-              marginTop: "-0.6rem",
-              background: "white",
-              color: "black",
-            }}
-            variant="contained"
-            color="primary"
-            size="large"
-          >
-            Detaljer
-          </Button>
-        </Link>
 
         <Box
           width="100%"

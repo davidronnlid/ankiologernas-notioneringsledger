@@ -17,6 +17,7 @@ import {
 } from "../functions/calculateDuration";
 import Link from "next/link";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import FlashOnSharpIcon from "@mui/icons-material/FlashOnSharp";
 
 const coursePeriods = [
   {
@@ -207,20 +208,27 @@ export default function Index() {
                 {/* Render the course title once */}
                 {courseWeeks.length > 0 && (
                   <>
-                    <Typography variant="h4">{course.title}</Typography>{" "}
-                    <Link href="/lecture-list" passHref>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        style={{
-                          marginBottom: "3rem",
-                          background: "white",
-                          color: "black",
-                        }}
-                      >
-                        Fyll i snabbt
-                      </Button>
-                    </Link>
+                    <Typography
+                      variant="h4"
+                      style={{ marginBottom: "3rem" }}
+                      gutterBottom
+                    >
+                      {course.title}{" "}
+                      <Link href="/lecture-list" passHref>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          style={{
+                            background: "transparent",
+                            boxShadow: "none",
+                            color: "white",
+                            width: "3rem",
+                          }}
+                        >
+                          <FlashOnSharpIcon />
+                        </Button>
+                      </Link>
+                    </Typography>{" "}
                   </>
                 )}
 
