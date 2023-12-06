@@ -191,7 +191,9 @@ export default function Index() {
   return (
     <Layout>
       {isLoading ? (
-        <CircularProgress /> // Show spinner when loading
+        <div style={{ minHeight: "60vh" }}>
+          <CircularProgress />
+        </div>
       ) : (
         <>
           {coursePeriods.map((course) => {

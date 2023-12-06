@@ -5,18 +5,11 @@ import {
   Tooltip,
   Grid,
   Box,
-  Table,
   Button,
-  TableContainer,
-  TableBody,
   Paper,
-  TableRow,
-  TableCell,
   CircularProgress,
 } from "@material-ui/core";
 import Lecture from "types/lecture";
-import { RootState } from "store/types";
-import { useSelector } from "react-redux";
 import VemNotionerar from "@/components/VemNotionerar";
 import Link from "next/link";
 
@@ -112,7 +105,9 @@ export default function LectureList() {
           style={{ marginTop: "3rem" }}
         >
           {isLoading ? (
-            <CircularProgress style={{ marginTop: "1rem" }} />
+            <div style={{ minHeight: "60vh" }}>
+              <CircularProgress style={{ marginTop: "1rem" }} />
+            </div>
           ) : (
             <Grid container spacing={1} style={{ maxWidth: "100%" }}>
               {lectures.map((lecture, index) => (
