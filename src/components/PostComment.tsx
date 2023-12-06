@@ -1,7 +1,11 @@
 import React, { useState, FormEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../store/types";
-import { IconButton, TextareaAutosize } from "@material-ui/core";
+import {
+  CircularProgress,
+  IconButton,
+  TextareaAutosize,
+} from "@material-ui/core";
 import styles from "../styles/Comment.module.css";
 import Chat from "@material-ui/icons/Chat";
 import { addComment } from "store/slices/commentsReducer";
@@ -13,6 +17,7 @@ interface PostCommentProps {
 const PostComment = ({ lectureId }: PostCommentProps) => {
   const [comment, setComment] = useState("");
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(false);
 
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
@@ -25,6 +30,8 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
     if (!comment) return;
 
     console.log("adding comment to lecture: ", lectureId);
+
+    setIsLoading(true);
 
     try {
       const apiUrl =
@@ -55,11 +62,13 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
     } catch (error) {
       console.error("Error saving comment:", error);
       // Optionally handle error in UI
+    } finally {
+      setIsLoading(false);
     }
   };
   if (!isAllowedToComment) {
     // If the user's name is not in the list, do not show the comment box
-    return null; // or some other appropriate response
+    return null;
   }
   return (
     <div className={styles.commentContainer}>
@@ -72,7 +81,7 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
             placeholder="Skriv kommentar..."
           />
           <IconButton type="submit" className={styles.commentSubmitIcon}>
-            <Chat />
+            {isLoading ? <CircularProgress size={24} /> : <Chat />}
           </IconButton>
         </div>
       </form>

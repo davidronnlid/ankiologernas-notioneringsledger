@@ -12,6 +12,7 @@ import {
   Paper,
   TableRow,
   TableCell,
+  CircularProgress,
 } from "@material-ui/core";
 import Lecture from "types/lecture";
 import { RootState } from "store/types";
@@ -23,10 +24,11 @@ const courseTitle = "Medicinsk Mikrobiologi";
 
 export default function LectureList() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
-  const full_name = useSelector(
-    (state: RootState) => state.auth.user?.full_name
-  );
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
+    setIsLoading(true);
+
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL
@@ -64,6 +66,9 @@ export default function LectureList() {
       })
       .catch((error) => {
         console.error("Error fetching lecture data:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -80,72 +85,86 @@ export default function LectureList() {
 
   return (
     <Layout>
-      <Box
-        width="100%"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-      >
-        <Typography variant="h4" align="center" gutterBottom>
+      <>
+        <Typography variant="h4" gutterBottom>
           {courseTitle}
         </Typography>
 
         <Link href="/" passHref>
-          <Button variant="contained" color="primary" size="large">
+          <Button
+            style={{ width: "6rem", marginTop: "-0.6rem" }}
+            variant="contained"
+            color="primary"
+            size="large"
+          >
             Detaljer
           </Button>
         </Link>
-
-        <TableContainer
-          component={Paper}
-          style={{
-            maxWidth: "80%",
-            marginTop: "20px",
-            backgroundColor: "black",
-          }}
+        <Box
+          width="100%"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          style={{ marginTop: "3rem" }}
         >
-          <Table size="small">
-            <TableBody>
-              {lectureChunks.map((chunk, chunkIndex) => (
-                <TableRow key={chunkIndex}>
-                  {chunk.map((lecture, index) => (
-                    <TableCell key={lecture.id}>
-                      <Tooltip
-                        title={
-                          <React.Fragment>
-                            <Typography color="inherit">
-                              {lecture.title}
+          {isLoading ? (
+            <CircularProgress style={{ marginTop: "1rem" }} />
+          ) : (
+            <TableContainer
+              component={Paper}
+              style={{
+                maxWidth: "80%",
+                marginTop: "20px",
+                backgroundColor: "black",
+              }}
+            >
+              <Table size="small">
+                <TableBody>
+                  {lectureChunks.map((chunk, chunkIndex) => (
+                    <TableRow key={chunkIndex}>
+                      {chunk.map((lecture, index) => (
+                        <TableCell key={lecture.id}>
+                          <Tooltip
+                            title={
+                              <React.Fragment>
+                                <Typography color="inherit">
+                                  {lecture.title}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <em>Datum:</em> {lecture.date}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <em>Tid:</em> {lecture.time}
+                                </Typography>
+                                <Typography variant="body2">
+                                  <em>Föreläsare:</em> {lecture.lecturer}
+                                </Typography>
+                              </React.Fragment>
+                            }
+                            placement="top"
+                            arrow
+                          >
+                            <Typography
+                              variant="body2"
+                              style={{ color: "white" }}
+                            >
+                              {chunkIndex * 10 + index + 1}
                             </Typography>
-                            <Typography variant="body2">
-                              <em>Datum:</em> {lecture.date}
-                            </Typography>
-                            <Typography variant="body2">
-                              <em>Tid:</em> {lecture.time}
-                            </Typography>
-                            <Typography variant="body2">
-                              <em>Föreläsare:</em> {lecture.lecturer}
-                            </Typography>
-                          </React.Fragment>
-                        }
-                        placement="top"
-                        arrow
-                      >
-                        <Typography variant="body2" style={{ color: "white" }}>
-                          {chunkIndex * 10 + index + 1}
-                        </Typography>
-                      </Tooltip>
-                      <VemNotionerar
-                        lectureID={lecture.id}
-                        checkboxState={lecture.checkboxState}
-                      />
-                    </TableCell>
+                          </Tooltip>
+                          <VemNotionerar
+                            lectureID={lecture.id}
+                            checkboxState={lecture.checkboxState}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Box>
+      </>
     </Layout>
   );
 }

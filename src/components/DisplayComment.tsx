@@ -76,8 +76,9 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
                 height={40}
                 layout="responsive"
               />
-              {/* <p>{comment.date}</p> */}
             </div>
+            {/* <p>{comment.date}</p> */}
+
             <Typography variant="body2" className={styles.commentText}>
               {comment.comment}
             </Typography>

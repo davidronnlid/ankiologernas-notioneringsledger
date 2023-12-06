@@ -16,6 +16,7 @@ import {
   calculateDuration,
 } from "../functions/calculateDuration";
 import Link from "next/link";
+import CircularProgress from "@material-ui/core/CircularProgress";
 
 const coursePeriods = [
   {
@@ -27,7 +28,7 @@ const coursePeriods = [
 
 export default function Index() {
   // const [weeksData, setWeeksData] = useState<WeekData[]>([]);
-
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
   const lecturesData = useSelector((state: RootState) => state.lectures);
 
@@ -35,6 +36,7 @@ export default function Index() {
   currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
   useEffect(() => {
+    setIsLoading(true);
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL
@@ -171,6 +173,7 @@ export default function Index() {
 
           // setWeeksData(finalWeeksData);
           dispatch(setLectures(finalWeeksData));
+          setIsLoading(false);
 
           console.log("final weeks data", finalWeeksData);
         } else if (data.message) {
@@ -179,6 +182,7 @@ export default function Index() {
       })
       .catch((error) => {
         console.error("Error fetching lecture data:", error);
+        setIsLoading(false);
       });
   }, [dispatch]);
 
@@ -186,44 +190,48 @@ export default function Index() {
 
   return (
     <Layout>
-      <>
-        {coursePeriods.map((course) => {
-          // Find all weeks that belong to this course
-          const courseWeeks = lecturesData.lectures.filter(
-            (weekData: WeekData) => weekData.course === course.title
-          );
+      {isLoading ? (
+        <CircularProgress /> // Show spinner when loading
+      ) : (
+        <>
+          {coursePeriods.map((course) => {
+            // Find all weeks that belong to this course
+            const courseWeeks = lecturesData.lectures.filter(
+              (weekData: WeekData) => weekData.course === course.title
+            );
 
-          return (
-            <>
-              {/* Render the course title once */}
-              {courseWeeks.length > 0 && (
-                <>
-                  <Typography variant="h4">{course.title}</Typography>{" "}
-                  <Link href="/lecture-list" passHref>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      style={{ marginBottom: "3rem" }}
-                    >
-                      Fyll i snabbt
-                    </Button>
-                  </Link>
-                </>
-              )}
+            return (
+              <>
+                {/* Render the course title once */}
+                {courseWeeks.length > 0 && (
+                  <>
+                    <Typography variant="h4">{course.title}</Typography>{" "}
+                    <Link href="/lecture-list" passHref>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        style={{ marginBottom: "3rem" }}
+                      >
+                        Fyll i snabbt
+                      </Button>
+                    </Link>
+                  </>
+                )}
 
-              {/* Then render all weeks that belong to this course */}
-              {courseWeeks.map((weekData: WeekData) => (
-                <LectureTitle
-                  key={weekData.week}
-                  week={weekData.week}
-                  lectures={weekData.lectures}
-                />
-              ))}
-            </>
-          );
-        })}
-        <Table weeksData={lecturesData.lectures} />
-      </>
+                {/* Then render all weeks that belong to this course */}
+                {courseWeeks.map((weekData: WeekData) => (
+                  <LectureTitle
+                    key={weekData.week}
+                    week={weekData.week}
+                    lectures={weekData.lectures}
+                  />
+                ))}
+              </>
+            );
+          })}
+          <Table weeksData={lecturesData.lectures} />
+        </>
+      )}
     </Layout>
   );
 }

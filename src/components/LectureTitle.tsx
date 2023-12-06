@@ -55,6 +55,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
         variant="h6"
         className={styles.header}
         onClick={toggleExpandedWeek}
+        style={{ cursor: "pointer" }}
       >
         {isExpandedWeek ? "▼ " : "► "} {week} ({weekRange})
       </Typography>

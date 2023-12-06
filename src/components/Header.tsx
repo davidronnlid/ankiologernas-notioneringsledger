@@ -93,7 +93,7 @@ export default function Header() {
           style={{
             position: "relative",
             minHeight: "6rem",
-            background: "#3e3e3e",
+            background: "#2c2c2c",
           }}
         >
           <Toolbar
@@ -107,11 +107,12 @@ export default function Header() {
               style={{ position: "absolute", top: "1.5rem", left: "1.5rem" }}
             >
               <Link href="/" passHref>
-                <a
+                <span
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
+                    cursor: "pointer",
                   }}
                 >
                   <div style={{ borderRadius: "50%", overflow: "hidden" }}>
@@ -126,7 +127,7 @@ export default function Header() {
                   <Typography variant="h6">
                     Ankiologernas Notioneringsledger
                   </Typography>
-                </a>
+                </span>
               </Link>
             </div>
 
