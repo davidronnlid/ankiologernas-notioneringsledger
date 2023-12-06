@@ -6,7 +6,6 @@ import DeleteIcon from "@material-ui/icons/Delete";
 import { RootState } from "store/types";
 import { useDispatch, useSelector } from "react-redux";
 import Image from "next/image";
-import { useEffect } from "react";
 import { deleteComment } from "store/slices/commentsReducer";
 
 interface DisplayCommentsProps {
@@ -66,38 +65,63 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
   return (
     <div className={styles.commentsContainer}>
       {comments.length > 0 || reduxComments.length > 0 ? (
-        [...comments, ...reduxComments].map((comment: Comment) => (
-          <div key={comment.commentId} className={styles.comment}>
-            <div className={styles.commentImageWrapper}>
-              <Image
-                src={profile_pic || ""}
-                alt="User profile image"
-                width={40}
-                height={40}
-                layout="responsive"
-              />
-            </div>
-            {/* <p>{comment.date}</p> */}
+        [...comments, ...reduxComments].map((comment: Comment) => {
+          const commentDate = new Date(comment.dateAdded);
 
-            <Typography variant="body2" className={styles.commentText}>
-              {comment.comment}
-            </Typography>
-            {fullName === comment.fullName && (
-              <IconButton
-                className={styles.commentDeleteButton}
-                onClick={() =>
-                  handleDeleteComment(lectureId, comment.commentId)
-                }
-                aria-label="delete"
-                size="small"
-              >
-                <DeleteIcon className={styles.commentIcon} />
-              </IconButton>
-            )}
-          </div>
-        ))
+          const formattedDate = comment.dateAdded
+            ? commentDate.toLocaleDateString("en-US", {
+                year: "2-digit",
+                month: "2-digit",
+                day: "2-digit",
+              })
+            : "No Date";
+
+          const formattedTime = comment.dateAdded
+            ? commentDate.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false, // change to false for 24-hour format
+              })
+            : "";
+
+          return (
+            <div key={comment.commentId} className={styles.comment}>
+              <div className={styles.commentImageWrapper}>
+                <Image
+                  src={profile_pic || ""}
+                  alt="User profile image"
+                  width={40}
+                  height={40}
+                  layout="fixed"
+                />
+              </div>
+
+              <Typography variant="body2" className={styles.commentText}>
+                {comment.comment}
+              </Typography>
+
+              {/* Display the date */}
+              <Typography variant="body2" className={styles.commentDate}>
+                {formattedTime} {formattedDate}
+              </Typography>
+
+              {fullName === comment.fullName && (
+                <IconButton
+                  className={styles.commentDeleteButton}
+                  onClick={() =>
+                    handleDeleteComment(lectureId, comment.commentId)
+                  }
+                  aria-label="delete"
+                  size="small"
+                >
+                  <DeleteIcon className={styles.commentIcon} />
+                </IconButton>
+              )}
+            </div>
+          );
+        })
       ) : (
-        <Typography variant="body2" style={{ color: "lightgrey" }}>
+        <Typography variant="body2" className={styles.noCommentsText}>
           Inga kommentarer än.
         </Typography>
       )}

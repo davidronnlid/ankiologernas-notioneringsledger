@@ -3,7 +3,7 @@ export interface Comment {
   comment: string;
   commentId: string;
   lectureId: string;
-  date: Date;
+  dateAdded: Date;
 }
 
 export interface CheckboxState {

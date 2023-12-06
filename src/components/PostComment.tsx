@@ -56,6 +56,7 @@ const PostComment = ({ lectureId }: PostCommentProps) => {
         // Dispatch the addComment action with the lectureId and the new comment
 
         dispatch(addComment({ comment: responseJson }));
+        setComment("");
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
