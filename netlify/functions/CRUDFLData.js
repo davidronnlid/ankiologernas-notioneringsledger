@@ -68,17 +68,26 @@ exports.handler = async (event, context) => {
       console.log("Attempting to add a comment... to lecture: ", lectureId);
 
       const commentId = uuidv4();
+      const dateAdded = new Date();
 
       const insertResult = await collection.updateOne(
         { id: lectureId },
-        { $push: { comments: { commentId, comment, fullName } } },
+        {
+          $push: {
+            comments: { commentId, comment, fullName, dateAdded, lectureId },
+          },
+        },
         { upsert: true }
       );
+      const responseComment =
+        insertResult.modifiedCount === 1
+          ? { commentId, comment, fullName, dateAdded, lectureId }
+          : {};
 
       response = {
         statusCode: insertResult.modifiedCount === 1 ? 200 : 400,
         headers,
-        body: JSON.stringify({ modifiedCount: insertResult.modifiedCount }),
+        body: JSON.stringify(responseComment),
       };
       console.log("Added comment: ", response);
     } else if (event.httpMethod === "DELETE") {

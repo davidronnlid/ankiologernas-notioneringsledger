@@ -2,6 +2,8 @@ export interface Comment {
   fullName: string;
   comment: string;
   commentId: string;
+  lectureId: string;
+  date: Date;
 }
 
 export interface CheckboxState {

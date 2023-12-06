@@ -4,8 +4,10 @@ import { IconButton, Typography } from "@material-ui/core";
 import { Comment } from "types/lecture";
 import DeleteIcon from "@material-ui/icons/Delete";
 import { RootState } from "store/types";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import Image from "next/image";
+import { useEffect } from "react";
+import { deleteComment } from "store/slices/commentsReducer";
 
 interface DisplayCommentsProps {
   lectureId: string;
@@ -16,12 +18,26 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
   lectureId,
   comments,
 }) => {
+  const dispatch = useDispatch();
+
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
   const profile_pic = useSelector(
     (state: RootState) => state.auth.user?.profile_pic
   );
+
+  const reduxComments = useSelector(
+    (state: RootState) => state.comments.comments[lectureId] || []
+  );
+
+  // useEffect hook to log reduxComments every time it changes
+  useEffect(() => {
+    console.log(
+      "Logging reduxComments to ensure instant UI update:",
+      reduxComments
+    );
+  }, [reduxComments]); // dependency array includes reduxComments
 
   const handleDeleteComment = async (lectureId: string, commentId: string) => {
     // API call to delete the comment
@@ -43,23 +59,26 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
         }
       );
 
-      if (!response.ok) {
+      if (response.ok) {
+        console.log("Comment deleted successfully");
+
+        // Dispatch the deleteComment action
+        dispatch(deleteComment({ lectureId, commentId }));
+      } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      console.log("Comment deleted successfully");
     } catch (error) {
       console.error("Error deleting comment:", error);
     }
   };
   return (
     <div className={styles.commentsContainer}>
-      {comments.length > 0 ? (
-        comments.map((comment) => (
+      {comments.length > 0 || reduxComments.length > 0 ? (
+        [...comments, ...reduxComments].map((comment: Comment) => (
           <div key={comment.commentId} className={styles.comment}>
             <div className={styles.commentImageWrapper}>
               <Image
-                src={profile_pic ? profile_pic : ""}
+                src={profile_pic || ""}
                 alt="User profile image"
                 width={40}
                 height={40}
@@ -68,7 +87,7 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
             </div>
             <Typography variant="body2" className={styles.commentText}>
               {comment.comment}
-            </Typography>{" "}
+            </Typography>
             {fullName === comment.fullName && (
               <IconButton
                 className={styles.commentDeleteButton}

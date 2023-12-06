@@ -50,7 +50,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
       : "";
 
   return (
-    <div className={styles.defaultBoxShadow}>
+    <div className={styles.smallPaddingAndMargin}>
       <Typography
         variant="h6"
         className={styles.header}
