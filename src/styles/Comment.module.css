@@ -163,3 +163,7 @@
 .comment:not(:last-child) {
   margin-bottom: 0; /* Remove the bottom margin */
 }
+
+.commentDate {
+  color: black;
+}
