@@ -210,7 +210,11 @@ export default function Index() {
                       <Button
                         variant="contained"
                         color="primary"
-                        style={{ marginBottom: "3rem" }}
+                        style={{
+                          marginBottom: "3rem",
+                          background: "white",
+                          color: "black",
+                        }}
                       >
                         Fyll i snabbt
                       </Button>

@@ -111,7 +111,12 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
                 {/* Metadata Typography for lecturer, weekday, time, and duration */}
                 <Typography
                   variant="caption"
-                  style={{ color: "darkgrey", fontSize: "smaller" }}
+                  style={{
+                    color: "darkgrey",
+                    fontSize: "smaller",
+                    display: "block",
+                    marginBottom: "50px",
+                  }}
                 >
                   {metadata}
                 </Typography>

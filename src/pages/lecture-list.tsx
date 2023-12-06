@@ -81,8 +81,6 @@ export default function LectureList() {
     return chunked;
   };
 
-  const lectureChunks = chunkLectures(lectures, 10);
-
   return (
     <Layout>
       <>
@@ -92,7 +90,12 @@ export default function LectureList() {
 
         <Link href="/" passHref>
           <Button
-            style={{ width: "6rem", marginTop: "-0.6rem" }}
+            style={{
+              width: "6rem",
+              marginTop: "-0.6rem",
+              background: "white",
+              color: "black",
+            }}
             variant="contained"
             color="primary"
             size="large"
@@ -100,6 +103,7 @@ export default function LectureList() {
             Detaljer
           </Button>
         </Link>
+
         <Box
           width="100%"
           display="flex"
@@ -110,58 +114,51 @@ export default function LectureList() {
           {isLoading ? (
             <CircularProgress style={{ marginTop: "1rem" }} />
           ) : (
-            <TableContainer
-              component={Paper}
-              style={{
-                maxWidth: "80%",
-                marginTop: "20px",
-                backgroundColor: "black",
-              }}
-            >
-              <Table size="small">
-                <TableBody>
-                  {lectureChunks.map((chunk, chunkIndex) => (
-                    <TableRow key={chunkIndex}>
-                      {chunk.map((lecture, index) => (
-                        <TableCell key={lecture.id}>
-                          <Tooltip
-                            title={
-                              <React.Fragment>
-                                <Typography color="inherit">
-                                  {lecture.title}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <em>Datum:</em> {lecture.date}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <em>Tid:</em> {lecture.time}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <em>Föreläsare:</em> {lecture.lecturer}
-                                </Typography>
-                              </React.Fragment>
-                            }
-                            placement="top"
-                            arrow
-                          >
-                            <Typography
-                              variant="body2"
-                              style={{ color: "white" }}
-                            >
-                              {chunkIndex * 10 + index + 1}
-                            </Typography>
-                          </Tooltip>
-                          <VemNotionerar
-                            lectureID={lecture.id}
-                            checkboxState={lecture.checkboxState}
-                          />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Grid container spacing={1} style={{ maxWidth: "100%" }}>
+              {lectures.map((lecture, index) => (
+                <Grid item xs={12} sm={4} md={3} lg={2} key={lecture.id}>
+                  <Paper
+                    style={{
+                      padding: "10px",
+                      backgroundColor: "black",
+                      color: "white",
+                    }}
+                  >
+                    <Tooltip
+                      title={
+                        <React.Fragment>
+                          <Typography color="inherit">
+                            {lecture.title}
+                          </Typography>
+                          <Typography variant="body2">
+                            <em>Datum:</em> {lecture.date}
+                          </Typography>
+                          <Typography variant="body2">
+                            <em>Tid:</em> {lecture.time}
+                          </Typography>
+                          <Typography variant="body2">
+                            <em>Föreläsare:</em> {lecture.lecturer}
+                          </Typography>
+                        </React.Fragment>
+                      }
+                      placement="top"
+                      arrow
+                    >
+                      <Typography
+                        variant="body2"
+                        style={{ cursor: "pointer", margin: "0 20px 25px 0" }}
+                      >
+                        {index + 1}
+                      </Typography>
+                    </Tooltip>
+                    <VemNotionerar
+                      lectureID={lecture.id}
+                      checkboxState={lecture.checkboxState}
+                    />
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
           )}
         </Box>
       </>

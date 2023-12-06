@@ -1,6 +1,6 @@
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { Grid } from "@mui/material";
 import { RootState } from "store/types";
 import { useDispatch } from "react-redux";
 import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
@@ -67,13 +67,13 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   };
 
   return (
-    <div>
+    <Grid container spacing={2}>
       {lecture &&
         Object.entries(lecture.checkboxState).map(
           ([name, { confirm, unwish }]) => {
             const isAbleToCheck = canCheck(name);
             return (
-              <div key={name}>
+              <Grid item key={name} mt={-4}>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -90,9 +90,11 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
                       }}
                     />
                   }
-                  label={`${name}`} // Modified label
-                  labelPlacement="start"
+                  label={``} // Modified label
+                  labelPlacement="end"
                   sx={{
+                    marginRight: "-10px",
+
                     // Apply a color to the text itself
                     ".MuiTypography-root": {
                       color: isAbleToCheck ? "white" : "lightgrey", // Text color
@@ -127,7 +129,7 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
                       }}
                     />
                   }
-                  label={``} // Modified label
+                  label={`${name}`} // Modified label
                   sx={{
                     // Apply a color to the text itself
                     ".MuiTypography-root": {
@@ -147,11 +149,11 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
                     },
                   }}
                 />
-              </div>
+              </Grid>
             );
           }
         )}
-    </div>
+    </Grid>
   );
 };
 

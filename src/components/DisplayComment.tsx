@@ -74,7 +74,7 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
                 month: "2-digit",
                 day: "2-digit",
               })
-            : "No Date";
+            : "Inget datum";
 
           const formattedTime = comment.dateAdded
             ? commentDate.toLocaleTimeString("en-US", {
