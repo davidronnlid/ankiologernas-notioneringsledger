@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { setLectures } from "../store/slices/lecturesReducer";
+import { RootState } from "../store/types";
 import Layout from "@/components/Layout";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import LectureTitle from "@/components/LectureTitle";
@@ -23,7 +26,11 @@ const coursePeriods = [
 ];
 
 export default function Index() {
-  const [weeksData, setWeeksData] = useState<WeekData[]>([]);
+  // const [weeksData, setWeeksData] = useState<WeekData[]>([]);
+
+  const dispatch = useDispatch();
+  const lecturesData = useSelector((state: RootState) => state.lectures);
+
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
@@ -162,8 +169,10 @@ export default function Index() {
             });
           });
 
-          setWeeksData(finalWeeksData);
-          console.log("final weeks data", weeksData);
+          // setWeeksData(finalWeeksData);
+          dispatch(setLectures(finalWeeksData));
+
+          console.log("final weeks data", finalWeeksData);
         } else if (data.message) {
           console.error(data.message);
         }
@@ -171,15 +180,17 @@ export default function Index() {
       .catch((error) => {
         console.error("Error fetching lecture data:", error);
       });
-  }, []);
+  }, [dispatch]);
+
+  console.log("Redux State - Lectures Data:", lecturesData.lectures);
 
   return (
     <Layout>
       <>
         {coursePeriods.map((course) => {
           // Find all weeks that belong to this course
-          const courseWeeks = weeksData.filter(
-            (weekData) => weekData.course === course.title
+          const courseWeeks = lecturesData.lectures.filter(
+            (weekData: WeekData) => weekData.course === course.title
           );
 
           return (
@@ -201,7 +212,7 @@ export default function Index() {
               )}
 
               {/* Then render all weeks that belong to this course */}
-              {courseWeeks.map((weekData) => (
+              {courseWeeks.map((weekData: WeekData) => (
                 <LectureTitle
                   key={weekData.week}
                   week={weekData.week}
@@ -211,7 +222,7 @@ export default function Index() {
             </>
           );
         })}
-        <Table weeksData={weeksData} />
+        <Table weeksData={lecturesData.lectures} />
       </>
     </Layout>
   );

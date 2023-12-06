@@ -1,3 +1,5 @@
+import { WeekData } from "@/types";
+
 export interface User {
   username?: string;
   id: string;
@@ -14,4 +16,5 @@ interface AuthState {
 export interface RootState {
   auth: AuthState;
   comments: any;
+  lectures: { lectures: WeekData[] };
 }

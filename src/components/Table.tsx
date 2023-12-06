@@ -1,6 +1,8 @@
 import React from "react";
 import { WeekData } from "@/types";
 import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
+import { useSelector } from "react-redux";
+import { RootState } from "store/types";
 
 interface TableProps {
   weeksData: WeekData[];
@@ -25,7 +27,12 @@ const initialTotals: Totals = {
 
 const Table: React.FC<TableProps> = ({ weeksData }) => {
   // Calculate totals for FL, hours, and wishedHours using the correct typing
-  const totals = weeksData.reduce<Totals>(
+
+  const lecturesData = useSelector(
+    (state: RootState) => state.lectures.lectures
+  );
+
+  const totals = lecturesData.reduce<Totals>(
     (acc, weekData: WeekData) => {
       Object.keys(acc).forEach((person) => {
         acc[person].FL += weekData.totals[person] ?? 0;
@@ -62,7 +69,7 @@ const Table: React.FC<TableProps> = ({ weeksData }) => {
               {person}
             </Typography>
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
-            {weeksData.map((weekData, index) => (
+            {lecturesData.map((weekData, index) => (
               <Typography key={`${weekData.week}-${index}`} variant="body2">
                 <b>{weekData.week}</b> - FL:h:w -{" "}
                 {formatFLHours(

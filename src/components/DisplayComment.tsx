@@ -31,14 +31,6 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
     (state: RootState) => state.comments.comments[lectureId] || []
   );
 
-  // useEffect hook to log reduxComments every time it changes
-  useEffect(() => {
-    console.log(
-      "Logging reduxComments to ensure instant UI update:",
-      reduxComments
-    );
-  }, [reduxComments]); // dependency array includes reduxComments
-
   const handleDeleteComment = async (lectureId: string, commentId: string) => {
     // API call to delete the comment
     console.log("lectureId", lectureId, "commentId", commentId);
@@ -84,6 +76,7 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
                 height={40}
                 layout="responsive"
               />
+              {/* <p>{comment.date}</p> */}
             </div>
             <Typography variant="body2" className={styles.commentText}>
               {comment.comment}
