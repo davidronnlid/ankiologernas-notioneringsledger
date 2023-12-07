@@ -6,6 +6,7 @@ import Lecture from "types/lecture";
 import { calculateDuration } from "../functions/calculateDuration";
 import PostComment from "./PostComment";
 import DisplayComments from "./DisplayComment";
+import { setLectureBgColor } from "functions/setLectureBgColor";
 
 interface Props {
   week: string;
@@ -18,9 +19,6 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
   const toggleExpandedWeek = () => {
     setIsExpandedWeek((prevState) => !prevState);
   };
-
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
   // Calculate the earliest and latest dates in the lectures array
   const dateRange = lectures.reduce(
@@ -63,18 +61,10 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
       {isExpandedWeek && (
         <ol>
           {lectures.map((lecture) => {
+            const bgColor = setLectureBgColor(lecture.date);
+
             const lectureDate = new Date(lecture.date);
             lectureDate.setHours(0, 0, 0, 0);
-
-            let bgColor;
-            if (lectureDate.getTime() === currentDate.getTime()) {
-              bgColor = "#453501"; // Yellow background for today's lectures
-            } else if (lectureDate < currentDate) {
-              bgColor = "#0d4501"; // Green background for past lectures
-            } else {
-              bgColor = "black"; // Black background for future lectures
-            }
-
             // Get Swedish three-letter format for the weekday and capitalize the first letter
             const swedishWeekDay = lectureDate
               .toLocaleDateString("sv-SE", { weekday: "short" })

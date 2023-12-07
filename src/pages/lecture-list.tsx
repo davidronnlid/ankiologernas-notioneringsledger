@@ -13,6 +13,7 @@ import Lecture from "types/lecture";
 import VemNotionerar from "@/components/VemNotionerar";
 import Link from "next/link";
 import ZoomInSharpIcon from "@mui/icons-material/ZoomInSharp";
+import { setLectureBgColor } from "functions/setLectureBgColor";
 
 const courseTitle = "Medicinsk Mikrobiologi";
 
@@ -27,11 +28,11 @@ export default function LectureList() {
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL
         : "/.netlify";
+
     fetch(`${apiUrl}/functions/CRUDFLData`)
       .then((response) => response.json())
       .then((data) => {
         if (data && !data.error && data.events) {
-          // Filter lectures by the specific course and sort them by date and time
           const courseLectures = data.events
             .filter((lecture: Lecture) => {
               const lectureDate = new Date(lecture.date);
@@ -42,13 +43,10 @@ export default function LectureList() {
               );
             })
             .sort((a: Lecture, b: Lecture) => {
-              // Compare dates first
               const dateA = new Date(a.date);
               const dateB = new Date(b.date);
               if (dateA < dateB) return -1;
               if (dateA > dateB) return 1;
-
-              // If dates are equal, compare times
               const timeA = a.time.split(" - ")[0];
               const timeB = b.time.split(" - ")[0];
               return timeA.localeCompare(timeB);
@@ -65,15 +63,6 @@ export default function LectureList() {
         setIsLoading(false);
       });
   }, []);
-
-  // Function to split lectures into chunks of 10
-  const chunkLectures = (lectures: Lecture[], size: number) => {
-    const chunked = [];
-    for (let i = 0; i < lectures.length; i += size) {
-      chunked.push(lectures.slice(i, i + size));
-    }
-    return chunked;
-  };
 
   return (
     <Layout>
@@ -110,49 +99,53 @@ export default function LectureList() {
             </div>
           ) : (
             <Grid container spacing={1} style={{ maxWidth: "100%" }}>
-              {lectures.map((lecture, index) => (
-                <Grid item xs={12} sm={4} md={3} lg={2} key={lecture.id}>
-                  <Paper
-                    style={{
-                      padding: "10px",
-                      backgroundColor: "black",
-                      color: "white",
-                    }}
-                  >
-                    <Tooltip
-                      title={
-                        <React.Fragment>
-                          <Typography color="inherit">
-                            {lecture.title}
-                          </Typography>
-                          <Typography variant="body2">
-                            <em>Datum:</em> {lecture.date}
-                          </Typography>
-                          <Typography variant="body2">
-                            <em>Tid:</em> {lecture.time}
-                          </Typography>
-                          <Typography variant="body2">
-                            <em>Föreläsare:</em> {lecture.lecturer}
-                          </Typography>
-                        </React.Fragment>
-                      }
-                      placement="top"
-                      arrow
+              {lectures.map((lecture, index) => {
+                const bgColor = setLectureBgColor(lecture.date);
+
+                return (
+                  <Grid item xs={12} sm={4} md={3} lg={2} key={lecture.id}>
+                    <Paper
+                      style={{
+                        padding: "10px",
+                        backgroundColor: bgColor,
+                        color: "white",
+                      }}
                     >
-                      <Typography
-                        variant="body2"
-                        style={{ cursor: "pointer", margin: "0 20px 25px 0" }}
+                      <Tooltip
+                        title={
+                          <React.Fragment>
+                            <Typography color="inherit">
+                              {lecture.title}
+                            </Typography>
+                            <Typography variant="body2">
+                              <em>Datum:</em> {lecture.date}
+                            </Typography>
+                            <Typography variant="body2">
+                              <em>Tid:</em> {lecture.time}
+                            </Typography>
+                            <Typography variant="body2">
+                              <em>Föreläsare:</em> {lecture.lecturer}
+                            </Typography>
+                          </React.Fragment>
+                        }
+                        placement="top"
+                        arrow
                       >
-                        {index + 1}
-                      </Typography>
-                    </Tooltip>
-                    <VemNotionerar
-                      lectureID={lecture.id}
-                      checkboxState={lecture.checkboxState}
-                    />
-                  </Paper>
-                </Grid>
-              ))}
+                        <Typography
+                          variant="body2"
+                          style={{ margin: "0 20px 25px 0" }}
+                        >
+                          {index + 1}
+                        </Typography>
+                      </Tooltip>
+                      <VemNotionerar
+                        lectureID={lecture.id}
+                        checkboxState={lecture.checkboxState}
+                      />
+                    </Paper>
+                  </Grid>
+                );
+              })}
             </Grid>
           )}
         </Box>
