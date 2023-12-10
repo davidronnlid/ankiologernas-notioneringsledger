@@ -3,7 +3,7 @@
   position: relative;
   bottom: 20px;
   display: inline-block;
-  cursor: pointer;
+  cursor: auto;
 }
 
 .tooltipText {
