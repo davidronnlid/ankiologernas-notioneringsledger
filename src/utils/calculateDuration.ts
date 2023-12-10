@@ -40,7 +40,7 @@ export const calculateTotals = (groupedByWeek: WeekData[]) => {
   return groupedByWeek;
 };
 
-// Function to calculate total number of hours that a person has notionerat
+// Function to calculate total number of hours that a person has notionerat for all weeks of a course
 export const calculateTotalHoursPerPerson = (
   groupedByWeek: WeekData[]
 ): WeekData[] => {
