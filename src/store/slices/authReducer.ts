@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { User } from "store/types";
+import { getProfilePicUrl } from "utils/profilePicMapper";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -21,19 +22,7 @@ const authSlice = createSlice({
 
       // Assign a profile picture based on the user's full name
       let profilePicUrl;
-      switch (action.payload.full_name) {
-        case "Mattias Österdahl":
-          profilePicUrl = "/images/mattias.png";
-          break;
-        case "David Rönnlid":
-          profilePicUrl = "/images/david.png";
-          break;
-        case "Albin Lindberg":
-          profilePicUrl = "/images/albin.png";
-          break;
-        default:
-          profilePicUrl = "/images/alt_logo.png";
-      }
+      profilePicUrl = getProfilePicUrl(action.payload.full_name);
 
       state.isAuthenticated = true;
       state.user = {

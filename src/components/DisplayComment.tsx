@@ -7,6 +7,8 @@ import { RootState } from "store/types";
 import { useDispatch, useSelector } from "react-redux";
 import Image from "next/image";
 import { deleteComment } from "store/slices/commentsReducer";
+import { getProfilePicUrl } from "utils/profilePicMapper";
+import TooltipComponent from "./Tooltip";
 
 interface DisplayCommentsProps {
   lectureId: string;
@@ -21,9 +23,6 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
 
   const fullName = useSelector(
     (state: RootState) => state.auth.user?.full_name
-  );
-  const profile_pic = useSelector(
-    (state: RootState) => state.auth.user?.profile_pic
   );
 
   const reduxComments = useSelector(
@@ -66,6 +65,8 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
     <div className={styles.commentsContainer}>
       {comments.length > 0 || reduxComments.length > 0 ? (
         [...comments, ...reduxComments].map((comment: Comment) => {
+          const profilePicUrl = getProfilePicUrl(comment.fullName);
+
           const commentDate = new Date(comment.dateAdded);
 
           const formattedDate = comment.dateAdded
@@ -86,15 +87,23 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
 
           return (
             <div key={comment.commentId} className={styles.comment}>
-              <div className={styles.commentImageWrapper}>
-                <Image
-                  src={profile_pic || ""}
-                  alt="User profile image"
-                  width={40}
-                  height={40}
-                  layout="fixed"
-                />
-              </div>
+              <TooltipComponent
+                text={
+                  comment.fullName === "albin"
+                    ? "Albin Lindberg"
+                    : comment.fullName
+                }
+              >
+                <div className={styles.commentImageWrapper}>
+                  <Image
+                    src={profilePicUrl || ""}
+                    alt={`${comment.fullName}'s profile image`}
+                    width={40}
+                    height={40}
+                    layout="fixed"
+                  />
+                </div>
+              </TooltipComponent>
 
               <Typography variant="body2" className={styles.commentText}>
                 {comment.comment}
