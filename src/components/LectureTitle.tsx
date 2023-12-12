@@ -3,7 +3,7 @@ import styles from "../styles/Comment.module.css";
 import { Typography } from "@mui/material";
 import VemNotionerar from "./VemNotionerar";
 import Lecture from "types/lecture";
-import { calculateDuration } from "../utils/calculateDuration";
+import { calculateDuration } from "../utils/processLectures";
 import PostComment from "./PostComment";
 import DisplayComments from "./DisplayComment";
 import { setLectureBgColor } from "utils/setLectureBgColor";

@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
       console.log("Attempting to fetch data...");
 
       const FLData = await collection
-        .find({ date: { $regex: /2023/ } })
+        .find({ date: { $regex: /202[3-8]/ } })
         .toArray();
       console.log("Data fetched: ", FLData);
 

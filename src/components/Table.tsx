@@ -2,8 +2,9 @@ import React, { useMemo } from "react";
 import { WeekData } from "@/types";
 import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
 import { useSelector } from "react-redux";
+import { Course } from "types/course";
+import { selectLecturesForCourse } from "utils/processLectures";
 import { RootState } from "store/types";
-
 interface PersonTotals {
   FL: number;
   hours: number;
@@ -14,12 +15,14 @@ interface Totals {
   [person: string]: PersonTotals;
 }
 
-const Table: React.FC = () => {
-  console.log("Rendering Table Component");
+interface TableProps {
+  course: Course;
+}
 
-  // Calculate totals for FL, hours, and wishedHours using the correct typing
-  const lecturesData = useSelector(
-    (state: RootState) => state.lectures.lectures
+const Table: React.FC<TableProps> = ({ course }) => {
+  // Destructure the course from props
+  const filteredLecturesData = useSelector((state: RootState) =>
+    selectLecturesForCourse(state, course)
   );
 
   const totals = useMemo(() => {
@@ -29,7 +32,7 @@ const Table: React.FC = () => {
       Albin: { FL: 0, hours: 0, wishedHours: 0 },
       David: { FL: 0, hours: 0, wishedHours: 0 },
     };
-    return lecturesData.reduce<Totals>(
+    return filteredLecturesData.reduce<Totals>(
       (acc, weekData: WeekData) => {
         const newAcc = { ...acc };
         console.log("Current weekData:", weekData); // Debug log
@@ -43,7 +46,7 @@ const Table: React.FC = () => {
       },
       { ...initialTotals }
     );
-  }, [lecturesData]);
+  }, [filteredLecturesData]);
 
   // Create a function to format the FL:h values
   const formatFLHours = (fl: number, hours: number, wished: number): string => {
@@ -70,7 +73,7 @@ const Table: React.FC = () => {
               {person}
             </Typography>
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
-            {lecturesData.map((weekData, index) => (
+            {filteredLecturesData.map((weekData, index) => (
               <Typography key={`${weekData.week}-${index}`} variant="body2">
                 <b>{weekData.week}</b> - FL:h:w -{" "}
                 {formatFLHours(

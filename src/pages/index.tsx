@@ -16,6 +16,7 @@ import { setLectureBgColor } from "utils/setLectureBgColor";
 import { RootState } from "store/types";
 import { useSelector } from "react-redux";
 import TooltipComponent from "@/components/Tooltip";
+import { isCourseActive } from "utils/processLectures";
 
 const courseTitle = "Medicinsk Mikrobiologi";
 
@@ -24,6 +25,14 @@ export default function Index() {
 
   let lectureGlobalIndex = 0;
   const isLoading = !weeksData || weeksData.length === 0;
+
+  const currentDate = new Date(); // Current date for comparison
+
+  // Filter the weeks data to only include lectures from active courses
+  const activeWeeksData = weeksData.filter(
+    (week) =>
+      week.course === courseTitle && isCourseActive(week.course, currentDate)
+  );
 
   return (
     <Layout>
@@ -71,7 +80,7 @@ export default function Index() {
             style={{ marginTop: "3rem" }}
           >
             <Grid container spacing={1} style={{ maxWidth: "100%" }}>
-              {weeksData.map((week) =>
+              {activeWeeksData.map((week) =>
                 week.lectures.map((lecture: Lecture) => {
                   // Increment the global index for each lecture
                   lectureGlobalIndex += 1;
