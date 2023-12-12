@@ -16,9 +16,10 @@ import {
 import Lecture from "types/lecture";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import { WeekData } from "@/types";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { coursePeriods } from "utils/coursePeriods";
+import { RootState } from "store/types";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -31,13 +32,17 @@ export default function Layout({
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
 
+  const lecturesData = useSelector(
+    (state: RootState) => state.lectures.lectures
+  );
+
   useEffect(() => {
-    fetchDataAndDispatch();
-  }, [dispatch]);
+    if (lecturesData.length === 0) {
+      fetchDataAndDispatch();
+    }
+  }, [lecturesData.length]);
 
   const fetchDataAndDispatch = async () => {
-    // setIsLoading(true);
-
     const apiUrl =
       process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL

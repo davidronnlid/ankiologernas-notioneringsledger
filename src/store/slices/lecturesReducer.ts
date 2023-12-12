@@ -15,6 +15,8 @@ const lecturesSlice = createSlice({
   initialState,
   reducers: {
     setLectures(state, action: PayloadAction<WeekData[]>) {
+      console.log("Dispatching setLectures with payload:", action.payload);
+
       state.lectures = action.payload;
     },
     updateLectureCheckboxState(
