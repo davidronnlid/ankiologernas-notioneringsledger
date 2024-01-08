@@ -73,7 +73,7 @@ const LectureTitle: React.FC<Props> = ({ week, lectures }) => {
             const lectureDuration = calculateDuration(lecture.time);
 
             // Metadata string that includes the lecturer's name, the weekday, the time, and the duration
-            const metadata = `${lecture.lecturer} - ${swedishWeekDay}, ${lecture.time} (${lectureDuration}h)`;
+            const metadata = `${swedishWeekDay}, ${lecture.time} (${lectureDuration}h)`;
 
             return (
               <li

@@ -18,7 +18,7 @@ import { useSelector } from "react-redux";
 import TooltipComponent from "@/components/Tooltip";
 import { isCourseActive } from "utils/processLectures";
 
-const courseTitle = "Medicinsk Mikrobiologi";
+const courseTitle = "Klinisk Medicin 1";
 
 export default function Index() {
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
@@ -115,9 +115,6 @@ export default function Index() {
                               </Typography>
                               <Typography variant="body2">
                                 <em>Tid:</em> {lecture.time}
-                              </Typography>
-                              <Typography variant="body2">
-                                <em>Föreläsare:</em> {lecture.lecturer}
                               </Typography>
                             </React.Fragment>
                           }

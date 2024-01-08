@@ -227,16 +227,41 @@ export const selectLecturesForCourse = (state: RootState, course: Course) => {
 };
 
 export const isCourseActive = (courseTitle: string, currentDate: Date) => {
+  console.log(
+    `Checking if course "${courseTitle}" is active on date: ${currentDate}`
+  );
+
   // Find the course by title
   const course = coursePeriods.find((c) => c.title === courseTitle);
+  console.log(
+    course
+      ? `Course "${courseTitle}" found.`
+      : `Course "${courseTitle}" not found.`
+  );
 
   // If the course isn't found, it's not active by default
-  if (!course) return false;
+  if (!course) {
+    console.log(
+      `Course "${courseTitle}" is not active because it does not exist.`
+    );
+    return false;
+  }
 
   // Parse the start and end dates from the course
   const courseStartDate = new Date(course.startDate);
   const courseEndDate = new Date(course.endDate);
+  console.log(
+    `Course "${courseTitle}" starts on ${courseStartDate} and ends on ${courseEndDate}.`
+  );
 
   // Check if the current date is within the course start and end dates
-  return currentDate >= courseStartDate && currentDate <= courseEndDate;
+  const isActive =
+    currentDate >= courseStartDate && currentDate <= courseEndDate;
+  console.log(
+    isActive
+      ? `Course "${courseTitle}" is currently active.`
+      : `Course "${courseTitle}" is not active at the current date.`
+  );
+
+  return isActive;
 };

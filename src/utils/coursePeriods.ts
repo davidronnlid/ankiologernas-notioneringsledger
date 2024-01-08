@@ -7,8 +7,8 @@ export const coursePeriods: Course[] = [
     endDate: "2024-01-05",
   },
   {
-    title: "Anestesi och akutsjukvård",
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
+    title: "Klinisk Medicin 1",
+    startDate: "2024-01-06",
+    endDate: "2024-06-15",
   },
 ];
