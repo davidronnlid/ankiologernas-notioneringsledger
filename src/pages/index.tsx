@@ -30,8 +30,7 @@ export default function Index() {
 
   // Filter the weeks data to only include lectures from active courses
   const activeWeeksData = weeksData.filter(
-    (week) =>
-      week.course === courseTitle && isCourseActive(week.course, currentDate)
+    (week) => isCourseActive(week.course, currentDate) && week.course
   );
 
   return (
