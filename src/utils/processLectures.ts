@@ -4,7 +4,6 @@ import { coursePeriods } from "./coursePeriods";
 
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 
-// Function to calculate the duration of a lecture
 export const calculateDuration = (time: string) => {
   const [startTime, endTime] = time.split("-").map((t) => t.trim());
   const [startHours, startMinutes] = startTime.split(":").map(Number);
@@ -16,16 +15,16 @@ export const calculateDuration = (time: string) => {
   // Calculate total duration in minutes
   let durationMinutes = endTotalMinutes - startTotalMinutes;
 
-  // Subtract the 15 minutes breaks from the total duration before calculating blocks
-  // Every full hour has a 15-minute break
+  // Subtract 15 minutes per full hour only if the lecture is at least one hour long
   const fullHours = Math.floor(durationMinutes / 60);
-  durationMinutes -= fullHours * 15;
+  if (fullHours >= 1) {
+    durationMinutes -= fullHours * 15;
+  }
 
-  // Calculate the number of 45-minute lecture blocks
-  // Do not round up, as we've already subtracted the breaks
-  const lectureBlocks = Math.floor(durationMinutes / 45);
+  // Convert the total duration in minutes to hours, rounding to two decimals
+  const durationHours = parseFloat((durationMinutes / 60).toFixed(2));
 
-  return lectureBlocks;
+  return durationHours;
 };
 
 // Function to calculate total number of lectures that a person has notionerat
