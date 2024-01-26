@@ -18,7 +18,7 @@ import { useSelector } from "react-redux";
 import TooltipComponent from "@/components/Tooltip";
 import { isCourseActive } from "utils/processLectures";
 
-const courseTitle = "Klinisk Medicin 1";
+const courseTitle = "Klinisk medicin 1";
 
 export default function Index() {
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
