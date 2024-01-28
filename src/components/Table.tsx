@@ -49,8 +49,8 @@ const Table: React.FC<TableProps> = ({ course }) => {
   }, [filteredLecturesData]);
 
   // Create a function to format the FL:h values
-  const formatFLHours = (fl: number, hours: number, wished: number): string => {
-    return `${fl}:${hours}:${wished}`;
+  const formatFLHours = (fl: number, hours: number): string => {
+    return `${fl}:${hours}`;
   };
 
   return (
@@ -75,22 +75,17 @@ const Table: React.FC<TableProps> = ({ course }) => {
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
             {filteredLecturesData.map((weekData, index) => (
               <Typography key={`${weekData.week}-${index}`} variant="body2">
-                <b>{weekData.week}</b> - FL:h:w -{" "}
+                <b>{weekData.week}</b> - FL:h -{" "}
                 {formatFLHours(
                   weekData.totals[person] ?? 0,
-                  weekData.totalHours[person] ?? 0,
-                  weekData.wishedTotal[person] ?? 0
+                  weekData.totalHours[person] ?? 0
                 )}
               </Typography>
             ))}
             <Divider sx={{ my: 1, backgroundColor: "white" }} />
             <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-              Kursens total - FL:h:w -{" "}
-              {formatFLHours(
-                personTotals.FL,
-                personTotals.hours,
-                personTotals.wishedHours
-              )}
+              Kursens total - FL:h -{" "}
+              {formatFLHours(personTotals.FL, personTotals.hours)}
             </Typography>
           </CardContent>
         </Card>
