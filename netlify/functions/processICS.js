@@ -271,13 +271,12 @@ async function deleteEventsInDateRange() {
 // 2. Copy the "Subscribe" link
 // 3. Paste it in the icsUrl prop below
 // 4. Import the FetchICSButton to a clientside component that is rendered in the UI and simply render the component as "<FetchICSButton />"
-// 5. Click on the button in the UI in localhost
-// 6. Commit changes to production and confirm in prod by UI navigation that the lectures were successfully fetched
+// 5. Commit changes to production
+// 6. Click on the button in the UI in production and confirm in prod by UI navigation that the lectures were successfully fetched. See Netlify function logs for processICS if error. Adjust time or delete lectures as necessary.R
 
 exports.handler = async (event, context) => {
   if (event.httpMethod === "GET") {
-    const icsUrl =
-      "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
+    const icsUrl = "NEW LINK";
 
     try {
       // Uncomment if updateLectureTimes is needed

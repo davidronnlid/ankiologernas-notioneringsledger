@@ -14,7 +14,6 @@ import Slide from "@material-ui/core/Slide";
 import { Button } from "@mui/material";
 import { RootState } from "store/types";
 import { persistor } from "store/store";
-import FetchICSButton from "./FetchICSButton";
 
 interface Props {
   children: React.ReactElement;
@@ -131,7 +130,6 @@ export default function Header() {
                 </span>
               </Link>
             </div>
-            <FetchICSButton />
 
             {isAuthenticated && (
               <div
