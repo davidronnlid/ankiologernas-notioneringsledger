@@ -19,7 +19,7 @@ import TooltipComponent from "@/components/Tooltip";
 import { isCourseActive } from "utils/processLectures";
 import FetchICSButton from "@/components/FetchICSButton";
 
-const courseTitle = "Klinisk medicin 1";
+const courseTitle = "Klinisk medicin 2";
 
 export default function Index() {
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
