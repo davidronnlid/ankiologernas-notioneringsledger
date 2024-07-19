@@ -49,17 +49,34 @@ function parseICS(icsData) {
 
       const formattedEvent = {};
       if (event.DTSTART && event.DTEND) {
-        formattedEvent.date = `${event.DTSTART.substr(
-          0,
-          4
-        )}-${event.DTSTART.substr(4, 2)}-${event.DTSTART.substr(6, 2)}`;
-        formattedEvent.time = `${event.DTSTART.substr(
-          9,
-          2
-        )}:${event.DTSTART.substr(11, 2)}-${event.DTEND.substr(
-          9,
-          2
-        )}:${event.DTEND.substr(11, 2)}`;
+        const newStartDate = new Date(
+          event.DTSTART.substr(0, 4),
+          event.DTSTART.substr(4, 2) - 1,
+          event.DTSTART.substr(6, 2),
+          event.DTSTART.substr(9, 2),
+          event.DTSTART.substr(11, 2)
+        );
+        newStartDate.setHours(newStartDate.getHours() + 2);
+        formattedEvent.date = `${newStartDate.getFullYear()}-${String(
+          newStartDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(newStartDate.getDate()).padStart(2, "0")}`;
+        const newEndDate = new Date(
+          event.DTEND.substr(0, 4),
+          event.DTEND.substr(4, 2) - 1,
+          event.DTEND.substr(6, 2),
+          event.DTEND.substr(9, 2),
+          event.DTEND.substr(11, 2)
+        );
+        newEndDate.setHours(newEndDate.getHours() + 2);
+        formattedEvent.time = `${String(newStartDate.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(newStartDate.getMinutes()).padStart(2, "0")}-${String(
+          newEndDate.getHours()
+        ).padStart(2, "0")}:${String(newEndDate.getMinutes()).padStart(
+          2,
+          "0"
+        )}`;
       }
 
       let title = event.DESCRIPTION || event.SUMMARY || "";
@@ -273,14 +290,13 @@ async function deleteEventsInDateRange() {
 
 exports.handler = async (event, context) => {
   if (event.httpMethod === "GET") {
-    const icsUrl = "NEW LINK";
-
-    // "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
+    const icsUrl =
+      "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
 
     try {
       // Uncomment if updateLectureTimes is needed
       // await updateLectureTimes();
-      await deleteEventsInDateRange();
+      // await deleteEventsInDateRange();
 
       const response = await globalThis.fetch(icsUrl);
       const textData = await response.text();
