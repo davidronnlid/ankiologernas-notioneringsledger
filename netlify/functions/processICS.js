@@ -207,43 +207,29 @@ async function postEventsToDatabase(events) {
     const collection = database.collection("forelasningsdata");
     console.log("Database and collection selected.");
 
-    const newEvents = [];
+    const existingEvents = await collection
+      .find({ date: { $in: events.map((e) => e.date) } })
+      .toArray();
+    const existingEventsMap = new Map(
+      existingEvents.map((e) => [`${e.title}-${e.date}`, e])
+    );
 
-    for (const event of events) {
-      console.log(
-        `Checking if event with title '${event.title}' and date '${event.date}' exists...`
-      );
-      // Check if an event with the same title and date already exists
-      const existingEvent = await collection.findOne({
-        title: event.title,
-        date: event.date,
-      });
+    const newEvents = events.filter(
+      (event) => !existingEventsMap.has(`${event.title}-${event.date}`)
+    );
 
-      // If the event does not exist, add it to the newEvents array
-      if (!existingEvent) {
-        console.log(
-          `Event '${event.title}' does not exist. Adding to new events.`
-        );
-        newEvents.push(event);
-      } else {
-        console.log(`Event '${event.title}' already exists. Skipping.`);
-      }
-    }
-
-    // Insert all new events that do not have duplicates in the database
-    let insertResult = { insertedCount: 0 };
     if (newEvents.length > 0) {
       console.log(`Inserting ${newEvents.length} new events...`);
-      insertResult = await collection.insertMany(newEvents);
+      const insertResult = await collection.insertMany(newEvents);
       console.log(`${insertResult.insertedCount} documents were inserted`);
+      return insertResult;
     } else {
       console.log("No new events to insert.");
+      return { insertedCount: 0 };
     }
-
-    return insertResult;
   } catch (error) {
     console.error("Error inserting events into database:", error);
-    throw error; // Rethrow the error so it can be caught by the caller
+    throw error;
   } finally {
     console.log("Closing database connection...");
     await client.close();
