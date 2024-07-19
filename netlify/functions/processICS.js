@@ -233,21 +233,54 @@ async function postEventsToDatabase(events) {
   }
 }
 
+async function deleteEventsInDateRange() {
+  console.log("Connecting to MongoDB...");
+  const client = new MongoClient(process.env.MONGODB_URI);
+
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB.");
+
+    const database = client.db("ankiologernasnotioneringsledger");
+    const collection = database.collection("forelasningsdata");
+    console.log("Database and collection selected.");
+
+    const deleteResult = await collection.deleteMany({
+      date: {
+        $gte: "2024-07-01",
+        $lte: "2025-07-01",
+      },
+    });
+
+    console.log(`Deleted ${deleteResult.deletedCount} documents.`);
+    return deleteResult;
+  } catch (error) {
+    console.error("Error deleting events:", error);
+    throw error;
+  } finally {
+    console.log("Closing database connection...");
+    await client.close();
+  }
+}
+
 // NEXT TIME YOU WANT TO FETCH LECTURES FROM TIMEEDIT:
 // 1. Filter the exact lectures that should be fetched by using TimeEdits filter function
 // 2. Copy the "Subscribe" link
 // 3. Paste it in the icsUrl prop below
 // 4. Import the FetchICSButton to a clientside component that is rendered in the UI and simply render the component as "<FetchICSButton />"
 // 5. Click on the button in the UI in localhost
-// 6. Confirm by UI navigation that the lectures were successfully fetched
+// 6. Commit changes to production and confirm in prod by UI navigation that the lectures were successfully fetched
+
 exports.handler = async (event, context) => {
   if (event.httpMethod === "GET") {
-    const icsUrl =
-      "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
+    const icsUrl = "NEW LINK";
+
+    // "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
 
     try {
       // Uncomment if updateLectureTimes is needed
       // await updateLectureTimes();
+      await deleteEventsInDateRange();
 
       const response = await globalThis.fetch(icsUrl);
       const textData = await response.text();
