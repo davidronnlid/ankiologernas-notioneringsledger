@@ -1,3 +1,4 @@
+const { error } = require("console");
 const { MongoClient, ObjectId } = require("mongodb");
 
 function parseICS(icsData) {
@@ -239,13 +240,16 @@ async function postEventsToDatabase(events) {
 // 4. Import the FetchICSButton to a clientside component that is rendered in the UI and simply render the component as "<FetchICSButton />"
 // 5. Click on the button in the UI in localhost
 // 6. Confirm by UI navigation that the lectures were successfully fetched
-export default async function handler(req, res) {
-  if (req.method === "GET") {
-    const icsUrl = "NEW LINK HERE";
+exports.handler = async (event, context) => {
+  if (event.httpMethod === "GET") {
+    const icsUrl =
+      "https://cloud.timeedit.net/uu/web/wr_student/ri66YXQ6599Z54Qv5X050766y3Y840465Y55Y5gQ2046X63Z781270AY8Ab2Z86EX9d57t8QD6967teuFZ9ZEQ8Zn2Q09850FQ4D14EFD1547DD1CB957B5C5.ics";
 
     try {
-      updateLectureTimes();
-      const response = await fetch(icsUrl);
+      // Uncomment if updateLectureTimes is needed
+      // await updateLectureTimes();
+
+      const response = await globalThis.fetch(icsUrl);
       const textData = await response.text();
 
       const parsedTextData = parseICS(textData);
@@ -260,15 +264,24 @@ export default async function handler(req, res) {
       );
 
       console.log("ICS Data:", parsedTextData);
-      res.json({ message: "ICS data logged to console successfully" });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "ICS data processed successfully" }),
+      };
     } catch (error) {
       console.error("Error fetching ICS:", error);
-      res.status(500).json({ error: error.message });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: error.message }),
+      };
     }
   } else {
-    res.status(405).json({ error: "Method Not Allowed" });
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
   }
-}
+};
 
 function generateUniqueId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);

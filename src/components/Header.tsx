@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -14,6 +14,7 @@ import Slide from "@material-ui/core/Slide";
 import { Button } from "@mui/material";
 import { RootState } from "store/types";
 import { persistor } from "store/store";
+import FetchICSButton from "./FetchICSButton";
 
 interface Props {
   children: React.ReactElement;
@@ -130,6 +131,7 @@ export default function Header() {
                 </span>
               </Link>
             </div>
+            <FetchICSButton />
 
             {isAuthenticated && (
               <div

@@ -17,6 +17,7 @@ import { RootState } from "store/types";
 import { useSelector } from "react-redux";
 import TooltipComponent from "@/components/Tooltip";
 import { isCourseActive } from "utils/processLectures";
+import FetchICSButton from "@/components/FetchICSButton";
 
 const courseTitle = "Klinisk medicin 1";
 
