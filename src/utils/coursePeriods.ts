@@ -16,4 +16,9 @@ export const coursePeriods: Course[] = [
     startDate: "2024-07-01",
     endDate: "2025-01-20",
   },
+  {
+    title: "Klinisk medicin 3",
+    startDate: "2025-01-26",
+    endDate: "2025-07-20",
+  },
 ];
