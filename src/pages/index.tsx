@@ -19,7 +19,7 @@ import TooltipComponent from "@/components/Tooltip";
 import { isCourseActive } from "utils/processLectures";
 import FetchICSButton from "@/components/FetchICSButton";
 
-const courseTitle = "Klinisk medicin 2";
+const courseTitle = "Klinisk medicin 3";
 
 export default function Index() {
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
@@ -49,7 +49,7 @@ export default function Index() {
         </div>
       ) : (
         <>
-          <FetchICSButton />
+          {/*<FetchICSButton />*/}
           <Typography
             variant="h4"
             gutterBottom
