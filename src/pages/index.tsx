@@ -49,6 +49,7 @@ export default function Index() {
         </div>
       ) : (
         <>
+          <FetchICSButton />
           <Typography
             variant="h4"
             gutterBottom

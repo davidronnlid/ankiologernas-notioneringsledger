@@ -13,7 +13,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { RootState } from "store/types";
 import { sortLecturesIntoCoursesAndWeeks } from "utils/processLectures";
-import FetchICSButton from "./FetchICSButton";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
