@@ -104,9 +104,6 @@ const Table: React.FC<TableProps> = ({ course }) => {
               <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                 Timmar: {personTotals.hours}
               </Typography>
-              <Typography variant="body2" sx={{ marginBottom: "1rem" }}>
-                Mål för terminen: {goal} timmar
-              </Typography>
 
               <LinearProgress
                 variant="determinate"
@@ -134,6 +131,9 @@ const Table: React.FC<TableProps> = ({ course }) => {
                 }}
               >
                 Progress: {Math.round(progress)}%
+              </Typography>
+              <Typography variant="body2" sx={{ marginBottom: "1rem" }}>
+                Mål för terminen: {goal} timmar
               </Typography>
             </CardContent>
           </Card>
