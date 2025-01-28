@@ -57,8 +57,8 @@ const Table: React.FC<TableProps> = ({ course }) => {
 
   const totalCourseHours = calculateTotalCourseHours(filteredLecturesData);
 
-  const formatFLHours = (fl: number): string => {
-    return `${fl}`;
+  const formatFLHours = (fl: number, hours: number): string => {
+    return `${fl}: ${hours}`;
   };
 
   return (
