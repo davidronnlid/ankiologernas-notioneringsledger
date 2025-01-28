@@ -93,7 +93,10 @@ const Table: React.FC<TableProps> = ({ course }) => {
               {filteredLecturesData.map((weekData, index) => (
                 <Typography key={`${weekData.week}-${index}`} variant="body2">
                   <b>{weekData.week}</b> - FL:h -{" "}
-                  {formatFLHours(weekData.totals[person] ?? 0)}
+                  {formatFLHours(
+                    weekData.totals[person] ?? 0,
+                    weekData.totalHours[person]
+                  )}
                 </Typography>
               ))}
 
