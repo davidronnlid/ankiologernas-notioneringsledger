@@ -27,6 +27,24 @@ export const calculateDuration = (time: string) => {
   return durationHours;
 };
 
+export const calculateTotalCourseHours = (
+  groupedByWeek: WeekData[]
+): number => {
+  // Flatten WeekData[] into a single array of lectures
+  console.log("groupedByWeek in calculateTotalCourseHours", groupedByWeek);
+  const allLectures: Lecture[] = groupedByWeek.flatMap((week) => week.lectures);
+
+  // Calculate the total duration for all lectures
+  const totalCourseHours = allLectures.reduce((total, lecture) => {
+    const lectureDuration = calculateDuration(lecture.time);
+    return total + lectureDuration;
+  }, 0);
+
+  console.log("totalCourseHours in calculateTotalCourseHours", groupedByWeek);
+
+  return totalCourseHours;
+};
+
 // Function to calculate total number of lectures that a person has notionerat
 export const calculateTotals = (groupedByWeek: WeekData[]) => {
   groupedByWeek.forEach((week: WeekData) => {
