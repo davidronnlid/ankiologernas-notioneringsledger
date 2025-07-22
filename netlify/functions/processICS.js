@@ -277,7 +277,7 @@ async function deleteEventsInDateRange() {
 exports.handler = async (event, context) => {
   if (event.httpMethod === "GET") {
     const icsUrl =
-      "https://cloud.timeedit.net/uu/web/wr_student/ri60X916X37Z02Q6Z56g9Y40y7036Y05603gQY6Q56466089Y4355359Q8Ye58u4XXQt5n58187Q1Q658dZ0E59Z0761602btZ422Z1421B2CC99FFF87CE849EF3499.ics";
+      "https://cloud.timeedit.net/uu/web/studschema/s.ics?i=6YYX96Q2wZQ4Qf8X020765y3Y8bZ465e5uY9ZQ5676X8357810709Y2962Z860X9nQ4902";
 
     try {
       // Uncomment if updateLectureTimes is needed
