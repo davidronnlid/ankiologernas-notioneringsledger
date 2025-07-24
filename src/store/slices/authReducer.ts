@@ -8,9 +8,20 @@ interface AuthState {
   user: User | null;
 }
 
+// Development user for local testing
+const developmentUser: User = {
+  id: "david-ronnlid-123",
+  email: "david.ronnlid@example.com",
+  full_name: "David Rönnlid",
+  profile_pic: "/images/david.png",
+};
+
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV === "development";
+
 const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
+  isAuthenticated: isDevelopment,
+  user: isDevelopment ? developmentUser : null,
 };
 
 const authSlice = createSlice({

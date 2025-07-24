@@ -6,11 +6,12 @@ import storage from "redux-persist/lib/storage";
 import lecturesReducer from "./slices/lecturesReducer";
 import updateCheckboxReducer from "./slices/updateCheckbox";
 import commentsReducer from "./slices/commentsReducer";
+import notificationsReducer from "./slices/notificationsReducer";
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "checkbox", "comments", "lectures"],
+  whitelist: ["auth", "checkbox", "comments", "lectures", "notifications"],
 };
 
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);
@@ -21,6 +22,7 @@ const store = configureStore({
     checkbox: updateCheckboxReducer,
     comments: commentsReducer,
     lectures: lecturesReducer,
+    notifications: notificationsReducer,
   },
   middleware: new MiddlewareArray().concat(thunk),
 });

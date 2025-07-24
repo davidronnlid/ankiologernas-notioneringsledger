@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -11,9 +11,11 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Slide from "@material-ui/core/Slide";
-import { Button } from "@mui/material";
+import { Button, IconButton, Badge } from "@mui/material";
+import { Notifications as NotificationsIcon } from "@material-ui/icons";
 import { RootState } from "store/types";
 import { persistor } from "store/store";
+import NotificationsPanel from "./NotificationsPanel";
 
 interface Props {
   children: React.ReactElement;
@@ -32,6 +34,7 @@ function HideOnScroll(props: Props) {
 
 export default function Header() {
   const dispatch = useDispatch();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Get authentication state and user's username from Redux store
   const isAuthenticated = useSelector(
@@ -40,6 +43,10 @@ export default function Header() {
 
   const profile_pic = useSelector(
     (state: RootState) => state.auth.user?.profile_pic
+  );
+
+  const unreadCount = useSelector(
+    (state: RootState) => state.notifications.unreadCount
   );
 
   console.log("profile_pic", profile_pic);
@@ -133,8 +140,23 @@ export default function Header() {
 
             {isAuthenticated && (
               <div
-                style={{ position: "absolute", top: "1.5rem", right: "1.5rem" }}
+                style={{
+                  position: "absolute",
+                  top: "1.5rem",
+                  right: "1.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                }}
               >
+                <IconButton
+                  onClick={() => setNotificationsOpen(true)}
+                  style={{ color: "white" }}
+                >
+                  <Badge badgeContent={unreadCount} color="error">
+                    <NotificationsIcon />
+                  </Badge>
+                </IconButton>
                 <Button onClick={handleSignup} style={{ padding: 0 }}>
                   <div style={{ borderRadius: "50%", overflow: "hidden" }}>
                     <Image
@@ -167,6 +189,11 @@ export default function Header() {
         </AppBar>
       </HideOnScroll>
       <Toolbar />
+
+      <NotificationsPanel
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
     </React.Fragment>
   );
 }

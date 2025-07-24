@@ -44,20 +44,31 @@ export default function Layout({
     try {
       const response = await fetch(`${apiUrl}/functions/CRUDFLData`);
       const data = await response.json();
-      console.log(
-        "🚀 ~ file: _app.tsx:60 ~ fetchDataAndDispatch ~ data:",
-        data
-      );
-      if (data && !data.error && data.events) {
-        const processedData = sortLecturesIntoCoursesAndWeeks(
-          data.events,
-          currentDate
-        );
-        console.log(
-          "🚀 ~ file: _app.tsx:61 ~ fetchDataAndDispatch ~ processedData:",
-          processedData
-        );
-        dispatch(setLectures(processedData));
+      console.log("🚀 ~ file: Layout.tsx ~ fetchDataAndDispatch ~ data:", data);
+
+      // Handle different data structures for development vs production
+      if (data && !data.error) {
+        let processedData;
+
+        if (process.env.NODE_ENV === "development" && data.lectures) {
+          // Development mode - data comes directly as lectures array
+          console.log("📊 Loading development mock data for David Rönnlid");
+          processedData = data.lectures;
+        } else if (data.events) {
+          // Production mode - data comes as events that need processing
+          processedData = sortLecturesIntoCoursesAndWeeks(
+            data.events,
+            currentDate
+          );
+        }
+
+        if (processedData) {
+          console.log(
+            "🚀 ~ file: Layout.tsx ~ fetchDataAndDispatch ~ processedData:",
+            processedData
+          );
+          dispatch(setLectures(processedData));
+        }
       } else if (data.message) {
         console.error(data.message);
       }

@@ -21,7 +21,7 @@ export interface LayoutProps {
   title?: string;
   description?: string;
   keywords?: string;
-  children: React.ReactElement;
+  children: React.ReactNode;
 }
 
 export type WeekData = {

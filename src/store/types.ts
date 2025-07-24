@@ -17,4 +17,8 @@ export interface RootState {
   auth: AuthState;
   comments: any;
   lectures: { lectures: WeekData[] };
+  notifications: {
+    notifications: any[];
+    unreadCount: number;
+  };
 }
