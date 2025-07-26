@@ -19,6 +19,7 @@ import {
   MenuItem,
 } from "@material-ui/core";
 import NotifyButton from "@/components/NotifyButton";
+import SmartSuggestion from "@/components/SmartSuggestion";
 import {
   makeStyles,
   Theme,
@@ -28,18 +29,22 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import BlockIcon from "@mui/icons-material/Block";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import Lecture from "types/lecture";
 import { RootState } from "store/types";
 import { useSelector, useDispatch } from "react-redux";
 import {
   calculateDuration,
   calculateTotalCourseHours,
+  getDisplayCourseTitle,
 } from "utils/processLectures";
 import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
 import { updateLectureCheckboxState } from "store/slices/lecturesReducer";
 import { addNotification } from "store/slices/notificationsReducer";
 import { isMac, sendMultiChannelMacNotification } from "utils/macNotifications";
 import { getProfilePicUrl } from "../utils/profilePicMapper";
+import { coursePeriods } from "../utils/coursePeriods";
 import {
   isWithinInterval,
   parseISO,
@@ -93,6 +98,7 @@ const useStyles = makeStyles((theme: Theme) =>
       transition: "all 0.3s ease",
       position: "relative",
       overflow: "hidden",
+      animation: "$breathingAnimation 4s ease-in-out infinite",
       "&:hover": {
         transform: "translateY(-4px)",
         boxShadow: "0 12px 30px rgba(0, 0, 0, 0.4)",
@@ -246,6 +252,7 @@ const useStyles = makeStyles((theme: Theme) =>
       position: "relative",
       overflow: "hidden",
       cursor: "pointer",
+      animation: "$breathingAnimation 4s ease-in-out infinite",
       "&:hover": {
         transform: "translateY(-4px) scale(1.02)",
         boxShadow: "0 8px 25px rgba(0, 0, 0, 0.4)",
@@ -372,6 +379,16 @@ const useStyles = makeStyles((theme: Theme) =>
       "0%": { transform: "scale(0) rotate(0deg)", opacity: 0 },
       "50%": { transform: "scale(1.3) rotate(180deg)", opacity: 1 },
       "100%": { transform: "scale(1) rotate(360deg)", opacity: 1 },
+    },
+    "@keyframes breathingAnimation": {
+      "0%, 100%": {
+        transform: "scale(1)",
+        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+      },
+      "50%": {
+        transform: "scale(1.02)",
+        boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)",
+      },
     },
     // Celebration Animation Styles
     celebrationOverlay: {
@@ -704,6 +721,15 @@ const useStyles = makeStyles((theme: Theme) =>
 
 const courseTitle = "Klinisk medicin 4";
 
+// Get course date range for default values
+const getCurrentCourse = () => {
+  return coursePeriods.find(course => course.title === courseTitle);
+};
+
+const currentCourse = getCurrentCourse();
+const defaultStartDate = currentCourse?.startDate || "";
+const defaultEndDate = currentCourse?.endDate || "";
+
 export default function Index() {
   const classes = useStyles();
   const theme = useTheme();
@@ -711,9 +737,13 @@ export default function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("alla");
-  const [dateFilter, setDateFilter] = useState("");
-  const [dateFilterType, setDateFilterType] = useState("alla"); // "alla", "före", "efter", "exakt"
-  const [previousProgress, setPreviousProgress] = useState<{
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
+  const [dateFilterType, setDateFilterType] = useState("alla"); // "alla", "intervall"
+  const [expandedWeeklyDetails, setExpandedWeeklyDetails] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const previousProgressRef = useRef<{
     [key: string]: number;
   }>({});
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
@@ -722,7 +752,14 @@ export default function Index() {
   const [celebrationType, setCelebrationType] = useState<number>(0);
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Toggle weekly details for a specific person
+  const toggleWeeklyDetails = (person: string) => {
+    setExpandedWeeklyDetails(prev => ({
+      ...prev,
+      [person]: !prev[person]
+    }));
+  };
 
   // Debounce search term to improve performance
   useEffect(() => {
@@ -733,15 +770,54 @@ export default function Index() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const isLoading = !weeksData || weeksData.length === 0;
-
-  // Initialize audio context
+  // Global keyboard search functionality
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      audioContextRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-    }
-  }, []);
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if user is already typing in an input, textarea, or contenteditable element
+      const activeElement = document.activeElement;
+      const isInputField = activeElement?.tagName === 'INPUT' || 
+                          activeElement?.tagName === 'TEXTAREA' || 
+                          activeElement?.getAttribute('contenteditable') === 'true';
+      
+      // Don't trigger for modifier keys, function keys, etc.
+      if (event.ctrlKey || event.metaKey || event.altKey || 
+          event.key.length > 1 && !['Backspace', 'Delete'].includes(event.key)) {
+        return;
+      }
+
+      // Handle Escape key to clear search and blur input
+      if (event.key === 'Escape') {
+        setSearchTerm('');
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      // If user starts typing and not already in an input field, focus search and add the character
+      if (!isInputField && event.key.match(/^[a-zA-Z0-9åäöÅÄÖ\s]$/)) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        
+        // Add the typed character to search term
+        if (event.key === ' ' || event.key.match(/^[a-zA-Z0-9åäöÅÄÖ]$/)) {
+          setSearchTerm(prev => prev + event.key);
+        }
+      }
+
+      // Handle backspace when search field is focused but empty
+      if (event.key === 'Backspace' && searchInputRef.current === activeElement && searchTerm === '') {
+        // Allow normal backspace behavior
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [searchTerm]);
+
+  const isLoading = !weeksData || weeksData.length === 0;
 
   // Only show weeks for Klinisk medicin 4
   const km4Weeks = weeksData.filter((week) => week.course === courseTitle);
@@ -834,85 +910,14 @@ export default function Index() {
     }, 0);
   }, [km4Weeks]);
 
-  // Play milestone celebration sound
-  const playMilestoneSound = (milestone: number) => {
-    if (!audioContextRef.current) return;
 
-    const ctx = audioContextRef.current;
-
-    // Create a child-like "Yaaaay!" sound using oscillators
-    const createYaySound = (
-      frequency: number,
-      delay: number,
-      duration: number
-    ) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      // Child-like voice simulation
-      osc.type = "sawtooth";
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(800, ctx.currentTime + delay);
-      filter.frequency.exponentialRampToValueAtTime(
-        1200,
-        ctx.currentTime + delay + duration * 0.3
-      );
-      filter.frequency.exponentialRampToValueAtTime(
-        600,
-        ctx.currentTime + delay + duration
-      );
-
-      osc.frequency.setValueAtTime(frequency, ctx.currentTime + delay);
-      osc.frequency.exponentialRampToValueAtTime(
-        frequency * 1.5,
-        ctx.currentTime + delay + duration * 0.2
-      );
-      osc.frequency.exponentialRampToValueAtTime(
-        frequency * 0.8,
-        ctx.currentTime + delay + duration
-      );
-
-      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(
-        0.15,
-        ctx.currentTime + delay + 0.05
-      );
-      gain.gain.exponentialRampToValueAtTime(
-        0.1,
-        ctx.currentTime + delay + duration * 0.5
-      );
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        ctx.currentTime + delay + duration
-      );
-
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + duration);
-    };
-
-    // Create "Yaaaay!" sequence - higher pitch for child-like sound
-    createYaySound(350, 0, 0.3); // Ya
-    createYaySound(400, 0.1, 0.4); // aaa
-    createYaySound(320, 0.3, 0.3); // ay!
-
-    // Add some harmonics for richness
-    createYaySound(700, 0.05, 0.2);
-    createYaySound(1050, 0.15, 0.25);
-
-    console.log(`🎉 MILESTONE REACHED: ${milestone}% - YAAAAY!!! 🎉`);
-  };
 
   // Check for milestone achievements
   useEffect(() => {
     Object.entries(userStats).forEach(([person, stats]) => {
       const goal = totalCourseHours / 3;
       const currentProgress = goal > 0 ? (stats.hours / goal) * 100 : 0;
-      const previousProg = previousProgress[person] || 0;
+      const previousProg = previousProgressRef.current[person] || 0;
 
       // Check if we crossed a milestone
       const milestones = [25, 50, 75, 100];
@@ -924,18 +929,13 @@ export default function Index() {
         crossedMilestone &&
         currentUser?.full_name?.split(" ")[0] === person
       ) {
-        playMilestoneSound(crossedMilestone);
+        console.log(`🎉 MILESTONE REACHED: ${crossedMilestone}% 🎉`);
       }
+      
+      // Update the ref with current progress
+      previousProgressRef.current[person] = currentProgress;
     });
-
-    // Update previous progress
-    const newProgress: { [key: string]: number } = {};
-    Object.entries(userStats).forEach(([person, stats]) => {
-      const goal = totalCourseHours / 3;
-      newProgress[person] = goal > 0 ? (stats.hours / goal) * 100 : 0;
-    });
-    setPreviousProgress(newProgress);
-  }, [userStats, totalCourseHours, currentUser, previousProgress]);
+  }, [userStats, totalCourseHours, currentUser]);
 
   // Filter lectures based on search term and selected filter - MEMOIZED
   const filteredWeeks = useMemo(() => {
@@ -944,9 +944,10 @@ export default function Index() {
         ...week,
         lectures: week.lectures.filter((lecture) => {
           // Text search filter
-          const matchesSearch = lecture.title
-            .toLowerCase()
-            .includes(debouncedSearchTerm.toLowerCase());
+          const searchTerm = debouncedSearchTerm.trim().toLowerCase();
+          const matchesSearch = searchTerm === '' || 
+            lecture.title.toLowerCase().includes(searchTerm) ||
+            lecture.lectureNumber?.toString().includes(searchTerm);
 
           // Person selection filter
           let matchesPersonFilter = true;
@@ -967,27 +968,20 @@ export default function Index() {
 
           // Date filter
           let matchesDateFilter = true;
-          if (dateFilter && dateFilterType !== "alla") {
+          if (startDate && endDate) {
             try {
               // Parse lecture date (assuming format "YYYY-MM-DD" or similar)
               const lectureDate = parseISO(lecture.date);
-              const filterDate = parse(dateFilter, "yyyy-MM-dd", new Date());
+              const startFilterDate = parse(startDate, "yyyy-MM-dd", new Date());
+              const endFilterDate = parse(endDate, "yyyy-MM-dd", new Date());
 
-              switch (dateFilterType) {
-                case "exakt":
-                  matchesDateFilter = isSameDay(lectureDate, filterDate);
-                  break;
-                case "före":
-                  matchesDateFilter = isBefore(lectureDate, filterDate);
-                  break;
-                case "efter":
-                  matchesDateFilter = isAfter(lectureDate, filterDate);
-                  break;
-                default:
-                  matchesDateFilter = true;
-              }
+              // Check if lecture date is within the interval (inclusive)
+              matchesDateFilter = isWithinInterval(lectureDate, {
+                start: startFilterDate,
+                end: endFilterDate,
+              });
             } catch (error) {
-              console.warn("Invalid date format:", lecture.date, dateFilter);
+              console.warn("Invalid date format:", lecture.date, startDate, endDate);
               matchesDateFilter = true; // Don't filter out if date parsing fails
             }
           }
@@ -1000,8 +994,8 @@ export default function Index() {
     km4Weeks,
     debouncedSearchTerm,
     selectedFilter,
-    dateFilter,
-    dateFilterType,
+    startDate,
+    endDate,
   ]);
 
   // Count total filtered lectures - MEMOIZED
@@ -1055,41 +1049,8 @@ export default function Index() {
         })
       );
 
-      // Add notification when lecture is completed
+      // Trigger celebration animation if lecture was selected (not deselected)
       if (newState) {
-        const allUsers = ["Mattias", "Albin", "David"];
-        const otherUsers = allUsers.filter((user) => user !== userName);
-
-        for (const otherUser of otherUsers) {
-          const notification = {
-            id: `${Date.now()}-${Math.random()}`,
-            type: "lecture_completed" as const,
-            title: `${userName} har slutfört en föreläsning`,
-            message: `${userName} har just notionerat färdigt "${lecture.title}"`,
-            fromUser: userName,
-            toUser: otherUser,
-            lectureId: lecture.id,
-            lectureTitle: lecture.title,
-            timestamp: Date.now(),
-            read: false,
-          };
-
-          dispatch(addNotification(notification));
-
-          // Send Mac-specific notifications if on Mac
-          if (isMac()) {
-            await sendMultiChannelMacNotification(otherUser, {
-              title: `${userName} har slutfört en föreläsning`,
-              message: `${userName} har notionerat färdigt "${lecture.title}"`,
-              fromUser: userName,
-              lectureTitle: lecture.title,
-              sound: "success",
-              badge: 1,
-            });
-          }
-        }
-
-        // Trigger celebration animation if lecture was selected (not deselected)
         // Randomly select one of the 10 celebration animations (0-9)
         const randomAnimation = Math.floor(Math.random() * 10);
         setCelebrationType(randomAnimation);
@@ -1129,6 +1090,13 @@ export default function Index() {
   }
 
   const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
+
+  // Get all lectures from all weeks
+  const allLectures = useMemo(() => {
+    return weeksData.reduce((acc: Lecture[], week) => {
+      return [...acc, ...week.lectures];
+    }, []);
+  }, [weeksData]);
 
   return (
     <Layout>
@@ -1211,9 +1179,12 @@ export default function Index() {
                 color: "white",
               }}
             >
-              {courseTitle}
+              {getDisplayCourseTitle(courseTitle)}
             </Typography>
           </div>
+
+          {/* Smart Suggestion */}
+          <SmartSuggestion onLectureSelect={handleCardClick} />
 
           {/* User Statistics Section */}
           <div className={classes.statsSection}>
@@ -1262,40 +1233,68 @@ export default function Index() {
                       <div
                         style={{
                           marginTop: theme.spacing(2),
-                          padding: theme.spacing(1.5),
-                          background: "#1a1a1a",
-                          borderRadius: "8px",
-                          border: "1px solid #333",
                         }}
                       >
-                        <Typography
+                        <div
+                          onClick={() => toggleWeeklyDetails(person)}
                           style={{
-                            fontSize: "0.8rem",
-                            color: "#ccc",
-                            marginBottom: theme.spacing(1),
-                            fontWeight: 500,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            cursor: "pointer",
+                            padding: theme.spacing(1),
+                            background: "#1a1a1a",
+                            borderRadius: "8px",
+                            border: "1px solid #333",
+                            transition: "all 0.3s ease"
                           }}
                         >
-                          Veckovisning:
-                        </Typography>
-                        {weeklyBreakdown[person].map((weekData, index) => (
-                          <div
-                            key={index}
+                          <Typography
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: theme.spacing(0.5),
-                              fontSize: "0.75rem",
+                              fontSize: "0.8rem",
                               color: "#ccc",
+                              fontWeight: 500,
                             }}
                           >
-                            <span>{weekData.week}:</span>
-                            <span>
-                              {weekData.FL} FL ({weekData.hours.toFixed(1)}h)
-                            </span>
+                            Detaljer per vecka
+                          </Typography>
+                          {expandedWeeklyDetails[person] ? (
+                            <ExpandLessIcon style={{ color: "#ccc", fontSize: "1rem" }} />
+                          ) : (
+                            <ExpandMoreIcon style={{ color: "#ccc", fontSize: "1rem" }} />
+                          )}
+                        </div>
+                        
+                        {expandedWeeklyDetails[person] && (
+                          <div
+                            style={{
+                              marginTop: theme.spacing(1),
+                              padding: theme.spacing(1.5),
+                              background: "#1a1a1a",
+                              borderRadius: "8px",
+                              border: "1px solid #333",
+                            }}
+                          >
+                            {weeklyBreakdown[person].map((weekData, index) => (
+                              <div
+                                key={index}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  marginBottom: index === weeklyBreakdown[person].length - 1 ? 0 : theme.spacing(0.5),
+                                  fontSize: "0.75rem",
+                                  color: "#ccc",
+                                }}
+                              >
+                                <span>{weekData.week}:</span>
+                                <span>
+                                  {weekData.FL} FL ({weekData.hours.toFixed(1)}h)
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
 
@@ -1336,6 +1335,19 @@ export default function Index() {
             </div>
           </div>
 
+          {/* Föreläsningar Title */}
+          <Typography
+            variant="h5"
+            style={{
+              color: "white",
+              marginBottom: theme.spacing(3),
+              marginTop: theme.spacing(6),
+              textAlign: "center",
+            }}
+          >
+            Föreläsningar
+          </Typography>
+
           {/* Search and Filter Section */}
           <div className={classes.searchSection}>
             <TextField
@@ -1344,6 +1356,7 @@ export default function Index() {
               variant="outlined"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              inputRef={searchInputRef}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -1390,65 +1403,47 @@ export default function Index() {
                 </MenuItem>
               </Select>
             </FormControl>
+          </div>
 
-            {/* Date Filter Controls */}
-            <FormControl variant="outlined" className={classes.filterField}>
-              <InputLabel style={{ color: "#ccc" }}>
-                Filtrera efter datum
-              </InputLabel>
-              <Select
-                value={dateFilterType}
-                onChange={(e) => setDateFilterType(e.target.value as string)}
-                label="Filtrera efter datum"
-                style={{ color: "white" }}
-                MenuProps={{
-                  PaperProps: {
-                    style: {
-                      backgroundColor: "#2c2c2c",
-                      color: "white",
-                    },
-                  },
-                }}
-              >
-                <MenuItem value="alla" style={{ color: "white" }}>
-                  📅 Alla datum
-                </MenuItem>
-                <MenuItem value="exakt" style={{ color: "white" }}>
-                  🎯 Exakt datum
-                </MenuItem>
-                <MenuItem value="före" style={{ color: "white" }}>
-                  ⬅️ Före datum
-                </MenuItem>
-                <MenuItem value="efter" style={{ color: "white" }}>
-                  ➡️ Efter datum
-                </MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* Date Input Field */}
-            {dateFilterType !== "alla" && (
-              <TextField
-                className={classes.searchField}
-                label="Välj datum"
-                type="date"
-                variant="outlined"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                  style: { color: "#ccc" },
-                }}
-                InputProps={{
-                  style: { color: "white" },
-                }}
-              />
-            )}
+          {/* Date Filter Section - Second Row */}
+          <div className={classes.searchSection} style={{ marginTop: theme.spacing(2) }}>
+            <TextField
+              className={classes.searchField}
+              label="Från datum"
+              type="date"
+              variant="outlined"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                style: { color: "#ccc" },
+              }}
+              InputProps={{
+                style: { color: "white" },
+              }}
+            />
+            <TextField
+              className={classes.searchField}
+              label="Till datum"
+              type="date"
+              variant="outlined"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                style: { color: "#ccc" },
+              }}
+              InputProps={{
+                style: { color: "white" },
+              }}
+            />
           </div>
 
           {/* Search Results Info */}
           {(debouncedSearchTerm ||
             selectedFilter !== "alla" ||
-            dateFilterType !== "alla") && (
+            dateFilterType !== "alla" ||
+            (startDate && endDate)) && (
             <div className={classes.searchResults}>
               {totalFilteredLectures > 0 ? (
                 <>
@@ -1460,11 +1455,11 @@ export default function Index() {
                     selectedFilter !== "ej-valda" &&
                     ` som ${selectedFilter} har valt`}
                   {selectedFilter === "ej-valda" && ` som ingen har valt`}
-                  {dateFilterType !== "alla" && dateFilter && (
+                  {startDate && endDate && (
                     <>
-                      {dateFilterType === "exakt" && ` på datum ${dateFilter}`}
-                      {dateFilterType === "före" && ` före ${dateFilter}`}
-                      {dateFilterType === "efter" && ` efter ${dateFilter}`}
+                      {startDate === defaultStartDate && endDate === defaultEndDate
+                        ? ` (alla ${getDisplayCourseTitle(courseTitle)})`
+                        : ` mellan ${startDate} och ${endDate}`}
                     </>
                   )}
                 </>
@@ -1477,11 +1472,11 @@ export default function Index() {
                     selectedFilter !== "ej-valda" &&
                     ` som ${selectedFilter} har valt`}
                   {selectedFilter === "ej-valda" && ` som ingen har valt`}
-                  {dateFilterType !== "alla" && dateFilter && (
+                  {startDate && endDate && (
                     <>
-                      {dateFilterType === "exakt" && ` på datum ${dateFilter}`}
-                      {dateFilterType === "före" && ` före ${dateFilter}`}
-                      {dateFilterType === "efter" && ` efter ${dateFilter}`}
+                      {startDate === defaultStartDate && endDate === defaultEndDate
+                        ? ` (alla ${getDisplayCourseTitle(courseTitle)})`
+                        : ` mellan ${startDate} och ${endDate}`}
                     </>
                   )}
                 </>
@@ -1489,19 +1484,8 @@ export default function Index() {
             </div>
           )}
 
-          {/* Lectures Grid - Moved to bottom */}
-          <div style={{ marginTop: theme.spacing(6) }}>
-            <Typography
-              variant="h5"
-              style={{
-                color: "white",
-                marginBottom: theme.spacing(3),
-                textAlign: "center",
-              }}
-            >
-              Föreläsningar
-            </Typography>
-
+          {/* Lectures Grid */}
+          <div style={{ marginTop: theme.spacing(4) }}>
             <Grid container spacing={3}>
               {filteredWeeks.map((week) =>
                 week.lectures.map((lecture: Lecture) => {
@@ -1581,9 +1565,13 @@ export default function Index() {
 
                         {/* Notify Button - only show if lecture is selected by current user */}
                         {isSelected && (
-                          <div style={{ marginTop: theme.spacing(1) }}>
+                          <div 
+                            style={{ marginTop: theme.spacing(1) }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <NotifyButton
                               lecture={lecture}
+                              allLectures={allLectures}
                               onNotificationSent={() => {
                                 // Optional: Add any additional logic when notification is sent
                                 console.log(
@@ -1628,7 +1616,7 @@ export default function Index() {
                   variant="h6"
                   style={{ color: "#ccc", marginBottom: "16px" }}
                 >
-                  Inga föreläsningar hittades för {courseTitle}
+                  Inga föreläsningar hittades för {getDisplayCourseTitle(courseTitle)}
                 </Typography>
               </Box>
             )}

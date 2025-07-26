@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -11,11 +11,9 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Slide from "@material-ui/core/Slide";
-import { Button, IconButton, Badge } from "@mui/material";
-import { Notifications as NotificationsIcon } from "@material-ui/icons";
+import { Button, Box } from "@mui/material";
 import { RootState } from "store/types";
 import { persistor } from "store/store";
-import NotificationsPanel from "./NotificationsPanel";
 
 interface Props {
   children: React.ReactElement;
@@ -34,7 +32,6 @@ function HideOnScroll(props: Props) {
 
 export default function Header() {
   const dispatch = useDispatch();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Get authentication state and user's username from Redux store
   const isAuthenticated = useSelector(
@@ -44,12 +41,6 @@ export default function Header() {
   const profile_pic = useSelector(
     (state: RootState) => state.auth.user?.profile_pic
   );
-
-  const unreadCount = useSelector(
-    (state: RootState) => state.notifications.unreadCount
-  );
-
-  console.log("profile_pic", profile_pic);
 
   useEffect(() => {
     netlifyIdentity.init();
@@ -88,112 +79,166 @@ export default function Header() {
 
   const handleSignup = () => {
     console.log("called handleSignup");
-
     netlifyIdentity.open("signup");
+  };
+
+  const headerStyles = {
+    background: 'rgba(48, 46, 50, 0.95)',
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    position: 'relative' as const,
+    minHeight: '80px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+  };
+
+  const logoContainerStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    cursor: 'pointer',
+    padding: '10px 20px',
+    borderRadius: '16px',
+    background: 'rgba(48, 46, 50, 0.95)',
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': {
+      background: 'rgba(48, 46, 50, 0.95)',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)'
+    }
+  };
+
+  const logoImageStyles = {
+    borderRadius: '50%',
+    overflow: 'hidden',
+    background: 'rgba(48, 46, 50, 0.95)',
+    transition: 'all 0.4s ease',
+    '&:hover': {
+      transform: 'rotate(360deg) scale(1.05)',
+    }
+  };
+
+  const titleStyles = {
+    fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: 600,
+    fontSize: '1.2rem',
+    background: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    letterSpacing: '-0.02em',
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+  };
+
+  const userSectionStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '6px 16px',
+    borderRadius: '16px',
+    background: 'rgba(48, 46, 50, 0.95)',
+    backdropFilter: 'blur(10px)',
+  };
+
+
+
+  const profileButtonStyles = {
+    padding: 0,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    background: 'rgba(48, 46, 50, 0.95)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': {
+      transform: 'scale(1.05)',
+      boxShadow: '0 6px 20px rgba(11, 114, 185, 0.25)'
+    }
+  };
+
+  const loginButtonStyles = {
+    fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
+    fontWeight: 600,
+    fontSize: '0.9rem',
+    letterSpacing: '0.025em',
+    padding: '12px 24px',
+    borderRadius: '16px',
+    background: 'rgba(48, 46, 50, 0.95)',
+    color: '#ffffff',
+    textTransform: 'none' as const,
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': {
+      background: 'rgba(48, 46, 50, 0.95)',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 25px rgba(11, 114, 185, 0.4)'
+    }
   };
 
   return (
     <React.Fragment>
+
+      
       <HideOnScroll>
-        <AppBar
-          elevation={0}
-          style={{
-            position: "relative",
-            minHeight: "6rem",
-            background: "#2c2c2c",
-          }}
-        >
+        <AppBar elevation={0} style={headerStyles}>
           <Toolbar
             style={{
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "0 3rem",
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0 2rem',
+              minHeight: '80px',
+              position: 'relative',
+              zIndex: 1
             }}
           >
-            <div
-              style={{ position: "absolute", top: "1.5rem", left: "1.5rem" }}
-            >
-              <Link href="/" passHref>
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ borderRadius: "50%", overflow: "hidden" }}>
-                    <Image
-                      src={"/images/logo.png"}
-                      alt="Ankiologerna Logo"
-                      width={40}
-                      height={40}
-                      layout="fixed"
-                    />
-                  </div>
-                  <Typography variant="h6">
-                    Ankiologernas Notioneringsledger
-                  </Typography>
-                </span>
-              </Link>
-            </div>
+            <Link href="/" passHref>
+              <Box style={logoContainerStyles}>
+                <Box style={logoImageStyles}>
+                  <Image
+                    src="/images/logo.png"
+                    alt="Ankiologerna Logo"
+                    width={44}
+                    height={44}
+                    style={{ 
+                      borderRadius: '50%',
+                      transition: 'transform 0.3s ease'
+                    }}
+                  />
+                </Box>
+                <Typography style={titleStyles}>
+                  Ankiologernas Notioneringsledger
+                </Typography>
+              </Box>
+            </Link>
 
             {isAuthenticated && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "1.5rem",
-                  right: "1.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                }}
-              >
-                <IconButton
-                  onClick={() => setNotificationsOpen(true)}
-                  style={{ color: "white" }}
-                >
-                  <Badge badgeContent={unreadCount} color="error">
-                    <NotificationsIcon />
-                  </Badge>
-                </IconButton>
-                <Button onClick={handleSignup} style={{ padding: 0 }}>
-                  <div style={{ borderRadius: "50%", overflow: "hidden" }}>
-                    <Image
-                      src={profile_pic ? profile_pic : "/images/banner.png"}
-                      alt="User profile image"
-                      width={40}
-                      height={40}
-                      layout="fixed"
-                    />
-                  </div>
+              <Box style={userSectionStyles}>
+                <Button onClick={handleSignup} style={profileButtonStyles}>
+                  <Image
+                    src={profile_pic || "/images/banner.png"}
+                    alt="User profile image"
+                    width={44}
+                    height={44}
+                    style={{ 
+                      borderRadius: '50%',
+                      objectFit: 'cover'
+                    }}
+                  />
                 </Button>
-              </div>
+              </Box>
             )}
 
             {!isAuthenticated && (
-              <Button
-                onClick={handleSignup}
-                style={{
-                  position: "absolute",
-                  top: "1.5rem",
-                  right: "1.5rem",
-                  backgroundColor: "black",
-                  color: "white",
-                }}
-              >
+              <Button onClick={handleSignup} style={loginButtonStyles}>
                 LOGGA IN
               </Button>
             )}
           </Toolbar>
         </AppBar>
       </HideOnScroll>
-      <Toolbar />
+      
+      <Toolbar style={{ minHeight: '80px' }} />
 
-      <NotificationsPanel
-        open={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-      />
+
     </React.Fragment>
   );
 }

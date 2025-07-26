@@ -108,10 +108,7 @@ export const sendEnhancedMacNotification = async (
     // Add to Mac's Notification Center
     console.log("📱 Mac notification sent to Notification Center");
 
-    // Optional: Play Mac system sound
-    if (options.sound) {
-      playMacSystemSound(options.sound);
-    }
+
 
     // Optional: Update dock badge
     if (options.badge) {
@@ -120,34 +117,7 @@ export const sendEnhancedMacNotification = async (
   }
 };
 
-// Play Mac system sounds
-export const playMacSystemSound = (soundName: string = "default"): void => {
-  if (!isMac()) return;
 
-  // Mac system sounds
-  const macSounds = {
-    default: "Ping",
-    success: "Glass",
-    notification: "Pong",
-    message: "Morse",
-    celebration: "Sosumi",
-  };
-
-  try {
-    // Create audio element with Mac system sound
-    const audio = new Audio(
-      `/System/Library/Sounds/${
-        macSounds[soundName as keyof typeof macSounds] || macSounds.default
-      }.aiff`
-    );
-    audio.play().catch(() => {
-      // Fallback to web audio if system sound fails
-      console.log("System sound not available, using fallback");
-    });
-  } catch (error) {
-    console.error("Could not play Mac system sound:", error);
-  }
-};
 
 // Update dock badge (if supported)
 export const updateDockBadge = (count: number): void => {
@@ -177,6 +147,32 @@ export const shareViaAirDrop = async (data: any): Promise<void> => {
     }
   } catch (error) {
     console.error("AirDrop sharing not available:", error);
+  }
+};
+
+// Send message to Messenger group chat
+export const sendToMessengerGroupChat = (message: string): void => {
+  try {
+    // Messenger URL scheme for sending to a specific group chat
+    // You'll need to replace GROUP_CHAT_ID with your actual group chat ID
+    const messengerUrl = `fb-messenger://share/?text=${encodeURIComponent(message)}`;
+    
+    // Alternative: Direct link to specific group (if you have the group thread ID)
+    // const groupThreadId = "YOUR_GROUP_THREAD_ID"; 
+    // const messengerGroupUrl = `fb-messenger://group-thread/${groupThreadId}?text=${encodeURIComponent(message)}`;
+    
+    // Try to open Messenger app
+    window.open(messengerUrl, "_blank");
+    
+    console.log("📱 Opened Messenger with message:", message);
+  } catch (error) {
+    console.error("Could not open Messenger:", error);
+    
+    // Fallback: Copy message to clipboard and show instructions
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(message);
+      alert(`Kunde inte öppna Messenger automatiskt.\n\nMeddelandet har kopierats till urklipp:\n"${message}"\n\nKlistra in det i Messenger-gruppchaten manuellt.`);
+    }
   }
 };
 

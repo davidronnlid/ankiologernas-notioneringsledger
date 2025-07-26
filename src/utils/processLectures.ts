@@ -282,3 +282,24 @@ export const isCourseActive = (courseTitle: string, currentDate: Date) => {
 
   return isActive;
 };
+
+export const getDisplayCourseTitle = (courseTitle: string): string => {
+  const currentDate = new Date();
+  const isActive = isCourseActive(courseTitle, currentDate);
+  
+  // Only abbreviate active courses
+  if (!isActive) {
+    return courseTitle;
+  }
+  
+  // Add "-föreläsningar" suffix for active courses
+  const courseTitlesWithSuffix: { [key: string]: string } = {
+    "Klinisk medicin 1": "Klinisk medicin 1-föreläsningar",
+    "Klinisk medicin 2": "Klinisk medicin 2-föreläsningar", 
+    "Klinisk medicin 3": "Klinisk medicin 3-föreläsningar",
+    "Klinisk medicin 4": "Klinisk medicin 4-föreläsningar",
+    "Medicinsk Mikrobiologi": "Medicinsk Mikrobiologi-föreläsningar",
+  };
+  
+  return courseTitlesWithSuffix[courseTitle] || courseTitle;
+};

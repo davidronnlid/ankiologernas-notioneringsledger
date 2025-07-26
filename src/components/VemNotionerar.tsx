@@ -200,8 +200,6 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
     Array<{ id: number; color: string; left: number; delay: number }>
   >([]);
   const [showAchievement, setShowAchievement] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
   const full_name = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
@@ -213,47 +211,6 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   const lecture = lecturesData
     .flatMap((week) => week.lectures)
     .find((lecture: Lecture) => lecture.id === lectureID);
-
-  // Initialize audio context
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      audioContextRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-    }
-  }, []);
-
-  // Play success sound
-  const playSuccessSound = () => {
-    if (!audioContextRef.current) return;
-
-    const ctx = audioContextRef.current;
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Create a pleasant chord progression
-    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-
-    notes.forEach((freq, index) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.type = "sine";
-
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-      osc.start(ctx.currentTime + index * 0.1);
-      osc.stop(ctx.currentTime + 0.5 + index * 0.1);
-    });
-  };
 
   // Create confetti effect
   const createConfetti = () => {
@@ -276,7 +233,6 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   const triggerCelebration = () => {
     setShowCelebration(true);
     createConfetti();
-    playSuccessSound();
 
     // Show achievement badge briefly
     setShowAchievement(true);

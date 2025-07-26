@@ -5,12 +5,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControlLabel,
-  Checkbox,
   Typography,
-  Chip,
+  TextField,
   Snackbar,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@material-ui/core";
 import { Alert } from "@mui/material";
 import {
@@ -21,13 +23,54 @@ import {
 } from "@material-ui/core/styles";
 import {
   Notifications as NotificationsIcon,
-  Facebook as FacebookIcon,
 } from "@material-ui/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "store/types";
 import { addNotification } from "store/slices/notificationsReducer";
 import Lecture from "types/lecture";
-import { isMac } from "../utils/macNotifications";
+import { 
+  sendToGroupChat,
+  openMessengerWithMessage 
+} from "../utils/groupChatNotifications";
+
+// Import the emoji enhancement function
+const addTeamEmojisIfNeeded = (message: string): string => {
+  // Check if message already contains Unicode emojis (but replace <3 with proper emojis)
+  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❤️|💪|🔥|💯|🎯|🚀|⭐|✨|👊|🙌|💙|💚|❤|♥/gu;
+  
+  // Replace <3 with proper emoji and remove from message
+  let cleanedMessage = message.replace(/<3/g, '').trim();
+  
+  if (emojiRegex.test(cleanedMessage)) {
+    // Message already has proper emojis, return as is
+    return message;
+  }
+  
+  // Array of team-building and strength emojis
+  const teamEmojis = [
+    '💪✨',     // Strength + sparkle
+    '🔥💯',     // Fire + 100
+    '🚀⭐',     // Rocket + star  
+    '💪🎯',     // Strength + target
+    '🙌💙',     // Praise + blue heart
+    '💪🔥',     // Strength + fire
+    '⭐💪',     // Star + strength
+    '🎯🔥',     // Target + fire
+    '💯⭐',     // 100 + star
+    '🚀💪'      // Rocket + strength
+  ];
+  
+  // Pick a random emoji combination
+  const randomEmojis = teamEmojis[Math.floor(Math.random() * teamEmojis.length)];
+  
+  // Add emojis to the end of the message (replace <3 if it exists)
+  const finalMessage = message.includes('<3') 
+    ? `${cleanedMessage} ${randomEmojis}`
+    : `${message.trim()} ${randomEmojis}`;
+  
+  console.log(`🎯 Emoji enhancement: "${message}" → "${finalMessage}"`);
+  return finalMessage;
+};
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -38,6 +81,7 @@ const useStyles = makeStyles((theme: Theme) =>
       fontSize: "0.8rem",
       padding: "6px 12px",
       minWidth: "auto",
+      animation: "$breathingAnimation 4s ease-in-out infinite",
       "&:hover": {
         background: "linear-gradient(45deg, #1976d2, #1565c0)",
       },
@@ -47,6 +91,7 @@ const useStyles = makeStyles((theme: Theme) =>
         background: "#2c2c2c",
         color: "white",
         minWidth: "400px",
+        animation: "$breathingAnimation 4s ease-in-out infinite",
         [theme.breakpoints.down("sm")]: {
           minWidth: "90vw",
         },
@@ -69,6 +114,7 @@ const useStyles = makeStyles((theme: Theme) =>
       borderRadius: "8px",
       marginBottom: theme.spacing(2),
       border: "1px solid #404040",
+      animation: "$breathingAnimation 4s ease-in-out infinite",
     },
     lectureTitle: {
       color: "white",
@@ -79,50 +125,94 @@ const useStyles = makeStyles((theme: Theme) =>
       color: "#ccc",
       fontSize: "0.9rem",
     },
-    userSelection: {
+    messageInput: {
       marginTop: theme.spacing(2),
-    },
-    userCheckbox: {
-      color: "#2196f3",
-      "&.Mui-checked": {
+      "& .MuiOutlinedInput-root": {
+        background: "#1a1a1a",
+        "& fieldset": {
+          borderColor: "#404040",
+        },
+        "&:hover fieldset": {
+          borderColor: "#666",
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: "#2196f3",
+        },
+      },
+      "& .MuiInputBase-input": {
+        color: "white",
+      },
+      "& .MuiInputLabel-root": {
+        color: "#ccc",
+      },
+      "& .MuiInputLabel-root.Mui-focused": {
         color: "#2196f3",
       },
     },
-    userLabel: {
-      color: "white",
+    description: {
+      color: "#ccc",
       fontSize: "0.9rem",
+      marginBottom: theme.spacing(2),
     },
-    selectedUsers: {
-      marginTop: theme.spacing(2),
-      display: "flex",
-      flexWrap: "wrap",
-      gap: theme.spacing(1),
-    },
-    selectedChip: {
-      background: "linear-gradient(45deg, #2196f3, #1976d2)",
-      color: "white",
+    lectureSelect: {
+      marginBottom: theme.spacing(2),
+      "& .MuiOutlinedInput-root": {
+        background: "#1a1a1a",
+        "& fieldset": {
+          borderColor: "#404040",
+        },
+        "&:hover fieldset": {
+          borderColor: "#666",
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: "#2196f3",
+        },
+      },
+      "& .MuiInputBase-input": {
+        color: "white",
+      },
+      "& .MuiInputLabel-root": {
+        color: "#ccc",
+      },
+      "& .MuiInputLabel-root.Mui-focused": {
+        color: "#2196f3",
+      },
+      "& .MuiSelect-icon": {
+        color: "#ccc",
+      },
     },
     dialogActions: {
       background: "#1a1a1a",
       borderTop: "1px solid #404040",
       padding: theme.spacing(2),
+      justifyContent: "space-between",
     },
-    actionButton: {
-      marginLeft: theme.spacing(1),
-    },
-    messengerButton: {
-      background: "linear-gradient(45deg, #1877f2, #166fe5)",
-      color: "white",
+    cancelButton: {
+      color: "#ccc",
       "&:hover": {
-        background: "linear-gradient(45deg, #166fe5, #1464c7)",
+        background: "rgba(255, 255, 255, 0.08)",
       },
     },
-    loadingButton: {
+    sendButton: {
       background: "linear-gradient(45deg, #2196f3, #1976d2)",
       color: "white",
+      minWidth: "120px",
       "&:disabled": {
         background: "#666",
         color: "#ccc",
+      },
+      "&:hover": {
+        background: "linear-gradient(45deg, #1976d2, #1565c0)",
+      },
+    },
+    "@keyframes breathingAnimation": {
+      "0%, 100%": {
+        transform: "scale(1)",
+        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+      },
+      "50%": {
+        transform: "scale(1.02)",
+        boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)",
       },
     },
   })
@@ -130,62 +220,82 @@ const useStyles = makeStyles((theme: Theme) =>
 
 interface NotifyButtonProps {
   lecture: Lecture;
+  allLectures: Lecture[];
   onNotificationSent?: () => void;
 }
 
 const NotifyButton: React.FC<NotifyButtonProps> = ({
   lecture,
+  allLectures,
   onNotificationSent,
 }) => {
   const classes = useStyles();
-  const theme = useTheme();
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const [open, setOpen] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [selectedLecture, setSelectedLecture] = useState<Lecture>(lecture);
 
   const allUsers = ["Mattias", "Albin", "David"];
   const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
-  const availableUsers = allUsers.filter((user) => user !== currentUserName);
+  const otherUsers = allUsers.filter((user) => user !== currentUserName);
+
+  // Get all lectures that have been selected by any user
+  const getSelectedLectures = () => {
+    return allLectures.filter(lecture => {
+      return allUsers.some(user => lecture.checkboxState?.[user]?.confirm);
+    });
+  };
+
+  const selectedLectures = getSelectedLectures();
 
   const handleOpen = () => {
     setOpen(true);
-    setSelectedUsers([]);
+    setSelectedLecture(lecture); // Set the clicked lecture as default
+    // Set default message with lecture number and team emojis
+    const defaultMessage = `${lecture.lectureNumber}. ${lecture.title} färdignotionerad! <3`;
+    const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
+    setMessage(enhancedMessage);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedUsers([]);
+    setMessage("");
+    setSelectedLecture(lecture); // Reset to original lecture
   };
 
-  const handleUserToggle = (userName: string) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userName)
-        ? prev.filter((user) => user !== userName)
-        : [...prev, userName]
-    );
+  const handleLectureChange = (newLecture: Lecture) => {
+    setSelectedLecture(newLecture);
+    // Update message to reflect the new lecture
+    const defaultMessage = `${newLecture.lectureNumber}. ${newLecture.title} färdignotionerad! <3`;
+    const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
+    setMessage(enhancedMessage);
   };
 
-  const handleNotify = async () => {
-    if (selectedUsers.length === 0) return;
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+  };
+
+  const handleSendNotifications = async () => {
+    if (!message.trim()) return;
 
     setIsLoading(true);
 
     try {
-      // Create in-app notifications for each selected user
-      selectedUsers.forEach((userName) => {
+      // Send in-app notifications to other users
+      otherUsers.forEach((userName) => {
         const notification = {
           id: `${Date.now()}-${Math.random()}`,
           type: "lecture_notified" as const,
           title: `${currentUserName} har notifierat dig`,
-          message: `${currentUserName} har notifierat dig om att de har notionerat färdigt föreläsningen "${lecture.title}"`,
+          message: message,
           fromUser: currentUserName,
           toUser: userName,
-          lectureId: lecture.id,
-          lectureTitle: lecture.title,
+          lectureId: selectedLecture.id,
+          lectureTitle: selectedLecture.title,
           timestamp: Date.now(),
           read: false,
         };
@@ -193,7 +303,17 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
         dispatch(addNotification(notification));
       });
 
-      setSuccessMessage(`Notifierat ${selectedUsers.length} användare!`);
+      // Send to group chat (Discord/Facebook Messenger/Slack)
+      const groupChatSuccess = await sendToGroupChat({
+        title: `${currentUserName} har notifierat dig`,
+        message: message,
+        fromUser: currentUserName,
+        lectureTitle: selectedLecture.title,
+        type: 'lecture_notified'
+      });
+
+      // The function opens Messenger and copies to clipboard
+      setSuccessMessage(`Messenger öppnas och meddelandet är kopierat!`);
       setShowSuccess(true);
       handleClose();
 
@@ -202,60 +322,23 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
       }
     } catch (error) {
       console.error("Error sending notifications:", error);
-      setSuccessMessage("Fel vid sändning av notifieringar");
+      setSuccessMessage("Fel vid sändning av meddelande");
       setShowSuccess(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMessengerShare = () => {
-    const message = `Hej! Jag har just notionerat färdigt föreläsningen "${lecture.title}" i Klinisk medicin 4! 📚✨\n\nKolla Notioneringsledger: ${window.location.href}`;
-    const encodedMessage = encodeURIComponent(message);
-
-    // Facebook Messenger URL scheme
-    const messengerUrl = `fb-messenger://share/?text=${encodedMessage}`;
-
-    // Fallback to web version if app is not installed
-    const fallbackUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(
-      window.location.href
-    )}&app_id=YOUR_APP_ID&redirect_uri=${encodeURIComponent(
-      window.location.href
-    )}`;
-
-    try {
-      // Try to open Messenger app first
-      window.location.href = messengerUrl;
-
-      // Fallback after a short delay if Messenger app didn't open
-      setTimeout(() => {
-        window.open(fallbackUrl, "_blank", "width=600,height=400");
-      }, 1000);
-    } catch (error) {
-      // Direct fallback to web version
-      window.open(fallbackUrl, "_blank", "width=600,height=400");
-    }
-  };
-
-  const handleCloseSuccess = () => {
-    setShowSuccess(false);
-  };
-
-  const handleFacebookShare = () => {
-    // TODO: Implementera Facebook-delning
-    alert("Facebook-delning är inte implementerad ännu!");
-  };
-
   return (
     <>
       <Button
         variant="contained"
-        size="small"
-        className={classes.notifyButton}
         onClick={handleOpen}
+        className={classes.notifyButton}
         startIcon={<NotificationsIcon />}
+        size="small"
       >
-        Notifiera andra
+        Notifiera
       </Button>
 
       <Dialog
@@ -272,131 +355,78 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
         <DialogContent className={classes.dialogContent}>
           <div className={classes.lectureInfo}>
             <Typography className={classes.lectureTitle}>
-              {lecture.title}
+              {selectedLecture.title}
             </Typography>
             <Typography className={classes.lectureDetails}>
-              {lecture.date} • {lecture.time} • Klinisk medicin 4
+              {selectedLecture.date} • {selectedLecture.time}
             </Typography>
           </div>
 
-          <Typography
-            variant="body2"
-            style={{ color: "#ccc", marginBottom: theme.spacing(2) }}
-          >
-            Välj vilka användare du vill notifiera om att du har notionerat
-            färdigt denna föreläsning. Du kan skicka in-app notifieringar eller
-            dela via Messenger.
+          {selectedLectures.length > 1 && (
+            <FormControl variant="outlined" fullWidth className={classes.lectureSelect}>
+              <InputLabel>Välj föreläsning att notifiera för</InputLabel>
+              <Select
+                value={selectedLecture.id}
+                onChange={(e) => {
+                  const newLecture = selectedLectures.find(l => l.id === e.target.value);
+                  if (newLecture) {
+                    handleLectureChange(newLecture);
+                  }
+                }}
+                label="Välj föreläsning att notifiera för"
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      backgroundColor: "#2c2c2c",
+                      color: "white",
+                    },
+                  },
+                }}
+              >
+                {selectedLectures.map((lectureOption) => (
+                  <MenuItem 
+                    key={lectureOption.id} 
+                    value={lectureOption.id}
+                    style={{ color: "white" }}
+                  >
+                    {lectureOption.lectureNumber}. {lectureOption.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          <Typography className={classes.description}>
+            Skickas automatiskt till {otherUsers.join(" och ")}s Macs samt Messenger-gruppchaten.
           </Typography>
 
-          <div className={classes.userSelection}>
-            {availableUsers.map((userName) => (
-              <FormControlLabel
-                key={userName}
-                control={
-                  <Checkbox
-                    checked={selectedUsers.includes(userName)}
-                    onChange={() => handleUserToggle(userName)}
-                    className={classes.userCheckbox}
-                  />
-                }
-                label={userName}
-                className={classes.userLabel}
-              />
-            ))}
-          </div>
-
-          {selectedUsers.length > 0 && (
-            <div className={classes.selectedUsers}>
-              <Typography
-                variant="body2"
-                style={{ color: "#ccc", marginBottom: theme.spacing(1) }}
-              >
-                Valda användare:
-              </Typography>
-              {selectedUsers.map((userName) => (
-                <Chip
-                  key={userName}
-                  label={userName}
-                  className={classes.selectedChip}
-                  size="small"
-                />
-              ))}
-            </div>
-          )}
+          <TextField
+            className={classes.messageInput}
+            label="Meddelande"
+            variant="outlined"
+            fullWidth
+            multiline
+            rows={3}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`${selectedLecture.lectureNumber}. ${selectedLecture.title} färdignotionerad! <3`}
+          />
         </DialogContent>
 
         <DialogActions className={classes.dialogActions}>
-          <Button onClick={handleClose} style={{ color: "#ccc" }}>
+          <Button onClick={handleClose} className={classes.cancelButton}>
             Avbryt
           </Button>
-
-          {isMac() && selectedUsers.length > 0 && (
-            <>
-              <Button
-                variant="contained"
-                onClick={() => {
-                  const contacts = getMacUserContacts();
-                  selectedUsers.forEach((userName) => {
-                    const contact = contacts[userName as keyof typeof contacts];
-                    if (contact) {
-                      sendToiMessage(
-                        contact.phone,
-                        `📚 ${currentUserName} har notionerat färdigt "${lecture.title}"! Kolla Notioneringsledger.`
-                      );
-                    }
-                  });
-                }}
-                className={`${classes.actionButton} ${classes.iMessageButton}`}
-                startIcon={<PhoneIcon />}
-              >
-                iMessage
-              </Button>
-
-              <Button
-                variant="contained"
-                onClick={() => {
-                  const contacts = getMacUserContacts();
-                  selectedUsers.forEach((userName) => {
-                    const contact = contacts[userName as keyof typeof contacts];
-                    if (contact) {
-                      sendToAppleMail(
-                        contact.email,
-                        `Notioneringsledger: ${currentUserName} har slutfört en föreläsning`,
-                        `Hej ${userName}!\n\n${currentUserName} har notionerat färdigt "${lecture.title}".\n\nKolla Notioneringsledger för detaljer!`
-                      );
-                    }
-                  });
-                }}
-                className={`${classes.actionButton} ${classes.macButton}`}
-                startIcon={<EmailIcon />}
-              >
-                Mail
-              </Button>
-            </>
-          )}
-
           <Button
             variant="contained"
-            onClick={handleFacebookShare}
-            className={`${classes.actionButton} ${classes.shareButton}`}
-            startIcon={<FacebookIcon />}
-          >
-            Dela på Facebook
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleNotify}
-            disabled={selectedUsers.length === 0 || isLoading}
-            className={`${classes.actionButton} ${classes.loadingButton}`}
+            onClick={handleSendNotifications}
+            disabled={!message.trim() || isLoading}
+            className={classes.sendButton}
             startIcon={
-              isLoading ? <CircularProgress size={16} /> : <NotificationsIcon />
+              isLoading ? <CircularProgress size={16} color="inherit" /> : <NotificationsIcon />
             }
           >
-            {isLoading
-              ? "Skickar..."
-              : isMac()
-              ? "Skicka Mac-notifieringar"
-              : "Skicka notifieringar"}
+            {isLoading ? "Skickar..." : "Skicka meddelande"}
           </Button>
         </DialogActions>
       </Dialog>
