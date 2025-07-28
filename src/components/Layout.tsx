@@ -1,4 +1,5 @@
 import Head from "next/head";
+import React from "react";
 
 import { Box, Container } from "@material-ui/core";
 
@@ -89,7 +90,7 @@ export default function Layout({
 
       <Box my={5}>
         <Container maxWidth="lg">
-          {children || null}
+          {children ? children : <div />}
         </Container>
       </Box>
       <Footer />

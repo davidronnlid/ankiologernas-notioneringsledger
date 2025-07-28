@@ -12,7 +12,7 @@ import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 // Component that provides dynamic theme based on context
 const DynamicThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme } = useTheme();
-  const muiTheme = createAppTheme(theme);
+  const muiTheme = createAppTheme();
 
   return (
     <MuiThemeProvider theme={muiTheme}>
