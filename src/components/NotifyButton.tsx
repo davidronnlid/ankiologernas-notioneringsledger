@@ -19,7 +19,6 @@ import {
   makeStyles,
   Theme,
   createStyles,
-  useTheme,
 } from "@material-ui/core/styles";
 import {
   Notifications as NotificationsIcon,
@@ -30,47 +29,9 @@ import { addNotification } from "store/slices/notificationsReducer";
 import Lecture from "types/lecture";
 import { 
   sendToGroupChat,
-  openMessengerWithMessage 
+  openMessengerWithMessage,
+  addTeamEmojisIfNeeded
 } from "../utils/groupChatNotifications";
-
-// Import the emoji enhancement function
-const addTeamEmojisIfNeeded = (message: string): string => {
-  // Check if message already contains Unicode emojis (but replace <3 with proper emojis)
-  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❤️|💪|🔥|💯|🎯|🚀|⭐|✨|👊|🙌|💙|💚|❤|♥/gu;
-  
-  // Replace <3 with proper emoji and remove from message
-  let cleanedMessage = message.replace(/<3/g, '').trim();
-  
-  if (emojiRegex.test(cleanedMessage)) {
-    // Message already has proper emojis, return as is
-    return message;
-  }
-  
-  // Array of team-building and strength emojis
-  const teamEmojis = [
-    '💪✨',     // Strength + sparkle
-    '🔥💯',     // Fire + 100
-    '🚀⭐',     // Rocket + star  
-    '💪🎯',     // Strength + target
-    '🙌💙',     // Praise + blue heart
-    '💪🔥',     // Strength + fire
-    '⭐💪',     // Star + strength
-    '🎯🔥',     // Target + fire
-    '💯⭐',     // 100 + star
-    '🚀💪'      // Rocket + strength
-  ];
-  
-  // Pick a random emoji combination
-  const randomEmojis = teamEmojis[Math.floor(Math.random() * teamEmojis.length)];
-  
-  // Add emojis to the end of the message (replace <3 if it exists)
-  const finalMessage = message.includes('<3') 
-    ? `${cleanedMessage} ${randomEmojis}`
-    : `${message.trim()} ${randomEmojis}`;
-  
-  console.log(`🎯 Emoji enhancement: "${message}" → "${finalMessage}"`);
-  return finalMessage;
-};
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -81,7 +42,7 @@ const useStyles = makeStyles((theme: Theme) =>
       fontSize: "0.8rem",
       padding: "6px 12px",
       minWidth: "auto",
-      animation: "$breathingAnimation 4s ease-in-out infinite",
+      animation: "$breathingAnimation 12s ease-in-out infinite",
       "&:hover": {
         background: "linear-gradient(45deg, #1976d2, #1565c0)",
       },
@@ -91,7 +52,7 @@ const useStyles = makeStyles((theme: Theme) =>
         background: "#2c2c2c",
         color: "white",
         minWidth: "400px",
-        animation: "$breathingAnimation 4s ease-in-out infinite",
+        animation: "$breathingAnimation 12s ease-in-out infinite",
         [theme.breakpoints.down("sm")]: {
           minWidth: "90vw",
         },
@@ -114,7 +75,7 @@ const useStyles = makeStyles((theme: Theme) =>
       borderRadius: "8px",
       marginBottom: theme.spacing(2),
       border: "1px solid #404040",
-      animation: "$breathingAnimation 4s ease-in-out infinite",
+      animation: "$breathingAnimation 12s ease-in-out infinite",
     },
     lectureTitle: {
       color: "white",
@@ -243,10 +204,10 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
   const otherUsers = allUsers.filter((user) => user !== currentUserName);
 
-  // Get all lectures that have been selected by any user
+  // Get lectures that have been selected by current user only
   const getSelectedLectures = () => {
     return allLectures.filter(lecture => {
-      return allUsers.some(user => lecture.checkboxState?.[user]?.confirm);
+      return lecture.checkboxState?.[currentUserName]?.confirm;
     });
   };
 

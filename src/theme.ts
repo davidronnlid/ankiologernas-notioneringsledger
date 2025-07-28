@@ -1,4 +1,4 @@
-import { createMuiTheme } from '@material-ui/core';
+import { createMuiTheme, Theme } from '@material-ui/core';
 import { CommonColors } from '@material-ui/core/styles/createPalette';
 
 // APP COLOR THEME
@@ -10,47 +10,84 @@ interface CustomColors extends CommonColors {
 const appBlue = '#0B72B9';
 const appOrange = '#FFBA60';
 
-// CREATE THEME INSTANCE
-const theme = createMuiTheme({
-  // props: {
-  // 	MuiButtonBase: {
-  // 		disableRipple: true,
-  // 	},
-  // },
-  palette: {
-    common: {
-      blue: appBlue,
-      orange: appOrange,
-    } as CustomColors,
-    primary: {
-      main: appBlue,
+// CREATE DARK THEME
+export const createAppTheme = (): Theme => {
+  return createMuiTheme({
+    palette: {
+      type: 'dark', // Dark mode only
+      common: {
+        blue: appBlue,
+        orange: appOrange,
+      } as CustomColors,
+      primary: {
+        main: appBlue,
+      },
+      secondary: {
+        main: appOrange,
+      },
+      background: {
+        default: '#302e32',
+        paper: '#2c2c2c',
+      },
+      text: {
+        primary: '#ffffff',
+        secondary: '#cccccc',
+      },
     },
-    secondary: {
-      main: appOrange,
+    typography: {
+      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+      h1: {
+        color: '#ffffff',
+      },
+      h2: {
+        color: '#ffffff',
+      },
+      h3: {
+        color: '#ffffff',
+      },
+      h4: {
+        color: '#ffffff',
+      },
+      h5: {
+        color: '#ffffff',
+      },
+      h6: {
+        color: '#ffffff',
+      },
+      body1: {
+        color: '#ffffff',
+      },
+      body2: {
+        color: '#cccccc',
+      },
     },
-  },
-  typography: {},
-  // typography:{
-  //   tab: {
-  //     fontFamily: 'Raleway',
-  //     textTransform: 'none',
-  //     fontWeight: 700,
-  //     fontSize: '1rem',
-  //   },
-  //   estimate: {
-  //     fontFamily: 'Pacifico',
-  //     fontSize: '1rem',
-  //     textTransform: 'none',
-  //     color: 'white',
-  //   },
-  //   h2: {
-  //     fontFamily: 'Raleway',
-  //     fontWeight: 700,
-  //     fontSize: '2.5rem',
-  //     color: arcBlue,
-  //     lineHeight: 1.5,
-  //   },
-  // }
-});
+    overrides: {
+      MuiCssBaseline: {
+        '@global': {
+          body: {
+            backgroundColor: '#302e32',
+            color: '#ffffff',
+            transition: 'background-color 0.3s ease, color 0.3s ease',
+          },
+        },
+      },
+      MuiPaper: {
+        root: {
+          backgroundColor: '#2c2c2c',
+          color: '#ffffff',
+        },
+      },
+      MuiCard: {
+        root: {
+          backgroundColor: '#2c2c2c',
+          color: '#ffffff',
+        },
+      },
+    },
+  });
+};
+
+// Default dark theme
+const theme = createAppTheme();
 
 export default theme;

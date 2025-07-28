@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -11,9 +11,22 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Slide from "@material-ui/core/Slide";
-import { Button, Box } from "@mui/material";
+import { 
+  Button, 
+  Box, 
+  Menu, 
+  MenuItem, 
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import { RootState } from "store/types";
 import { persistor } from "store/store";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+
+import UserPreferencesDialog from "./UserPreferencesDialog";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface Props {
   children: React.ReactElement;
@@ -32,6 +45,27 @@ function HideOnScroll(props: Props) {
 
 export default function Header() {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
+
+  const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleOpenPreferences = () => {
+    setShowPreferencesDialog(true);
+    handleCloseMenu();
+  };
+
+  const handleLogout = () => {
+    netlifyIdentity.logout();
+    handleCloseMenu();
+  };
 
   // Get authentication state and user's username from Redux store
   const isAuthenticated = useSelector(
@@ -212,7 +246,12 @@ export default function Header() {
 
             {isAuthenticated && (
               <Box style={userSectionStyles}>
-                <Button onClick={handleSignup} style={profileButtonStyles}>
+
+                
+                <IconButton 
+                  onClick={handleProfileClick}
+                  style={profileButtonStyles}
+                >
                   <Image
                     src={profile_pic || "/images/banner.png"}
                     alt="User profile image"
@@ -223,7 +262,35 @@ export default function Header() {
                       objectFit: 'cover'
                     }}
                   />
-                </Button>
+                </IconButton>
+                
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleCloseMenu}
+                  PaperProps={{
+                    style: {
+                      backgroundColor: '#2c2c2c',
+                      color: 'white',
+                      border: '1px solid #404040',
+                      borderRadius: '8px',
+                      marginTop: '8px',
+                    }
+                  }}
+                >
+                  <MenuItem onClick={handleOpenPreferences}>
+                    <ListItemIcon>
+                      <SettingsIcon style={{ color: '#2196f3' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="AI-rekommendationsinställningar" />
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <ListItemIcon>
+                      <LogoutIcon style={{ color: '#f44336' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Logga ut" />
+                  </MenuItem>
+                </Menu>
               </Box>
             )}
 
@@ -238,6 +305,10 @@ export default function Header() {
       
       <Toolbar style={{ minHeight: '80px' }} />
 
+      <UserPreferencesDialog
+        open={showPreferencesDialog}
+        onClose={() => setShowPreferencesDialog(false)}
+      />
 
     </React.Fragment>
   );

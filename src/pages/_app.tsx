@@ -1,12 +1,26 @@
 import "../styles/globals.css";
 import React, { useEffect } from "react";
-import { ThemeProvider } from "@material-ui/core/styles";
+import { ThemeProvider as MuiThemeProvider } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import theme from "../theme";
+import { createAppTheme } from "../theme";
 import { AppProps } from "next/app";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "../store/store";
 import { Provider } from "react-redux";
+import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+
+// Component that provides dynamic theme based on context
+const DynamicThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { theme } = useTheme();
+  const muiTheme = createAppTheme(theme);
+
+  return (
+    <MuiThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      {children}
+    </MuiThemeProvider>
+  );
+};
 
 function MyApp(props: AppProps) {
   const { Component, pageProps } = props;
@@ -22,9 +36,10 @@ function MyApp(props: AppProps) {
     <>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Component {...pageProps} />
+          <ThemeProvider>
+            <DynamicThemeProvider>
+              <Component {...pageProps} />
+            </DynamicThemeProvider>
           </ThemeProvider>
         </PersistGate>
       </Provider>

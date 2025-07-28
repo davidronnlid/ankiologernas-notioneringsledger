@@ -88,7 +88,9 @@ export default function Layout({
       <Header />
 
       <Box my={5}>
-        <Container maxWidth="lg">{children}</Container>
+        <Container maxWidth="lg">
+          {children || null}
+        </Container>
       </Box>
       <Footer />
     </div>

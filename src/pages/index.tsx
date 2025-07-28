@@ -19,13 +19,17 @@ import {
   MenuItem,
 } from "@material-ui/core";
 import NotifyButton from "@/components/NotifyButton";
-import SmartSuggestion from "@/components/SmartSuggestion";
+import SmartRecommendations from "@/components/SmartRecommendations";
+import UserPreferencesDialog from "@/components/UserPreferencesDialog";
+import WeeklySummary from "@/components/WeeklySummary";
+import ExamProgressChart from "@/components/ExamProgressChart";
 import {
   makeStyles,
   Theme,
   createStyles,
-  useTheme,
+  useTheme as useMuiTheme,
 } from "@material-ui/core/styles";
+import { useTheme } from "../contexts/ThemeContext";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import BlockIcon from "@mui/icons-material/Block";
@@ -45,6 +49,11 @@ import { addNotification } from "store/slices/notificationsReducer";
 import { isMac, sendMultiChannelMacNotification } from "utils/macNotifications";
 import { getProfilePicUrl } from "../utils/profilePicMapper";
 import { coursePeriods } from "../utils/coursePeriods";
+import { 
+  updateNotionLectureTags, 
+  isNotionIntegrationEnabled, 
+  getNotionUpdateNotification 
+} from "utils/notionIntegration";
 import {
   isWithinInterval,
   parseISO,
@@ -70,44 +79,49 @@ type Totals = {
   [key: string]: PersonTotals;
 };
 
-const useStyles = makeStyles((theme: Theme) =>
+const useStyles = makeStyles((muiTheme: Theme) =>
   createStyles({
     pageContainer: {
-      padding: theme.spacing(4),
+      padding: muiTheme.spacing(4),
       maxWidth: "1400px",
       margin: "0 auto",
+      background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+      minHeight: "100vh",
+      transition: "all 0.5s ease-in-out",
     },
     headerSection: {
       textAlign: "center" as const,
-      marginBottom: theme.spacing(4),
+      marginBottom: muiTheme.spacing(4),
     },
     statsSection: {
-      marginBottom: theme.spacing(6),
+      marginBottom: muiTheme.spacing(6),
     },
     userStatsGrid: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-      gap: theme.spacing(3),
-      marginBottom: theme.spacing(4),
+      gap: muiTheme.spacing(3),
+      marginBottom: muiTheme.spacing(4),
     },
     statsCard: {
-      background: "linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%)",
-      borderRadius: "16px",
-      padding: theme.spacing(3),
-      border: "2px solid #404040",
-      transition: "all 0.3s ease",
+      background: "linear-gradient(135deg, rgba(44, 44, 44, 0.9) 0%, rgba(26, 26, 26, 0.9) 100%)",
+      borderRadius: "20px",
+      padding: muiTheme.spacing(3),
+      border: "2px solid rgba(64, 64, 64, 0.6)",
+      transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
       overflow: "hidden",
-      animation: "$breathingAnimation 4s ease-in-out infinite",
+      animation: "$breathingAnimation 12s ease-in-out infinite",
+      backdropFilter: "blur(10px)",
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0 12px 30px rgba(0, 0, 0, 0.4)",
-        borderColor: "#666",
+        transform: "translateY(-6px)",
+        boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+        borderColor: "rgba(102, 102, 102, 0.8)",
+        background: "linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(26, 26, 26, 0.95) 100%)",
       },
       "&.currentUser": {
-        background: "linear-gradient(135deg, #2c2c2c 0%, #1a3d1a 100%)",
-        borderColor: "#4caf50",
-        boxShadow: "0 8px 25px rgba(76, 175, 80, 0.3)",
+        background: "linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(26, 61, 26, 0.95) 100%)",
+        borderColor: "rgba(76, 175, 80, 0.8)",
+        boxShadow: "0 15px 35px rgba(76, 175, 80, 0.2)",
         "&::before": {
           content: '""',
           position: "absolute",
@@ -115,9 +129,16 @@ const useStyles = makeStyles((theme: Theme) =>
           left: "-2px",
           right: "-2px",
           bottom: "-2px",
-          background: "linear-gradient(45deg, #4caf50, #66bb6a, #4caf50)",
-          borderRadius: "16px",
+          background: "linear-gradient(45deg, rgba(76, 175, 80, 0.6), rgba(102, 187, 106, 0.6), rgba(76, 175, 80, 0.6))",
+          borderRadius: "20px",
           zIndex: -1,
+          animation: "$breathingAnimation 12s ease-in-out infinite",
+        },
+        "& .MuiTypography-root": {
+          color: "white !important",
+        },
+        "& span": {
+          color: "white !important",
         },
       },
     },
@@ -125,7 +146,7 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: theme.spacing(2),
+      marginBottom: muiTheme.spacing(2),
     },
     userName: {
       fontSize: "1.3rem",
@@ -133,7 +154,7 @@ const useStyles = makeStyles((theme: Theme) =>
       color: "white",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: muiTheme.spacing(1),
     },
     currentUserBadge: {
       background: "linear-gradient(45deg, #4caf50, #66bb6a)",
@@ -147,8 +168,8 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: theme.spacing(1),
-      padding: theme.spacing(0.5, 0),
+      marginBottom: muiTheme.spacing(1),
+      padding: muiTheme.spacing(0.5, 0),
     },
     statLabel: {
       fontSize: "0.9rem",
@@ -160,13 +181,13 @@ const useStyles = makeStyles((theme: Theme) =>
       color: "white",
     },
     progressContainer: {
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(1),
+      marginTop: muiTheme.spacing(2),
+      marginBottom: muiTheme.spacing(1),
     },
     progressLabel: {
       fontSize: "0.85rem",
-      color: "#ccc",
-      marginBottom: theme.spacing(1),
+      color: "white",
+      marginBottom: muiTheme.spacing(1),
     },
     progressBar: {
       height: "12px",
@@ -177,16 +198,16 @@ const useStyles = makeStyles((theme: Theme) =>
       fontSize: "0.8rem",
       color: "#ccc",
       textAlign: "center" as const,
-      marginTop: theme.spacing(1),
+      marginTop: muiTheme.spacing(1),
     },
     milestoneReached: {
       animation: "$celebration 2s ease-in-out",
     },
     searchSection: {
-      marginBottom: theme.spacing(4),
+      marginBottom: muiTheme.spacing(4),
       display: "flex",
       justifyContent: "center",
-      gap: theme.spacing(2),
+      gap: muiTheme.spacing(2),
       alignItems: "center",
       flexWrap: "wrap" as const,
     },
@@ -243,25 +264,31 @@ const useStyles = makeStyles((theme: Theme) =>
       },
     },
     lectureCard: {
-      background: "#2c2c2c",
-      borderRadius: "12px",
-      padding: theme.spacing(3),
-      marginBottom: theme.spacing(3),
-      border: "2px solid #404040",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      background: "linear-gradient(135deg, rgba(44, 44, 44, 0.9) 0%, rgba(26, 26, 26, 0.9) 100%)",
+      borderRadius: "16px",
+      padding: muiTheme.spacing(3),
+      marginBottom: muiTheme.spacing(3),
+      border: "2px solid rgba(64, 64, 64, 0.6)",
+      transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
       overflow: "hidden",
       cursor: "pointer",
-      animation: "$breathingAnimation 4s ease-in-out infinite",
+      animation: "$breathingAnimation 12s ease-in-out infinite",
+      backdropFilter: "blur(8px)",
       "&:hover": {
-        transform: "translateY(-4px) scale(1.02)",
-        boxShadow: "0 8px 25px rgba(0, 0, 0, 0.4)",
-        borderColor: "#666",
+        transform: "translateY(-6px) scale(1.01)",
+        boxShadow: "0 15px 35px rgba(0, 0, 0, 0.3)",
+        borderColor: "rgba(102, 102, 102, 0.8)",
+        background: "linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(26, 26, 26, 0.95) 100%)",
       },
       "&.selected": {
-        background: "linear-gradient(135deg, #2c2c2c 0%, #1a4d1a 100%)",
-        borderColor: "#4caf50",
-        boxShadow: "0 8px 30px rgba(76, 175, 80, 0.3)",
+        background: "linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(26, 77, 26, 0.95) 100%)",
+        borderColor: "rgba(76, 175, 80, 0.8)",
+        boxShadow: "0 15px 35px rgba(76, 175, 80, 0.25)",
+        transform: "translateY(-2px)",
+      },
+      "&.highlight": {
+        animation: "$highlight 2s ease-out",
       },
     },
     lectureNumber: {
@@ -275,7 +302,7 @@ const useStyles = makeStyles((theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: theme.spacing(2),
+      marginBottom: muiTheme.spacing(2),
       transition: "all 0.3s ease",
       boxShadow: "0 3px 10px rgba(0, 0, 0, 0.5)",
       border: "2px solid #FFFFFF",
@@ -292,7 +319,7 @@ const useStyles = makeStyles((theme: Theme) =>
       fontSize: "1.1rem",
       fontWeight: 500,
       color: "white",
-      marginBottom: theme.spacing(2),
+      marginBottom: muiTheme.spacing(2),
       lineHeight: "1.4",
       transition: "color 0.3s ease",
       ".selected &": {
@@ -302,7 +329,7 @@ const useStyles = makeStyles((theme: Theme) =>
     lectureInfo: {
       fontSize: "0.875rem",
       color: "#ccc",
-      marginBottom: theme.spacing(1),
+      marginBottom: muiTheme.spacing(1),
       transition: "color 0.3s ease",
       ".selected &": {
         color: "#b8d4b8",
@@ -310,9 +337,9 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     selectionStatus: {
       display: "flex",
-      gap: theme.spacing(1),
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2),
+      gap: muiTheme.spacing(1),
+      marginTop: muiTheme.spacing(2),
+      marginBottom: muiTheme.spacing(2),
     },
     personChip: {
       height: "26px",
@@ -336,7 +363,7 @@ const useStyles = makeStyles((theme: Theme) =>
     searchResults: {
       color: "#ccc",
       fontSize: "0.875rem",
-      marginBottom: theme.spacing(2),
+      marginBottom: muiTheme.spacing(2),
       textAlign: "center" as const,
     },
     completionBadge: {
@@ -381,13 +408,47 @@ const useStyles = makeStyles((theme: Theme) =>
       "100%": { transform: "scale(1) rotate(360deg)", opacity: 1 },
     },
     "@keyframes breathingAnimation": {
-      "0%, 100%": {
-        transform: "scale(1)",
-        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+      "0%": { transform: "scale(1)", filter: "brightness(1)" },
+      "50%": { transform: "scale(1.02)", filter: "brightness(1.1)" },
+      "100%": { transform: "scale(1)", filter: "brightness(1)" },
+    },
+    "@keyframes confirmationPop": {
+      "0%": { 
+        transform: "translate(-50%, -50%) scale(0.5)",
+        opacity: 0,
       },
-      "50%": {
-        transform: "scale(1.02)",
-        boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)",
+      "20%": { 
+        transform: "translate(-50%, -50%) scale(1.2)",
+        opacity: 1,
+      },
+      "100%": { 
+        transform: "translate(-50%, -50%) scale(1)",
+        opacity: 1,
+      },
+    },
+    "@keyframes confirmationText": {
+      "0%": { 
+        transform: "translateY(20px)",
+        opacity: 0,
+      },
+      "30%": { 
+        transform: "translateY(0)",
+        opacity: 1,
+      },
+      "100%": { 
+        transform: "translateY(0)",
+        opacity: 1,
+      },
+    },
+    "@keyframes highlight": {
+      "0%": {
+        boxShadow: "0 0 0 0 rgba(33, 150, 243, 0.7)",
+      },
+      "70%": {
+        boxShadow: "0 0 0 10px rgba(33, 150, 243, 0)",
+      },
+      "100%": {
+        boxShadow: "0 0 0 0 rgba(33, 150, 243, 0)",
       },
     },
     // Celebration Animation Styles
@@ -431,7 +492,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration0Profile: {
       animation:
-        "$celebration0In 1s ease-out, $celebration0Out 1s ease-in 1s forwards",
+        "$celebration0In 0.5s ease-out, $celebration0Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 1: Rainbow Stars + Bounce
     celebration1Stars: {
@@ -441,7 +502,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration1Profile: {
       animation:
-        "$celebration1In 1s ease-out, $celebration1Out 1s ease-in 1s forwards",
+        "$celebration1In 0.5s ease-out, $celebration1Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 2: Fireworks + Zoom
     celebration2Fireworks: {
@@ -451,7 +512,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration2Profile: {
       animation:
-        "$celebration2In 1s ease-out, $celebration2Out 1s ease-in 1s forwards",
+        "$celebration2In 0.5s ease-out, $celebration2Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 3: Lightning + Shake
     celebration3Lightning: {
@@ -461,7 +522,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration3Profile: {
       animation:
-        "$celebration3In 1s ease-out, $celebration3Out 1s ease-in 1s forwards",
+        "$celebration3In 0.5s ease-out, $celebration3Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 4: Spiral + Tornado
     celebration4Tornado: {
@@ -471,7 +532,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration4Profile: {
       animation:
-        "$celebration4In 1s ease-out, $celebration4Out 1s ease-in 1s forwards",
+        "$celebration4In 0.5s ease-out, $celebration4Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 5: Confetti + Float
     celebration5Confetti: {
@@ -481,7 +542,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration5Profile: {
       animation:
-        "$celebration5In 1s ease-out, $celebration5Out 1s ease-in 1s forwards",
+        "$celebration5In 0.5s ease-out, $celebration5Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 6: Magic Sparkles + Glow
     celebration6Sparkles: {
@@ -491,7 +552,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration6Profile: {
       animation:
-        "$celebration6In 1s ease-out, $celebration6Out 1s ease-in 1s forwards",
+        "$celebration6In 0.5s ease-out, $celebration6Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 7: Rocket + Blast Off
     celebration7Rocket: {
@@ -501,7 +562,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration7Profile: {
       animation:
-        "$celebration7In 1s ease-out, $celebration7Out 1s ease-in 1s forwards",
+        "$celebration7In 0.5s ease-out, $celebration7Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 8: Butterfly + Flutter
     celebration8Butterfly: {
@@ -511,7 +572,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration8Profile: {
       animation:
-        "$celebration8In 1s ease-out, $celebration8Out 1s ease-in 1s forwards",
+        "$celebration8In 0.5s ease-out, $celebration8Out 0.5s ease-in 0.5s forwards",
     },
     // Animation 9: Crown + Royal
     celebration9Crown: {
@@ -521,7 +582,7 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     celebration9Profile: {
       animation:
-        "$celebration9In 1s ease-out, $celebration9Out 1s ease-in 1s forwards",
+        "$celebration9In 0.5s ease-out, $celebration9Out 0.5s ease-in 0.5s forwards",
     },
     "@keyframes heartPulse": {
       "0%": {
@@ -716,6 +777,53 @@ const useStyles = makeStyles((theme: Theme) =>
       "0%, 100%": { filter: "brightness(1) drop-shadow(0 0 5px gold)" },
       "50%": { filter: "brightness(2) drop-shadow(0 0 15px gold)" },
     },
+    // New styles for celebration text
+    celebrationLectureText: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      zIndex: 10,
+      textAlign: "center",
+      color: "white",
+      fontSize: "1.5rem",
+      fontWeight: 700,
+      textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
+      pointerEvents: "none",
+      animation: "$confirmationPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      background: "rgba(0, 0, 0, 0.7)",
+      borderRadius: "16px",
+      padding: muiTheme.spacing(3),
+      border: "2px solid #4caf50",
+      boxShadow: "0 8px 32px rgba(76, 175, 80, 0.3)",
+    },
+    celebrationLectureNumber: {
+      fontSize: "3rem",
+      lineHeight: 1,
+      marginBottom: muiTheme.spacing(0.5),
+      color: "#FFD700",
+      fontWeight: 900,
+      textShadow: "3px 3px 6px rgba(0, 0, 0, 0.8)",
+    },
+    celebrationLectureTitle: {
+      fontSize: "1.4rem",
+      marginBottom: muiTheme.spacing(1),
+      lineHeight: 1.2,
+      animation: "$confirmationText 0.8s ease-out 0.2s both",
+    },
+    celebrationConfirmText: {
+      fontSize: "1.1rem",
+      color: "#4caf50",
+      fontWeight: 600,
+      animation: "$confirmationText 0.8s ease-out 0.4s both",
+      textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
+    },
+    celebrationLogo: {
+      position: "absolute",
+      top: "20px",
+      left: "20px",
+      zIndex: 10,
+    },
   })
 );
 
@@ -732,7 +840,8 @@ const defaultEndDate = currentCourse?.endDate || "";
 
 export default function Index() {
   const classes = useStyles();
-  const theme = useTheme();
+  const muiTheme = useMuiTheme();
+  const { theme: currentTheme } = useTheme();
   const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -750,9 +859,11 @@ export default function Index() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationUser, setCelebrationUser] = useState<string | null>(null);
   const [celebrationType, setCelebrationType] = useState<number>(0);
+  const [celebrationLecture, setCelebrationLecture] = useState<{title: string, number: number} | null>(null);
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -819,11 +930,13 @@ export default function Index() {
 
   const isLoading = !weeksData || weeksData.length === 0;
 
-  // Only show weeks for Klinisk medicin 4
-  const km4Weeks = weeksData.filter((week) => week.course === courseTitle);
+  // Only show weeks for Klinisk medicin 4 - moved before useMemo hooks
+  const km4Weeks = useMemo(() => {
+    return weeksData.filter((week) => week.course === courseTitle);
+  }, [weeksData]);
 
-  // Calculate user statistics with weekly breakdown
-  const userStats = useMemo(() => {
+  // Calculate user statistics with weekly breakdown - simplified
+  const userStats = (() => {
     const initialTotals: Totals = {
       Mattias: { FL: 0, hours: 0, wishedHours: 0 },
       Albin: { FL: 0, hours: 0, wishedHours: 0 },
@@ -852,10 +965,10 @@ export default function Index() {
       },
       { ...initialTotals }
     );
-  }, [km4Weeks]);
+  })();
 
-  // Calculate weekly breakdown for each user
-  const weeklyBreakdown = useMemo(() => {
+  // Calculate weekly breakdown for each user - simplified
+  const weeklyBreakdown = (() => {
     const breakdown: {
       [key: string]: { week: string; FL: number; hours: number }[];
     } = {
@@ -897,9 +1010,9 @@ export default function Index() {
     });
 
     return breakdown;
-  }, [km4Weeks]);
+  })();
 
-  const totalCourseHours = useMemo(() => {
+  const totalCourseHours = (() => {
     return km4Weeks.reduce((total, week) => {
       return (
         total +
@@ -908,7 +1021,7 @@ export default function Index() {
         }, 0)
       );
     }, 0);
-  }, [km4Weeks]);
+  })();
 
 
 
@@ -937,8 +1050,8 @@ export default function Index() {
     });
   }, [userStats, totalCourseHours, currentUser]);
 
-  // Filter lectures based on search term and selected filter - MEMOIZED
-  const filteredWeeks = useMemo(() => {
+  // Filter lectures based on search term and selected filter - simplified
+  const filteredWeeks = (() => {
     return km4Weeks
       .map((week) => ({
         ...week,
@@ -990,30 +1103,22 @@ export default function Index() {
         }),
       }))
       .filter((week) => week.lectures.length > 0);
-  }, [
-    km4Weeks,
-    debouncedSearchTerm,
-    selectedFilter,
-    startDate,
-    endDate,
-  ]);
+  })();
 
-  // Count total filtered lectures - MEMOIZED
-  const totalFilteredLectures = useMemo(() => {
+  // Count total filtered lectures - simplified
+  const totalFilteredLectures = (() => {
     return filteredWeeks.reduce(
       (total, week) => total + week.lectures.length,
       0
     );
-  }, [filteredWeeks]);
+  })();
 
-  // Check if lecture is selected by current user - MEMOIZED
-  const isLectureSelected = useMemo(() => {
-    return (lecture: Lecture): boolean => {
-      if (!currentUser?.full_name) return false;
-      const userName = currentUser.full_name.split(" ")[0]; // Get first name
-      return lecture.checkboxState?.[userName]?.confirm || false;
-    };
-  }, [currentUser?.full_name]);
+  // Check if lecture is selected by current user - simplified
+  const isLectureSelected = (lecture: Lecture): boolean => {
+    if (!currentUser?.full_name) return false;
+    const userName = currentUser.full_name.split(" ")[0]; // Get first name
+    return lecture.checkboxState?.[userName]?.confirm || false;
+  };
 
   // Handle card click to toggle selection
   const handleCardClick = async (lecture: Lecture) => {
@@ -1049,18 +1154,56 @@ export default function Index() {
         })
       );
 
+      // Update Notion databases for all users
+      if (isNotionIntegrationEnabled()) {
+        try {
+          const notionResponse = await updateNotionLectureTags(
+            lecture.title,
+            lecture.lectureNumber,
+            userName,
+            newState ? 'select' : 'unselect'
+          );
+          
+          // Log the result (optional: show user notification)
+          const notificationMessage = getNotionUpdateNotification(notionResponse);
+          console.log(`📝 Notion integration: ${notificationMessage}`);
+          
+          // Optionally dispatch an in-app notification about Notion update
+          if (notionResponse.success && notionResponse.summary.successfulUpdates > 0) {
+            dispatch(addNotification({
+              id: `notion-${Date.now()}`,
+              type: "lecture_notified" as const,
+              title: "Notion uppdaterat",
+              message: notificationMessage,
+              fromUser: "System",
+              toUser: userName,
+              lectureId: lecture.id,
+              lectureTitle: lecture.title,
+              timestamp: Date.now(),
+              read: false,
+            }));
+          }
+        } catch (notionError) {
+          console.error("❌ Notion integration error:", notionError);
+        }
+      } else {
+        console.log("ℹ️ Notion integration disabled or not configured");
+      }
+
       // Trigger celebration animation if lecture was selected (not deselected)
       if (newState) {
         // Randomly select one of the 10 celebration animations (0-9)
         const randomAnimation = Math.floor(Math.random() * 10);
         setCelebrationType(randomAnimation);
         setCelebrationUser(userName);
+        setCelebrationLecture({ title: lecture.title, number: lecture.lectureNumber });
         setShowCelebration(true);
 
         // Hide celebration after 2 seconds (1s in + 1s out)
         setTimeout(() => {
           setShowCelebration(false);
           setCelebrationUser(null);
+          setCelebrationLecture(null);
         }, 2000);
       }
     } catch (error) {
@@ -1091,20 +1234,45 @@ export default function Index() {
 
   const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
 
-  // Get all lectures from all weeks
-  const allLectures = useMemo(() => {
+  // Get all lectures from all weeks - simplified
+  const allLectures = (() => {
     return weeksData.reduce((acc: Lecture[], week) => {
       return [...acc, ...week.lectures];
     }, []);
-  }, [weeksData]);
+  })();
 
   return (
     <Layout>
       <>
         {/* Celebration Animation Overlay */}
-        {showCelebration && celebrationUser && (
+        {showCelebration && celebrationUser && celebrationLecture && (
           <div className={classes.celebrationOverlay}>
             <div className={classes.celebrationContainer}>
+              {/* Ankiologia Logo at the top */}
+              <div className={classes.celebrationLogo}>
+                <img
+                  src={getProfilePicUrl(celebrationUser)}
+                  alt={celebrationUser}
+                  className={
+                    `${classes.celebrationProfile} ` +
+                    (classes as any)[`celebration${celebrationType}Profile`]
+                  }
+                />
+              </div>
+
+              {/* Lecture Confirmation Text */}
+              <div className={classes.celebrationLectureText}>
+                <div className={classes.celebrationLectureNumber}>
+                  {celebrationLecture.number}
+                </div>
+                <div className={classes.celebrationLectureTitle}>
+                  {celebrationLecture.title}
+                </div>
+                <div className={classes.celebrationConfirmText}>
+                  ✅ Vald av {celebrationUser}!
+                </div>
+              </div>
+              
               {/* Dynamic Celebration Element */}
               <div
                 className={
@@ -1154,15 +1322,6 @@ export default function Index() {
                   ? "🦋"
                   : "👑"}
               </div>
-              {/* User Profile Picture */}
-              <img
-                src={getProfilePicUrl(celebrationUser)}
-                alt={celebrationUser}
-                className={
-                  `${classes.celebrationProfile} ` +
-                  (classes as any)[`celebration${celebrationType}Profile`]
-                }
-              />
             </div>
           </div>
         )}
@@ -1183,8 +1342,12 @@ export default function Index() {
             </Typography>
           </div>
 
-          {/* Smart Suggestion */}
-          <SmartSuggestion onLectureSelect={handleCardClick} />
+          {/* Smart AI Recommendations */}
+          <SmartRecommendations
+            lectures={allLectures}
+            onLectureClick={handleCardClick}
+            onOpenPreferences={() => setShowPreferencesDialog(true)}
+          />
 
           {/* User Statistics Section */}
           <div className={classes.statsSection}>
@@ -1232,7 +1395,7 @@ export default function Index() {
                     {weeklyBreakdown[person].length > 0 && (
                       <div
                         style={{
-                          marginTop: theme.spacing(2),
+                          marginTop: muiTheme.spacing(2),
                         }}
                       >
                         <div
@@ -1242,7 +1405,7 @@ export default function Index() {
                             alignItems: "center",
                             justifyContent: "space-between",
                             cursor: "pointer",
-                            padding: theme.spacing(1),
+                            padding: muiTheme.spacing(1),
                             background: "#1a1a1a",
                             borderRadius: "8px",
                             border: "1px solid #333",
@@ -1268,8 +1431,8 @@ export default function Index() {
                         {expandedWeeklyDetails[person] && (
                           <div
                             style={{
-                              marginTop: theme.spacing(1),
-                              padding: theme.spacing(1.5),
+                              marginTop: muiTheme.spacing(1),
+                              padding: muiTheme.spacing(1.5),
                               background: "#1a1a1a",
                               borderRadius: "8px",
                               border: "1px solid #333",
@@ -1282,7 +1445,7 @@ export default function Index() {
                                   display: "flex",
                                   justifyContent: "space-between",
                                   alignItems: "center",
-                                  marginBottom: index === weeklyBreakdown[person].length - 1 ? 0 : theme.spacing(0.5),
+                                  marginBottom: index === weeklyBreakdown[person].length - 1 ? 0 : muiTheme.spacing(0.5),
                                   fontSize: "0.75rem",
                                   color: "#ccc",
                                 }}
@@ -1340,8 +1503,8 @@ export default function Index() {
             variant="h5"
             style={{
               color: "white",
-              marginBottom: theme.spacing(3),
-              marginTop: theme.spacing(6),
+              marginBottom: muiTheme.spacing(3),
+              marginTop: muiTheme.spacing(6),
               textAlign: "center",
             }}
           >
@@ -1406,7 +1569,7 @@ export default function Index() {
           </div>
 
           {/* Date Filter Section - Second Row */}
-          <div className={classes.searchSection} style={{ marginTop: theme.spacing(2) }}>
+          <div className={classes.searchSection} style={{ marginTop: muiTheme.spacing(2) }}>
             <TextField
               className={classes.searchField}
               label="Från datum"
@@ -1485,7 +1648,7 @@ export default function Index() {
           )}
 
           {/* Lectures Grid */}
-          <div style={{ marginTop: theme.spacing(4) }}>
+          <div style={{ marginTop: muiTheme.spacing(4) }}>
             <Grid container spacing={3}>
               {filteredWeeks.map((week) =>
                 week.lectures.map((lecture: Lecture) => {
@@ -1513,6 +1676,7 @@ export default function Index() {
                         }`}
                         elevation={0}
                         onClick={() => handleCardClick(lecture)}
+                        data-lecture-id={lecture.id}
                         style={{
                           cursor: "pointer",
                           opacity: isUpdating === lecture.id ? 0.7 : 1,
@@ -1564,24 +1728,25 @@ export default function Index() {
                         </div>
 
                         {/* Notify Button - only show if lecture is selected by current user */}
-                        {isSelected && (
-                          <div 
-                            style={{ marginTop: theme.spacing(1) }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <NotifyButton
-                              lecture={lecture}
-                              allLectures={allLectures}
-                              onNotificationSent={() => {
-                                // Optional: Add any additional logic when notification is sent
-                                console.log(
-                                  "Notification sent for lecture:",
-                                  lecture.title
-                                );
-                              }}
-                            />
-                          </div>
-                        )}
+                        <div 
+                          style={{ 
+                            marginTop: muiTheme.spacing(1),
+                            display: isSelected ? 'block' : 'none' 
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <NotifyButton
+                            lecture={lecture}
+                            allLectures={allLectures}
+                            onNotificationSent={() => {
+                              // Optional: Add any additional logic when notification is sent
+                              console.log(
+                                "Notification sent for lecture:",
+                                lecture.title
+                              );
+                            }}
+                          />
+                        </div>
 
                         {/* Loading indicator */}
                         {isUpdating === lecture.id && (
@@ -1621,6 +1786,17 @@ export default function Index() {
               </Box>
             )}
         </div>
+
+        {/* AI Weekly Summary - efter föreläsningslistan */}
+        <WeeklySummary lectures={allLectures} />
+
+        {/* Exam Progress Chart - längst ned på sidan */}
+        <ExamProgressChart courseTitle={courseTitle} />
+
+        <UserPreferencesDialog
+          open={showPreferencesDialog}
+          onClose={() => setShowPreferencesDialog(false)}
+        />
       </>
     </Layout>
   );

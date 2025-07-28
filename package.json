@@ -11,6 +11,7 @@
     "@mui/material": "^5.14.13",
     "@mui/styles": "^5.14.13",
     "@netlify/functions": "^2.4.0",
+    "@notionhq/client": "^2.3.0",
     "@reduxjs/toolkit": "^1.9.7",
     "axios": "^0.21.1",
     "clsx": "latest",
