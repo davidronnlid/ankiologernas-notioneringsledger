@@ -1,4 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import fs from 'fs';
+import path from 'path';
 
 // Mock user for local development
 const mockUser = {
@@ -9,6 +11,67 @@ const mockUser = {
     full_name: "David Rönnlid",
   },
 };
+
+// File path for persisting added lectures in development
+const addedLecturesFilePath = path.join(process.cwd(), '.dev-lectures.json');
+// File path for persisting edited mock lectures in development
+const editedLecturesFilePath = path.join(process.cwd(), '.dev-lecture-edits.json');
+
+// Function to load added lectures from file
+function loadAddedLectures(): any[] {
+  try {
+    if (fs.existsSync(addedLecturesFilePath)) {
+      const data = fs.readFileSync(addedLecturesFilePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading added lectures:', error);
+  }
+  return [];
+}
+
+// Function to save added lectures to file
+function saveAddedLectures(lectures: any[]) {
+  try {
+    fs.writeFileSync(addedLecturesFilePath, JSON.stringify(lectures, null, 2));
+  } catch (error) {
+    console.error('Error saving added lectures:', error);
+  }
+}
+
+// Function to load edited lectures from file
+function loadEditedLectures(): { [key: string]: any } {
+  try {
+    if (fs.existsSync(editedLecturesFilePath)) {
+      const data = fs.readFileSync(editedLecturesFilePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading edited lectures:', error);
+  }
+  return {};
+}
+
+// Function to save edited lectures to file
+function saveEditedLectures(edits: { [key: string]: any }) {
+  try {
+    fs.writeFileSync(editedLecturesFilePath, JSON.stringify(edits, null, 2));
+  } catch (error) {
+    console.error('Error saving edited lectures:', error);
+  }
+}
+
+// Function to add lecture to persistent storage (exported for use by addLecture API)
+export function addLectureToMemory(lecture: any) {
+  console.log('💾 Adding lecture to persistent storage:', lecture.title);
+  const addedLectures = loadAddedLectures();
+  addedLectures.push(lecture);
+  saveAddedLectures(addedLectures);
+  console.log('💾 Total lectures in persistent storage:', addedLectures.length);
+}
+
+// Export functions for use by editLecture API
+export { loadAddedLectures, saveAddedLectures, loadEditedLectures, saveEditedLectures };
 
 // Mock lecture data for "Klinisk medicin 4"
 const mockLectureData = [
@@ -199,18 +262,75 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     switch (req.method) {
       case "GET":
-        // Return mock lecture data and user info
+        // Combine mock data with any added lectures
+        let allLectureData = [...mockLectureData];
+        
+        // Apply any edits to mock lectures
+        const editedLectures = loadEditedLectures();
+        if (Object.keys(editedLectures).length > 0) {
+          console.log('📝 Applying', Object.keys(editedLectures).length, 'lecture edits');
+          
+          // Apply edits to mock data
+          allLectureData = allLectureData.map(week => ({
+            ...week,
+            lectures: week.lectures.map(lecture => {
+              const edit = editedLectures[lecture.id];
+              if (edit) {
+                console.log('✏️ Applying edit to lecture:', lecture.title, '→', edit.title);
+                return {
+                  ...lecture,
+                  title: edit.title,
+                  date: edit.date,
+                  time: edit.time,
+                  updatedAt: edit.updatedAt,
+                  updatedBy: edit.updatedBy,
+                };
+              }
+              return lecture;
+            })
+          }));
+        }
+        
+        // Load and add any dynamically added lectures to the appropriate week
+        const addedLectures = loadAddedLectures();
+        if (addedLectures.length > 0) {
+          addedLectures.forEach(newLecture => {
+            // Find or create the appropriate week
+            let targetWeek = allLectureData.find(week => week.course === newLecture.course);
+            if (!targetWeek) {
+              // Create a new week if one doesn't exist
+              targetWeek = {
+                week: `Vecka ${Math.ceil(new Date(newLecture.date).getDate() / 7)} (${newLecture.date})`,
+                course: newLecture.course,
+                lectures: []
+              };
+              allLectureData.push(targetWeek);
+            }
+            
+            // Add the lecture if it doesn't already exist
+            const lectureExists = targetWeek.lectures.some(l => l.id === newLecture.id);
+            if (!lectureExists) {
+              targetWeek.lectures.push(newLecture);
+            }
+          });
+        }
+        
+        // Return combined data
         res.status(200).json({
-          lectures: mockLectureData,
+          lectures: allLectureData,
           user: mockUser,
           message: "Mock data loaded successfully - logged in as David Rönnlid",
         });
         break;
 
       case "POST":
-        // Mock lecture creation
+        // Mock lecture creation - also add to in-memory storage
         const newLecture = req.body;
         console.log("Mock: Creating new lecture:", newLecture);
+        
+        // Add to in-memory storage
+        addLectureToMemory(newLecture);
+        
         res.status(201).json({
           success: true,
           message: "Mock lecture created successfully",

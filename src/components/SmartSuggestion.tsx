@@ -375,9 +375,9 @@ const SmartSuggestion: React.FC<SmartSuggestionProps> = ({ onLectureSelect, onDi
           >
             <CloseIcon />
           </IconButton>
-        </div>
       </div>
-
+        </div>
+        
       <div className={classes.lectureInfo}>
         <Typography variant="h6" className={classes.lectureTitle}>
           {lecture.title}
@@ -406,10 +406,10 @@ const SmartSuggestion: React.FC<SmartSuggestionProps> = ({ onLectureSelect, onDi
 
       <div className={classes.reasonSection}>
         <div className={classes.reasonText}>
-          <ReasonIcon className={classes.reasonIcon} />
+              <ReasonIcon className={classes.reasonIcon} />
           <span>{reason}</span>
         </div>
-      </div>
+          </div>
 
       <Tooltip title={tooltipText} placement="top">
         <div className={classes.actionButtons}>

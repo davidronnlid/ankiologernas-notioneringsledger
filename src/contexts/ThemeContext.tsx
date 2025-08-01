@@ -28,13 +28,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     document.body.setAttribute('data-theme', theme);
     
     // Set dark mode CSS custom properties
-    document.documentElement.style.setProperty('--bg-primary', '#302e32');
-    document.documentElement.style.setProperty('--bg-secondary', '#2c2c2c');
-    document.documentElement.style.setProperty('--text-primary', '#ffffff');
-    document.documentElement.style.setProperty('--text-secondary', '#cccccc');
-    document.documentElement.style.setProperty('--border-color', '#404040');
-    document.documentElement.style.setProperty('--card-bg', '#2c2c2c');
-    document.documentElement.style.setProperty('--shadow', '0 4px 20px rgba(0, 0, 0, 0.3)');
+      document.documentElement.style.setProperty('--bg-primary', '#302e32');
+      document.documentElement.style.setProperty('--bg-secondary', '#2c2c2c');
+      document.documentElement.style.setProperty('--text-primary', '#ffffff');
+      document.documentElement.style.setProperty('--text-secondary', '#cccccc');
+      document.documentElement.style.setProperty('--border-color', '#404040');
+      document.documentElement.style.setProperty('--card-bg', '#2c2c2c');
+      document.documentElement.style.setProperty('--shadow', '0 4px 20px rgba(0, 0, 0, 0.3)');
   }, []);
 
   return (

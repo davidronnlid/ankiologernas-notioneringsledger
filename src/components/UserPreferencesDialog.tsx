@@ -443,7 +443,7 @@ const UserPreferencesDialog: React.FC<UserPreferencesDialogProps> = ({
             🤖 AI Lärandestatistik
           </Typography>
           <Typography variant="body2" color="textSecondary" gutterBottom>
-            Visa hur AI:n lär sig från dina val och feedback
+                          Visar hur AI:n lär sig från dina val och feedback
           </Typography>
           
           {(() => {

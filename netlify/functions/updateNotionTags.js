@@ -185,7 +185,7 @@ exports.handler = async (event, context) => {
                   {
                     text: {
                       content: newVems.join(', ')
-                    }
+                }
                   }
                 ]
               }

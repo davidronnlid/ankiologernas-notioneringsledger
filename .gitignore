@@ -19,3 +19,6 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# Development lecture data
+.dev-lectures.json

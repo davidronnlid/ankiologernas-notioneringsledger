@@ -102,7 +102,9 @@ export const sortLecturesIntoCoursesAndWeeks = (
     (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   console.log("Lectures sorted by date: ", sortedLectures);
-  const lecturesWithNumbers = sortedLectures.map((lecture: Lecture) => {
+  let globalLectureCounter = 0; // Counter for lectures that don't belong to any course
+  
+  const lecturesWithNumbers = sortedLectures.map((lecture: Lecture, index: number) => {
     // Determine the course of the lecture, if any
     const course = coursePeriods.find((period) =>
       isWithinInterval(parseISO(lecture.date), {
@@ -118,7 +120,10 @@ export const sortLecturesIntoCoursesAndWeeks = (
       // Assign the incremented number to the lecture
       return { ...lecture, lectureNumber: currentCount + 1 };
     } else {
-      return lecture; // If lecture does not belong to a course, do not assign a number
+      // For lectures that don't belong to any course, assign a sequential number
+      globalLectureCounter++;
+      console.log(`Lecture "${lecture.title}" does not belong to any course period, assigning fallback number: ${globalLectureCounter}`);
+      return { ...lecture, lectureNumber: globalLectureCounter };
     }
   });
   console.log("Lectures with assigned numbers: ", lecturesWithNumbers);
@@ -247,6 +252,14 @@ export const isCourseActive = (courseTitle: string, currentDate: Date) => {
   console.log(
     `Checking if course "${courseTitle}" is active on date: ${currentDate}`
   );
+
+  // In development mode, always show courses as active for testing
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      `🔧 Development mode: Course "${courseTitle}" forced to be active for testing`
+    );
+    return true;
+  }
 
   // Find the course by title
   const course = coursePeriods.find((c) => c.title === courseTitle);

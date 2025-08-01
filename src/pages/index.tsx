@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import Layout from "@/components/Layout";
 import {
   Typography,
@@ -23,6 +23,9 @@ import SmartRecommendations from "@/components/SmartRecommendations";
 import UserPreferencesDialog from "@/components/UserPreferencesDialog";
 import WeeklySummary from "@/components/WeeklySummary";
 import ExamProgressChart from "@/components/ExamProgressChart";
+import DuplicateRemovalNotification from "@/components/DuplicateRemovalNotification";
+import AddLectureModal from "@/components/AddLectureModal";
+import EditLectureModal from "@/components/EditLectureModal";
 import {
   makeStyles,
   Theme,
@@ -35,6 +38,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import BlockIcon from "@mui/icons-material/Block";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 import Lecture from "types/lecture";
 import { RootState } from "store/types";
 import { useSelector, useDispatch } from "react-redux";
@@ -42,9 +47,10 @@ import {
   calculateDuration,
   calculateTotalCourseHours,
   getDisplayCourseTitle,
+  sortLecturesIntoCoursesAndWeeks,
 } from "utils/processLectures";
 import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
-import { updateLectureCheckboxState } from "store/slices/lecturesReducer";
+import { updateLectureCheckboxState, setLectures } from "store/slices/lecturesReducer";
 import { addNotification } from "store/slices/notificationsReducer";
 import { isMac, sendMultiChannelMacNotification } from "utils/macNotifications";
 import { getProfilePicUrl } from "../utils/profilePicMapper";
@@ -54,6 +60,16 @@ import {
   isNotionIntegrationEnabled, 
   getNotionUpdateNotification 
 } from "utils/notionIntegration";
+import { 
+  addLecture, 
+  calculateNextLectureNumber, 
+  formatLectureData,
+  editLecture,
+  EditLectureData
+} from "utils/lectureAPI";
+import { dataSyncManager } from "utils/dataSync";
+import { DatabaseNotifications } from "utils/notificationSystem";
+import { removeDuplicateLectures } from "utils/removeDuplicateLectures";
 import {
   isWithinInterval,
   parseISO,
@@ -287,9 +303,41 @@ const useStyles = makeStyles((muiTheme: Theme) =>
         boxShadow: "0 15px 35px rgba(76, 175, 80, 0.25)",
         transform: "translateY(-2px)",
       },
-      "&.highlight": {
-        animation: "$highlight 2s ease-out",
+    },
+    // Compact add button positioned between lecture cards
+    compactAddButton: {
+      position: "absolute",
+      right: "-24px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: "24px",
+      height: "24px",
+      borderRadius: "50%",
+      background: "rgba(76, 175, 80, 0.9)",
+      border: "2px solid rgba(255, 255, 255, 0.9)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      zIndex: 100,
+      opacity: 0.8,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+      "&:hover": {
+        background: "rgba(76, 175, 80, 1)",
+        borderColor: "rgba(255, 255, 255, 1)",
+        transform: "translateY(-50%) scale(1.15)",
+        opacity: 1,
+        boxShadow: "0 4px 12px rgba(76, 175, 80, 0.5)",
       },
+      "&:active": {
+        transform: "translateY(-50%) scale(0.95)",
+      },
+    },
+    compactAddIcon: {
+      fontSize: "1rem",
+      color: "rgba(255, 255, 255, 1)",
+      fontWeight: "bold",
     },
     lectureNumber: {
       background: "#000000",
@@ -861,9 +909,37 @@ export default function Index() {
   const [celebrationType, setCelebrationType] = useState<number>(0);
   const [celebrationLecture, setCelebrationLecture] = useState<{title: string, number: number} | null>(null);
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
+  
+
+  
+
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  
+  // Debug logging for development
+  React.useEffect(() => {
+    console.log("🔍 Index Debug Info:");
+    console.log("- isAuthenticated:", isAuthenticated);
+    console.log("- currentUser:", currentUser);
+    console.log("- weeksData length:", weeksData?.length || 0);
+    console.log("- weeksData:", weeksData);
+  }, [isAuthenticated, currentUser, weeksData]);
+  
+  // State for duplicate removal notification
+  const [showDuplicateNotification, setShowDuplicateNotification] = useState(false);
+  const [removedDuplicates, setRemovedDuplicates] = useState<string[]>([]);
+  const [totalRemoved, setTotalRemoved] = useState(0);
+  
+  // State for add lecture modal
+  const [showAddLectureModal, setShowAddLectureModal] = useState(false);
+  const [suggestedDate, setSuggestedDate] = useState<string>("");
+  const [suggestedTime, setSuggestedTime] = useState<string>("");
+  
+  // Edit lecture modal state
+  const [showEditLectureModal, setShowEditLectureModal] = useState(false);
+  const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -871,6 +947,21 @@ export default function Index() {
       [person]: !prev[person]
     }));
   };
+
+  // Check for removed duplicates notification
+  useEffect(() => {
+    const storedDuplicates = localStorage.getItem('removedDuplicates');
+    if (storedDuplicates) {
+      const duplicates = JSON.parse(storedDuplicates);
+      if (duplicates.length > 0) {
+        setRemovedDuplicates(duplicates);
+        setTotalRemoved(duplicates.length);
+        setShowDuplicateNotification(true);
+        // Clear from localStorage after showing
+        localStorage.removeItem('removedDuplicates');
+      }
+    }
+  }, []);
 
   // Debounce search term to improve performance
   useEffect(() => {
@@ -933,7 +1024,7 @@ export default function Index() {
   // Only show weeks for Klinisk medicin 4 - moved before useMemo hooks
   const km4Weeks = useMemo(() => {
     return weeksData.filter((week) => week.course === courseTitle);
-  }, [weeksData]);
+  }, [weeksData, courseTitle]);
 
   // Calculate user statistics with weekly breakdown - simplified
   const userStats = (() => {
@@ -1099,6 +1190,8 @@ export default function Index() {
             }
           }
 
+
+
           return matchesSearch && matchesPersonFilter && matchesDateFilter;
         }),
       }))
@@ -1121,6 +1214,106 @@ export default function Index() {
   };
 
   // Handle card click to toggle selection
+  const handleGapClick = (date?: string, time?: string) => {
+    setSuggestedDate(date || "");
+    setSuggestedTime(time || "");
+    setShowAddLectureModal(true);
+  };
+
+  const handleEditLecture = (lecture: Lecture) => {
+    setEditingLecture(lecture);
+    setShowEditLectureModal(true);
+  };
+
+  const handleUpdateLecture = async (lectureData: EditLectureData) => {
+    try {
+      // Show loading state
+      setIsUpdating("editing-lecture");
+      
+      console.log("🔄 Updating lecture:", lectureData);
+
+      // Call edit API
+      const response = await editLecture(lectureData);
+      
+      if (response.success) {
+        // Use DataSyncManager to refresh the UI with updated data
+        await dataSyncManager.forceRefresh();
+        
+        // Close modal and show success message
+        setShowEditLectureModal(false);
+        setEditingLecture(null);
+        console.log(`✅ Föreläsning "${lectureData.title}" har uppdaterats!`);
+        DatabaseNotifications.lectureUpdated(lectureData.title);
+        
+      } else {
+        throw new Error("Failed to update lecture");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error updating lecture:", error);
+      
+      // Show error message
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      console.error(`❌ Ett fel uppstod när föreläsningen skulle uppdateras: ${errorMessage}`);
+      DatabaseNotifications.lectureUpdateError(errorMessage);
+      
+    } finally {
+      // Clear loading state
+      setIsUpdating(null);
+    }
+  };
+
+  const handleAddLecture = async (lectureData: {
+    title: string;
+    date: string;
+    time: string;
+    duration: number;
+  }) => {
+    try {
+      // Show loading state
+      setIsUpdating("adding-lecture");
+      
+      // Format data for API
+      const apiData = formatLectureData(
+        lectureData.title,
+        lectureData.date,
+        lectureData.time,
+        lectureData.duration,
+        courseTitle
+      );
+
+      // Add lecture to database
+      const response = await addLecture(apiData);
+      
+      if (response.success) {
+        // Use DataSyncManager to refresh the UI with the new lecture
+        await dataSyncManager.forceRefresh();
+        
+        // Close modal and show success message
+        setShowAddLectureModal(false);
+        console.log(`✅ Föreläsning "${lectureData.title}" har lagts till!`);
+        DatabaseNotifications.lectureAdded(lectureData.title);
+        
+        console.log("🎉 Lecture added successfully:", response.lecture);
+        
+      } else {
+        throw new Error("Failed to add lecture");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error adding lecture:", error);
+      
+      // Show error message
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      console.error(`❌ Ett fel uppstod när föreläsningen skulle läggas till: ${errorMessage}`);
+      DatabaseNotifications.lectureAddError(errorMessage);
+      
+    } finally {
+      // Clear loading state
+      setIsUpdating(null);
+    }
+  };
+
   const handleCardClick = async (lecture: Lecture) => {
     if (!currentUser?.full_name) return;
 
@@ -1342,174 +1535,11 @@ export default function Index() {
             </Typography>
           </div>
 
-          {/* Smart AI Recommendations */}
-          <SmartRecommendations
-            lectures={allLectures}
-            onLectureClick={handleCardClick}
-            onOpenPreferences={() => setShowPreferencesDialog(true)}
-          />
 
-          {/* User Statistics Section */}
-          <div className={classes.statsSection}>
-            <div className={classes.userStatsGrid}>
-              {Object.entries(userStats).map(([person, stats]) => {
-                const goal = totalCourseHours / 3;
-                const progress = goal > 0 ? (stats.hours / goal) * 100 : 0;
-                const isCurrentUser = person === currentUserName;
 
-                return (
-                  <div
-                    key={person}
-                    className={`${classes.statsCard} ${
-                      isCurrentUser ? "currentUser" : ""
-                    }`}
-                  >
-                    <div className={classes.statsHeader}>
-                      <Typography className={classes.userName}>
-                        {person}
-                        {isCurrentUser && (
-                          <span className={classes.currentUserBadge}>Du</span>
-                        )}
-                      </Typography>
-                    </div>
 
-                    <Divider
-                      style={{
-                        backgroundColor: "#404040",
-                        marginBottom: "16px",
-                      }}
-                    />
 
-                    <div className={classes.statRow}>
-                      <span className={classes.statLabel}>Föreläsningar:</span>
-                      <span className={classes.statValue}>{stats.FL}</span>
-                    </div>
-                    <div className={classes.statRow}>
-                      <span className={classes.statLabel}>Timmar:</span>
-                      <span className={classes.statValue}>
-                        {stats.hours.toFixed(1)}
-                      </span>
-                    </div>
 
-                    {/* Weekly Breakdown */}
-                    {weeklyBreakdown[person].length > 0 && (
-                      <div
-                        style={{
-                          marginTop: muiTheme.spacing(2),
-                        }}
-                      >
-                        <div
-                          onClick={() => toggleWeeklyDetails(person)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            cursor: "pointer",
-                            padding: muiTheme.spacing(1),
-                            background: "#1a1a1a",
-                            borderRadius: "8px",
-                            border: "1px solid #333",
-                            transition: "all 0.3s ease"
-                          }}
-                        >
-                          <Typography
-                            style={{
-                              fontSize: "0.8rem",
-                              color: "#ccc",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Detaljer per vecka
-                          </Typography>
-                          {expandedWeeklyDetails[person] ? (
-                            <ExpandLessIcon style={{ color: "#ccc", fontSize: "1rem" }} />
-                          ) : (
-                            <ExpandMoreIcon style={{ color: "#ccc", fontSize: "1rem" }} />
-                          )}
-                        </div>
-                        
-                        {expandedWeeklyDetails[person] && (
-                          <div
-                            style={{
-                              marginTop: muiTheme.spacing(1),
-                              padding: muiTheme.spacing(1.5),
-                              background: "#1a1a1a",
-                              borderRadius: "8px",
-                              border: "1px solid #333",
-                            }}
-                          >
-                            {weeklyBreakdown[person].map((weekData, index) => (
-                              <div
-                                key={index}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  marginBottom: index === weeklyBreakdown[person].length - 1 ? 0 : muiTheme.spacing(0.5),
-                                  fontSize: "0.75rem",
-                                  color: "#ccc",
-                                }}
-                              >
-                                <span>{weekData.week}:</span>
-                                <span>
-                                  {weekData.FL} FL ({weekData.hours.toFixed(1)}h)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className={classes.progressContainer}>
-                      <div className={classes.progressLabel}>
-                        Mål för terminen: {goal.toFixed(0)} timmar
-                      </div>
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "12px",
-                          backgroundColor: "#333",
-                          borderRadius: "6px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.min(progress, 100)}%`,
-                            height: "100%",
-                            backgroundColor:
-                              progress >= 100
-                                ? "#4caf50"
-                                : progress > 50
-                                ? "#ff9800"
-                                : "#f44336",
-                            transition: "width 0.3s ease",
-                          }}
-                        />
-                      </div>
-                      <Typography className={classes.progressText}>
-                        Progress: {isNaN(progress) ? 0 : Math.round(progress)}%
-                      </Typography>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Föreläsningar Title */}
-          <Typography
-            variant="h5"
-            style={{
-              color: "white",
-              marginBottom: muiTheme.spacing(3),
-              marginTop: muiTheme.spacing(6),
-              textAlign: "center",
-            }}
-          >
-            Föreläsningar
-          </Typography>
 
           {/* Search and Filter Section */}
           <div className={classes.searchSection}>
@@ -1648,10 +1678,23 @@ export default function Index() {
           )}
 
           {/* Lectures Grid */}
-          <div style={{ marginTop: muiTheme.spacing(4) }}>
-            <Grid container spacing={3}>
-              {filteredWeeks.map((week) =>
-                week.lectures.map((lecture: Lecture) => {
+          <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
+            <Grid container spacing={3} style={{ overflow: "visible" }}>
+              {filteredWeeks.map((week) => {
+                // Group lectures by date for better gap placement
+                const lecturesByDate = week.lectures.reduce((acc, lecture) => {
+                  const date = lecture.date;
+                  if (!acc[date]) {
+                    acc[date] = [];
+                  }
+                  acc[date].push(lecture);
+                  return acc;
+                }, {} as { [date: string]: Lecture[] });
+
+                return Object.entries(lecturesByDate).map(([date, lectures]) => (
+                  <Fragment key={date}>
+                    {/* Lectures for this date */}
+                    {lectures.map((lecture: Lecture) => {
                   const duration = calculateDuration(lecture.time);
                   const isSelected = isLectureSelected(lecture);
 
@@ -1682,8 +1725,45 @@ export default function Index() {
                           opacity: isUpdating === lecture.id ? 0.7 : 1,
                           pointerEvents:
                             isUpdating === lecture.id ? "none" : "auto",
+                          position: "relative", // For positioning add button
                         }}
                       >
+
+                        {/* Edit Button */}
+                        <div 
+                          style={{
+                            position: "absolute",
+                            top: "12px",
+                            right: isSelected ? "50px" : "12px", // Next to checkmark if selected, or in corner if not
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "50%",
+                            background: "rgba(255, 255, 255, 0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                            zIndex: 20,
+                            opacity: 0.7,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditLecture(lecture);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                            e.currentTarget.style.opacity = "1";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                            e.currentTarget.style.opacity = "0.7";
+                          }}
+                          title="Redigera föreläsning"
+                        >
+                          <EditIcon style={{ fontSize: "14px", color: "white" }} />
+                        </div>
+
                         {/* Completion Badge */}
                         {isSelected && (
                           <div className={classes.completionBadge}>✓</div>
@@ -1767,9 +1847,53 @@ export default function Index() {
                         )}
                       </Paper>
                     </Grid>
-                  );
-                })
-              )}
+                    )
+                    })}
+                  </Fragment>
+                ));
+          })}
+              
+              {/* Add lecture button as last card */}
+              <Grid item xs={12} sm={6} md={4}>
+                <div 
+                  onClick={() => handleGapClick()}
+                  style={{
+                    height: "200px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    borderRadius: "12px",
+                    background: "rgba(76, 175, 80, 0.1)",
+                    border: "2px dashed rgba(76, 175, 80, 0.5)",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(76, 175, 80, 0.2)";
+                    e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.8)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(76, 175, 80, 0.1)";
+                    e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.5)";
+                  }}
+                  title="Lägg till ny föreläsning"
+                >
+                  <div style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: "rgba(76, 175, 80, 0.9)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontSize: "24px",
+                    fontWeight: "bold"
+                  }}>
+                    +
+                  </div>
+                </div>
+              </Grid>
             </Grid>
           </div>
 
@@ -1787,6 +1911,162 @@ export default function Index() {
             )}
         </div>
 
+        {/* Smart AI Recommendations */}
+        <SmartRecommendations
+          lectures={allLectures}
+          onLectureClick={handleCardClick}
+          onOpenPreferences={() => setShowPreferencesDialog(true)}
+        />
+
+        {/* User Statistics Section */}
+        <div className={classes.statsSection}>
+          <div className={classes.userStatsGrid}>
+            {Object.entries(userStats).map(([person, stats]) => {
+              const goal = totalCourseHours / 3;
+              const progress = goal > 0 ? (stats.hours / goal) * 100 : 0;
+              const isCurrentUser = person === currentUserName;
+
+              return (
+                <div
+                  key={person}
+                  className={`${classes.statsCard} ${
+                    isCurrentUser ? "currentUser" : ""
+                  }`}
+                >
+                  <div className={classes.statsHeader}>
+                    <Typography className={classes.userName}>
+                      {person}
+                      {isCurrentUser && (
+                        <span className={classes.currentUserBadge}>Du</span>
+                      )}
+                    </Typography>
+                  </div>
+
+                  <Divider
+                    style={{
+                      backgroundColor: "#404040",
+                      marginBottom: "16px",
+                    }}
+                  />
+
+                  <div className={classes.statRow}>
+                    <span className={classes.statLabel}>Föreläsningar:</span>
+                    <span className={classes.statValue}>{stats.FL}</span>
+                  </div>
+                  <div className={classes.statRow}>
+                    <span className={classes.statLabel}>Timmar:</span>
+                    <span className={classes.statValue}>
+                      {stats.hours.toFixed(1)}
+                    </span>
+                  </div>
+
+                  {/* Weekly Breakdown */}
+                  {weeklyBreakdown[person].length > 0 && (
+                    <div
+                      style={{
+                        marginTop: muiTheme.spacing(2),
+                      }}
+                    >
+                      <div
+                        onClick={() => toggleWeeklyDetails(person)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          cursor: "pointer",
+                          padding: muiTheme.spacing(1),
+                          background: "#1a1a1a",
+                          borderRadius: "8px",
+                          border: "1px solid #333",
+                          transition: "all 0.3s ease"
+                        }}
+                      >
+                        <Typography
+                          style={{
+                            fontSize: "0.8rem",
+                            color: "#ccc",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Detaljer per vecka
+                        </Typography>
+                        {expandedWeeklyDetails[person] ? (
+                          <ExpandLessIcon style={{ color: "#ccc", fontSize: "1rem" }} />
+                        ) : (
+                          <ExpandMoreIcon style={{ color: "#ccc", fontSize: "1rem" }} />
+                        )}
+                      </div>
+                      
+                      {expandedWeeklyDetails[person] && (
+                        <div
+                          style={{
+                            marginTop: muiTheme.spacing(1),
+                            padding: muiTheme.spacing(1.5),
+                            background: "#1a1a1a",
+                            borderRadius: "8px",
+                            border: "1px solid #333",
+                          }}
+                        >
+                          {weeklyBreakdown[person].map((weekData, index) => (
+                            <div
+                              key={index}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: index === weeklyBreakdown[person].length - 1 ? 0 : muiTheme.spacing(0.5),
+                                fontSize: "0.75rem",
+                                color: "#ccc",
+                              }}
+                            >
+                              <span>{weekData.week}:</span>
+                              <span>
+                                {weekData.FL} FL ({weekData.hours.toFixed(1)}h)
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className={classes.progressContainer}>
+                    <div className={classes.progressLabel}>
+                      Mål för terminen: {goal.toFixed(0)} timmar
+                    </div>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "12px",
+                        backgroundColor: "#333",
+                        borderRadius: "6px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${Math.min(progress, 100)}%`,
+                          height: "100%",
+                          backgroundColor:
+                            progress >= 100
+                              ? "#4caf50"
+                              : progress > 50
+                              ? "#ff9800"
+                              : "#f44336",
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                    </div>
+                    <Typography className={classes.progressText}>
+                      Progress: {isNaN(progress) ? 0 : Math.round(progress)}%
+                    </Typography>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* AI Weekly Summary - efter föreläsningslistan */}
         <WeeklySummary lectures={allLectures} />
 
@@ -1797,7 +2077,38 @@ export default function Index() {
           open={showPreferencesDialog}
           onClose={() => setShowPreferencesDialog(false)}
         />
+        
+        {/* Duplicate Removal Notification */}
+        <DuplicateRemovalNotification
+          removedDuplicates={removedDuplicates}
+          totalRemoved={totalRemoved}
+          onClose={() => setShowDuplicateNotification(false)}
+        />
+        
+        {/* Add Lecture Modal */}
+        <AddLectureModal
+          open={showAddLectureModal}
+          onClose={() => setShowAddLectureModal(false)}
+          onAddLecture={handleAddLecture}
+          suggestedDate={suggestedDate}
+          suggestedTime={suggestedTime}
+          isLoading={isUpdating === "adding-lecture"}
+        />
+
+        {/* Edit Lecture Modal */}
+        <EditLectureModal
+          open={showEditLectureModal}
+          lecture={editingLecture}
+          onClose={() => {
+            setShowEditLectureModal(false);
+            setEditingLecture(null);
+          }}
+          onUpdate={handleUpdateLecture}
+          isLoading={isUpdating === "editing-lecture"}
+        />
       </>
     </Layout>
   );
 }
+
+

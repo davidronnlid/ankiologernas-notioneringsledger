@@ -143,7 +143,7 @@ Integrationen söker efter föreläsningar på tre sätt:
 
 - Kontrollera browser console för detaljerade logs
 - Netlify function logs visar backend-aktivitet
-- Notion API rate limits: 3 requests per second
+- Notion API rate limits: 3 requests per second 
 - Logs visar när nya sidor skapas automatiskt
 
 ## 🆕 Nya funktioner

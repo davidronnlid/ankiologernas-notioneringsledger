@@ -76,40 +76,108 @@ export default function Header() {
     (state: RootState) => state.auth.user?.profile_pic
   );
 
-  useEffect(() => {
-    netlifyIdentity.init();
-
-    // Check if a user is already logged in
-    const currentUser = netlifyIdentity.currentUser();
-    if (currentUser) {
-      const userData = {
-        email: currentUser.email,
-        id: currentUser.id,
-        full_name: currentUser.user_metadata?.full_name || "",
-      };
-      dispatch(signIn(userData));
-    }
-
-    // Listen for login events
-    netlifyIdentity.on("login", (user) => {
-      const userData = {
-        email: user.email,
-        id: user.id,
-        full_name: user.user_metadata?.full_name || "",
-      };
-      console.log("User from netlifyIdentity:", user);
-      dispatch(signIn(userData));
-      router.push("/useraccount");
-    });
-
-    // Listen for logout events
-    netlifyIdentity.on("logout", () => {
-      dispatch(signOut());
-      persistor.purge();
-    });
-  }, []);
-
   const router = useRouter();
+
+  useEffect(() => {
+    try {
+      // Initialize Netlify Identity with proper configuration
+      netlifyIdentity.init({
+        container: '#netlify-modal', // Optional: specify modal container
+        locale: 'en' // Optional: specify locale
+      });
+
+      // Check if a user is already logged in
+      const currentUser = netlifyIdentity.currentUser();
+      if (currentUser) {
+        console.log("Found existing user:", currentUser);
+        const userData = {
+          email: currentUser.email || "",
+          id: currentUser.id,
+          full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "",
+        };
+        dispatch(signIn(userData));
+      }
+
+      // Handle login events
+      const handleLogin = (user: any) => {
+        try {
+          console.log("Login event received, user data:", user);
+          console.log("User metadata:", user.user_metadata);
+          console.log("User app_metadata:", user.app_metadata);
+          
+          const userData = {
+            email: user.email || "",
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || "",
+          };
+          
+          console.log("Dispatching sign in with userData:", userData);
+          dispatch(signIn(userData));
+          
+          // Close the modal after successful login
+          netlifyIdentity.close();
+          
+          // Navigate to user account page
+          router.push("/userAccount");
+        } catch (error) {
+          console.error("Error handling login:", error);
+        }
+      };
+
+      // Handle logout events
+      const handleLogout = () => {
+        try {
+          console.log("Logout event received");
+          dispatch(signOut());
+          persistor.purge();
+          router.push("/login");
+        } catch (error) {
+          console.error("Error handling logout:", error);
+        }
+      };
+
+      // Handle error events
+      const handleError = (error: any) => {
+        console.error("Netlify Identity error:", error);
+        // If there's a token error, try to refresh or logout the user
+        if (error.message && error.message.includes("token")) {
+          console.warn("Token error detected, logging out user");
+          dispatch(signOut());
+          persistor.purge();
+        }
+      };
+
+      // Handle token refresh events
+      const handleRefresh = (user: any) => {
+        console.log("Token refreshed for user:", user);
+        if (user) {
+          const userData = {
+            email: user.email || "",
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+          };
+          dispatch(signIn(userData));
+        }
+      };
+
+      // Add event listeners
+      netlifyIdentity.on("login", handleLogin);
+      netlifyIdentity.on("logout", handleLogout);
+      netlifyIdentity.on("error", handleError);
+      netlifyIdentity.on("refresh", handleRefresh);
+
+      // Cleanup function to remove event listeners
+      return () => {
+        netlifyIdentity.off("login", handleLogin);
+        netlifyIdentity.off("logout", handleLogout);
+        netlifyIdentity.off("error", handleError);
+        netlifyIdentity.off("refresh", handleRefresh);
+      };
+
+    } catch (error) {
+      console.error("Error initializing Netlify Identity:", error);
+    }
+  }, [dispatch, router]);
 
   const handleSignup = () => {
     console.log("called handleSignup");
