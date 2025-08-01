@@ -4,7 +4,7 @@ import { SubjectArea } from '../types/lecture';
 import { getNotionEnvVars, detectSubjectArea } from './subjectAreas';
 
 interface NotionSubjectCRUDRequest {
-  operation: 'create' | 'update' | 'delete'; // Removed 'read' and 'sync'
+  operation: 'create' | 'update' | 'read_status'; // Removed 'delete', added 'read_status'
   lectureData: {
     id?: string;
     title: string;
@@ -27,6 +27,8 @@ interface NotionSubjectCRUDResponse {
   subjectArea: SubjectArea | null;
   databaseUsed: string;
   results: any[];
+  status?: string | null; // For read_status operations
+  user?: string; // For read_status operations
 }
 
 // Main subject-aware CRUD function - only pushes data TO Notion
@@ -117,16 +119,17 @@ export const updateLectureInNotionSubject = async (
   });
 };
 
-export const deleteLectureFromNotionSubject = async (lectureData: any) => {
+export const readLectureStatusFromNotionSubject = async (lectureData: any, user: string) => {
   return notionSubjectCRUD({
-    operation: 'delete',
-    lectureData
+    operation: 'read_status',
+    lectureData,
+    userAction: { user, action: 'modify' }
   });
 };
 
 // Auto-sync triggers based on user actions (one-way to Notion)
 export const triggerNotionSubjectSync = async (
-  action: 'lecture_created' | 'lecture_updated' | 'lecture_deleted' | 'lecture_selected' | 'lecture_unselected',
+  action: 'lecture_created' | 'lecture_updated' | 'lecture_selected' | 'lecture_unselected',
   lectureData: any,
   user?: string
 ) => {
@@ -140,10 +143,6 @@ export const triggerNotionSubjectSync = async (
         
       case 'lecture_updated':
         await updateLectureInNotionSubject(lectureData, user ? { user, action: 'modify' } : undefined);
-        break;
-        
-      case 'lecture_deleted':
-        await deleteLectureFromNotionSubject(lectureData);
         break;
         
       case 'lecture_selected':
@@ -164,4 +163,31 @@ export const triggerNotionSubjectSync = async (
   } catch (error) {
     console.error(`❌ Failed to sync ${action} to Notion:`, error);
   }
+};
+
+// Batch read statuses for multiple lectures for a specific user
+export const readLectureStatusesBatch = async (lectures: any[], user: string) => {
+  console.log(`📖 Reading statuses for ${lectures.length} lectures for user: ${user}`);
+  
+  const statusPromises = lectures.map(async (lecture) => {
+    try {
+      const result = await readLectureStatusFromNotionSubject(lecture, user);
+      return {
+        lectureId: lecture.id,
+        title: lecture.title,
+        status: result?.status || null,
+        success: result?.success || false
+      };
+    } catch (error) {
+      console.error(`❌ Failed to read status for lecture ${lecture.title}:`, error);
+      return {
+        lectureId: lecture.id,
+        title: lecture.title,
+        status: null,
+        success: false
+      };
+    }
+  });
+
+  return Promise.all(statusPromises);
 };

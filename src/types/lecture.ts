@@ -32,4 +32,7 @@ export default interface Lecture {
   lectureNumber: number;
   subjectArea?: SubjectArea;
   comments?: Comment[];
+  status?: {
+    [userName: string]: string | null; // User-specific status from Notion
+  };
 }

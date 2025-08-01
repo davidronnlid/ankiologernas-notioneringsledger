@@ -39,89 +39,73 @@ function getNotionEnvVars(userName, subjectArea) {
 // Helper function to convert app lecture data to Notion properties
 function lectureToNotionProperties(lecture, userAction) {
   const properties = {
-    'Name': {
-      title: [
-        {
-          text: {
-            content: `${lecture.lectureNumber}. ${lecture.title}`
-          }
-        }
-      ]
-    },
     'Föreläsning': {
-      rich_text: [
+      title: [
         {
           text: {
             content: lecture.title
           }
         }
       ]
-    },
-    'Ämnesområde': {
-      rich_text: [
-        {
-          text: {
-            content: lecture.subjectArea
-          }
-        }
-      ]
     }
   };
 
-  // Add date if provided
-  if (lecture.date) {
-    properties['Datum'] = {
-      date: {
-        start: lecture.date
-      }
-    };
-  }
-
-  // Add time if provided
-  if (lecture.time) {
-    properties['Tid'] = {
+  // Add date and time combined if provided
+  if (lecture.date && lecture.time) {
+    const [startTime, endTime] = lecture.time.split('-');
+    const dateTimeString = `${lecture.date} ${startTime}${endTime ? ` - ${endTime}` : ''}`;
+    properties['Date and Time'] = {
       rich_text: [
         {
           text: {
-            content: lecture.time
+            content: dateTimeString
+          }
+        }
+      ]
+    };
+  } else if (lecture.date) {
+    properties['Date and Time'] = {
+      rich_text: [
+        {
+          text: {
+            content: lecture.date
           }
         }
       ]
     };
   }
 
-  // Add lecturer if provided
-  if (lecture.lecturer) {
-    properties['Föreläsare'] = {
-      rich_text: [
-        {
-          text: {
-            content: lecture.lecturer
-          }
-        }
-      ]
-    };
-  }
-
-  // Handle Vems tags for user selection
+  // Handle Person field (what used to be Vems) - user-specific
   if (userAction) {
     const userLetter = USER_LETTERS[userAction.user];
-    let vems = lecture.vems || [];
     
-    if (userAction.action === 'select' && !vems.includes(userLetter)) {
-      vems.push(userLetter);
-    } else if (userAction.action === 'unselect') {
-      vems = vems.filter(letter => letter !== userLetter);
-    }
-    
-    properties['Vems'] = {
-      rich_text: [
-        {
-          text: {
-            content: vems.join(', ')
+    if (userAction.action === 'select') {
+      properties['Person'] = {
+        rich_text: [
+          {
+            text: {
+              content: userLetter
+            }
           }
-        }
-      ]
+        ]
+      };
+    } else if (userAction.action === 'unselect') {
+      properties['Person'] = {
+        rich_text: [
+          {
+            text: {
+              content: ''
+            }
+          }
+        ]
+      };
+    }
+  }
+
+  // Add URL if provided
+  if (lecture.url) {
+    properties['URL'] = {
+      url: lecture.url
     };
   }
 
@@ -208,20 +192,10 @@ async function updateLecture(lectureData, userAction) {
       const searchResponse = await notion.databases.query({
         database_id: databaseId,
         filter: {
-          or: [
-            {
-              property: 'Name',
-              title: {
-                contains: lectureData.title
-              }
-            },
-            {
-              property: 'Name',
-              title: {
-                contains: `${lectureData.lectureNumber}.`
-              }
-            }
-          ]
+          property: 'Föreläsning',
+          title: {
+            contains: lectureData.title
+          }
         }
       });
       
@@ -266,80 +240,47 @@ async function updateLecture(lectureData, userAction) {
   return results;
 }
 
-// Delete operation - Remove lecture from subject-specific databases
-async function deleteLecture(lectureData) {
-  const results = [];
+// Read status from Notion for a specific user and lecture
+async function readLectureStatus(lectureData, userName) {
   const { subjectArea } = lectureData;
+  const { tokenKey, databaseKey } = getNotionEnvVars(userName, subjectArea);
+  const token = process.env[tokenKey];
+  const databaseId = process.env[databaseKey];
   
-  for (const userName of ['David', 'Albin', 'Mattias']) {
-    const { tokenKey, databaseKey } = getNotionEnvVars(userName, subjectArea);
-    const token = process.env[tokenKey];
-    const databaseId = process.env[databaseKey];
-    
-    if (!token || !databaseId) {
-      console.warn(`⚠️ Missing Notion config for ${userName} - ${subjectArea}`);
-      results.push({
-        user: userName,
-        success: false,
-        error: `Missing Notion configuration for ${subjectArea}`
-      });
-      continue;
-    }
-
-    try {
-      const notion = new Client({ auth: token });
-      
-      // Search for lecture to delete
-      const searchResponse = await notion.databases.query({
-        database_id: databaseId,
-        filter: {
-          or: [
-            {
-              property: 'Name',
-              title: {
-                contains: lectureData.title
-              }
-            },
-            {
-              property: 'Name',
-              title: {
-                contains: `${lectureData.lectureNumber}.`
-              }
-            }
-          ]
-        }
-      });
-      
-      // Delete matching pages
-      let deletedCount = 0;
-      for (const page of searchResponse.results) {
-        await notion.pages.update({
-          page_id: page.id,
-          archived: true
-        });
-        deletedCount++;
-      }
-      
-      console.log(`✅ Deleted ${deletedCount} lectures from ${userName}'s ${subjectArea} database`);
-      results.push({
-        user: userName,
-        success: true,
-        pagesDeleted: deletedCount,
-        operation: 'delete'
-      });
-      
-    } catch (error) {
-      console.error(`❌ Failed to delete lecture from ${userName}'s ${subjectArea} database:`, error);
-      results.push({
-        user: userName,
-        success: false,
-        error: error.message,
-        operation: 'delete'
-      });
-    }
+  if (!token || !databaseId) {
+    console.warn(`⚠️ Missing Notion config for ${userName} - ${subjectArea}`);
+    return null;
   }
-  
-  return results;
+
+  try {
+    const notion = new Client({ auth: token });
+    
+    // Search for existing lecture
+    const searchResponse = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: 'Föreläsning',
+        title: {
+          contains: lectureData.title
+        }
+      }
+    });
+    
+    if (searchResponse.results.length > 0) {
+      const page = searchResponse.results[0];
+      const statusProperty = page.properties?.Status;
+      
+      if (statusProperty?.select?.name) {
+        return statusProperty.select.name;
+      }
+    }
+    
+    return null;
+    
+  } catch (error) {
+    console.error(`❌ Failed to read status from ${userName}'s ${subjectArea} database:`, error);
+    return null;
+  }
 }
 
 exports.handler = async (event, context) => {
@@ -386,14 +327,41 @@ exports.handler = async (event, context) => {
         results = await updateLecture(lectureData, userAction);
         break;
         
-      case 'delete':
-        results = await deleteLecture(lectureData);
-        break;
+      case 'read_status':
+        if (!userAction?.user) {
+          return {
+            statusCode: 400,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: JSON.stringify({ error: 'User is required for read_status operation' })
+          };
+        }
+        const status = await readLectureStatus(lectureData, userAction.user);
+        return {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          },
+          body: JSON.stringify({
+            success: true,
+            operation: 'read_status',
+            subjectArea: lectureData.subjectArea,
+            status,
+            user: userAction.user
+          })
+        };
         
       default:
         return {
           statusCode: 400,
-          body: JSON.stringify({ error: `Unknown operation: ${operation}` })
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          },
+          body: JSON.stringify({ error: `Unknown operation: ${operation}. DELETE operations are strictly prohibited.` })
         };
     }
     
