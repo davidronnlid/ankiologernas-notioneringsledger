@@ -104,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             ]
           },
-          'Föreläsningsnamn': {
+          'Föreläsning': {
             rich_text: [
               {
                 text: {

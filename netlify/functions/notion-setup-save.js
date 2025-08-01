@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
         console.log(`✅ Connection test successful for ${userName}:`, databaseTitle);
         
         // Check for required properties
-        const requiredProperties = ['Name', 'Föreläsningsnamn', 'Vems'];
+        const requiredProperties = ['Name', 'Föreläsning', 'Vems'];
         const missingProperties = requiredProperties.filter(prop => !properties.includes(prop));
         
         if (missingProperties.length > 0) {

@@ -39,7 +39,7 @@ async function createLecturePage(notion, databaseId, lectureTitle, lectureNumber
             }
           ]
         },
-        'Föreläsningsnamn': {
+        'Föreläsning': {
           rich_text: [
             {
               text: {
@@ -138,7 +138,7 @@ exports.handler = async (event, context) => {
                 }
               },
               {
-                property: 'Föreläsningsnamn',
+                property: 'Föreläsning',
                 rich_text: {
                   contains: lectureTitle
                 }

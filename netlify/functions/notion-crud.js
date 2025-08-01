@@ -33,7 +33,7 @@ function lectureToNotionProperties(lecture, userAction) {
         }
       ]
     },
-    'Föreläsningsnamn': {
+    'Föreläsning': {
       rich_text: [
         {
           text: {
