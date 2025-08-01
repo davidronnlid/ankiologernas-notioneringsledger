@@ -264,6 +264,7 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
       };
 
       try {
+        // Update MongoDB
         await dispatch(
           updateCheckboxStateThunk({
             lectureID,
@@ -271,12 +272,20 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
           })
         );
 
+        // Update local Redux state immediately for responsive UI
         dispatch(
           updateLectureCheckboxState({
             lectureID,
             newCheckboxState: updatedState,
           })
         );
+
+        // In production, refresh data from MongoDB to ensure consistency
+        if (process.env.NODE_ENV === 'production') {
+          console.log("🔄 Production: Refreshing data after checkbox update");
+          const { dataSyncManager } = await import('utils/dataSync');
+          dataSyncManager.forceRefresh();
+        }
 
         // Trigger celebration only for confirm actions
         if (field === "confirm" && isChecked) {

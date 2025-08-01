@@ -16,6 +16,8 @@ import { RootState } from "store/types";
 import { removeDuplicateLectures, logDuplicateStats } from "utils/removeDuplicateLectures";
 import { sortLecturesIntoCoursesAndWeeks } from "utils/processLectures";
 import { dataSyncManager } from "utils/dataSync";
+import { CheckboxState } from "types/lecture";
+import { WeekData } from "types";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -31,6 +33,23 @@ export default function Layout({
   const lecturesData = useSelector(
     (state: RootState) => state.lectures.lectures
   );
+
+  // Initialize default checkbox state for lectures that don't have it
+  const initializeCheckboxState = (data: WeekData[]): WeekData[] => {
+    const defaultCheckboxState: CheckboxState = {
+      Mattias: { confirm: false, unwish: false },
+      Albin: { confirm: false, unwish: false },
+      David: { confirm: false, unwish: false },
+    };
+
+    return data.map((week: WeekData) => ({
+      ...week,
+      lectures: week.lectures.map((lecture: any) => ({
+        ...lecture,
+        checkboxState: lecture.checkboxState || defaultCheckboxState
+      }))
+    }));
+  };
 
   useEffect(() => {
     // Initialize DataSyncManager with dispatch
@@ -84,9 +103,20 @@ export default function Layout({
         if (process.env.NODE_ENV === "development" && data.lectures) {
           // Development mode - data comes already grouped as week data
           console.log("Development mode: Using pre-grouped lecture data");
+          console.log("🔍 Checking lecture data for checkbox states:", data.lectures);
           processedData = data.lectures; // Already in the correct format
         } else if (data.events) {
           // Production mode - data comes as events that need processing
+          console.log("Production mode: Processing events into lectures");
+          console.log("🔍 Checking events for checkbox states:", data.events.slice(0, 3));
+          
+          // Log some sample checkbox states
+          const eventsWithCheckbox = data.events.filter((event: any) => event.checkboxState);
+          console.log(`📊 Found ${eventsWithCheckbox.length} events with checkbox states out of ${data.events.length} total`);
+          if (eventsWithCheckbox.length > 0) {
+            console.log("📋 Sample checkbox state:", eventsWithCheckbox[0].checkboxState);
+          }
+          
           processedData = sortLecturesIntoCoursesAndWeeks(
             data.events,
             currentDate
@@ -97,6 +127,13 @@ export default function Layout({
           console.log("📊 Layout: Processed data length:", processedData.length);
           console.log("📊 Layout: Processed data:", processedData);
           
+          // Check checkbox states in processed data
+          const lecturesWithCheckbox = processedData.flatMap((week: WeekData) => week.lectures).filter((lecture: any) => lecture.checkboxState);
+          console.log(`📊 After processing: Found ${lecturesWithCheckbox.length} lectures with checkbox states`);
+          if (lecturesWithCheckbox.length > 0) {
+            console.log("📋 Sample processed checkbox state:", lecturesWithCheckbox[0].checkboxState);
+          }
+          
           // Remove duplicate lectures
           const { cleanedData, removedDuplicates } = removeDuplicateLectures(processedData);
           logDuplicateStats(processedData, cleanedData);
@@ -104,12 +141,20 @@ export default function Layout({
           console.log("🧹 Layout: Cleaned data length:", cleanedData.length);
           console.log("🧹 Layout: Cleaned data:", cleanedData);
           
+          // Initialize checkbox states for all lectures
+          const dataWithCheckboxStates = initializeCheckboxState(cleanedData);
+          console.log("🔲 Layout: Initialized checkbox states for all lectures");
+          
+          // Check final checkbox states before Redux dispatch
+          const finalLecturesWithCheckbox = dataWithCheckboxStates.flatMap((week: WeekData) => week.lectures).filter((lecture: any) => lecture.checkboxState);
+          console.log(`📊 Final data: Found ${finalLecturesWithCheckbox.length} lectures with checkbox states`);
+          
           // Store removed duplicates for notification
           if (removedDuplicates.length > 0) {
             localStorage.setItem('removedDuplicates', JSON.stringify(removedDuplicates));
           }
           
-          dispatch(setLectures(cleanedData));
+          dispatch(setLectures(dataWithCheckboxStates));
           console.log("✅ Layout: Data dispatched to Redux!");
         } else {
           console.log("❌ Layout: No processed data to dispatch");

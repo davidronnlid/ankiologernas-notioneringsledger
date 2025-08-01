@@ -1026,27 +1026,33 @@ export default function Index() {
     return weeksData.filter((week) => week.course === courseTitle);
   }, [weeksData, courseTitle]);
 
-  // Calculate user statistics with weekly breakdown - simplified
-  const userStats = (() => {
+  // Calculate user statistics with weekly breakdown - made reactive with useMemo
+  const userStats = useMemo(() => {
+    console.log("🔄 Recalculating user statistics...");
+    console.log("km4Weeks for stats calculation:", km4Weeks);
+    
     const initialTotals: Totals = {
       Mattias: { FL: 0, hours: 0, wishedHours: 0 },
       Albin: { FL: 0, hours: 0, wishedHours: 0 },
       David: { FL: 0, hours: 0, wishedHours: 0 },
     };
 
-    return km4Weeks.reduce<Totals>(
+    const result = km4Weeks.reduce<Totals>(
       (acc, weekData) => {
         const newAcc = { ...acc };
 
         weekData.lectures.forEach((lecture) => {
           const duration = calculateDuration(lecture.time);
+          console.log(`Lecture: ${lecture.title}, Duration: ${duration}, CheckboxState:`, lecture.checkboxState);
 
           Object.keys(acc).forEach((person) => {
             if (lecture.checkboxState?.[person]?.confirm) {
+              console.log(`✅ ${person} confirmed lecture: ${lecture.title}`);
               newAcc[person].FL += 1;
               newAcc[person].hours += duration;
             }
             if (lecture.checkboxState?.[person]?.unwish) {
+              console.log(`❌ ${person} unwished lecture: ${lecture.title}`);
               newAcc[person].wishedHours += duration;
             }
           });
@@ -1056,7 +1062,10 @@ export default function Index() {
       },
       { ...initialTotals }
     );
-  })();
+    
+    console.log("📊 Final user statistics:", result);
+    return result;
+  }, [km4Weeks]); // React to changes in km4Weeks (which includes checkbox states)
 
   // Calculate weekly breakdown for each user - simplified
   const weeklyBreakdown = (() => {
