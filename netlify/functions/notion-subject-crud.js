@@ -102,10 +102,11 @@ function lectureToNotionProperties(lecture, userAction) {
     }
   }
 
-  // Add URL if provided
-  if (lecture.url) {
+  // Always add URL - direct link to this lecture in the production app
+  if (lecture.id) {
+    const lectureUrl = `https://ankiologernas-notioneringsledger.netlify.app/#lecture-${lecture.id}`;
     properties['URL'] = {
-      url: lecture.url
+      url: lectureUrl
     };
   }
 

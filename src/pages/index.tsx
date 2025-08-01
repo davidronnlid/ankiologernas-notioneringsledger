@@ -63,6 +63,8 @@ import {
   isNotionIntegrationEnabled, 
   getNotionUpdateNotification 
 } from "utils/notionIntegration";
+import { handleLectureUrlHash } from "../utils/urlGenerator";
+import { syncLectureUrls, updateLectureUrl } from "../utils/notionUrlSync";
 import { 
   addLecture, 
   calculateNextLectureNumber, 
@@ -943,6 +945,7 @@ export default function Index() {
   // Edit lecture modal state
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
+  const [urlSyncCompleted, setUrlSyncCompleted] = useState(false);
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -1466,6 +1469,20 @@ export default function Index() {
     }, []);
   })();
 
+  // Handle URL hash on page load and sync URLs to Notion
+  useEffect(() => {
+    // Handle URL hash for direct lecture links
+    handleLectureUrlHash();
+    
+    // Sync URLs to Notion when app loads (only once)
+    if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
+      setUrlSyncCompleted(true);
+      syncLectureUrls(allLectures, currentUser).catch(error => {
+        console.error('Failed to sync URLs to Notion:', error);
+      });
+    }
+  }, [allLectures, currentUser, urlSyncCompleted]);
+
   return (
     <Layout>
       <>
@@ -1746,6 +1763,7 @@ export default function Index() {
                   return (
                     <Grid item xs={12} sm={6} md={4} key={lecture.id}>
                       <Paper
+                        id={`lecture-${lecture.id}`}
                         className={`${classes.lectureCard} ${
                           isSelected ? "selected" : ""
                         }`}
