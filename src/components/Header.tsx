@@ -93,7 +93,7 @@ export default function Header() {
         const userData = {
           email: currentUser.email || "",
           id: currentUser.id,
-          full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || "",
+          full_name: currentUser.user_metadata?.full_name || currentUser.email || "",
         };
         dispatch(signIn(userData));
       }
@@ -108,7 +108,7 @@ export default function Header() {
           const userData = {
             email: user.email || "",
             id: user.id,
-            full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || "",
+            full_name: user.user_metadata?.full_name || user.email || "",
           };
           
           console.log("Dispatching sign in with userData:", userData);
@@ -147,31 +147,20 @@ export default function Header() {
         }
       };
 
-      // Handle token refresh events
-      const handleRefresh = (user: any) => {
-        console.log("Token refreshed for user:", user);
-        if (user) {
-          const userData = {
-            email: user.email || "",
-            id: user.id,
-            full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
-          };
-          dispatch(signIn(userData));
-        }
-      };
+
 
       // Add event listeners
       netlifyIdentity.on("login", handleLogin);
       netlifyIdentity.on("logout", handleLogout);
       netlifyIdentity.on("error", handleError);
-      netlifyIdentity.on("refresh", handleRefresh);
+
 
       // Cleanup function to remove event listeners
       return () => {
         netlifyIdentity.off("login", handleLogin);
         netlifyIdentity.off("logout", handleLogout);
         netlifyIdentity.off("error", handleError);
-        netlifyIdentity.off("refresh", handleRefresh);
+
       };
 
     } catch (error) {
