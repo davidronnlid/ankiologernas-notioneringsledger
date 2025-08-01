@@ -19,6 +19,7 @@ import {
   MenuItem,
 } from "@material-ui/core";
 import NotifyButton from "@/components/NotifyButton";
+import NotionSyncButton from "@/components/NotionSyncButton";
 import SmartRecommendations from "@/components/SmartRecommendations";
 import UserPreferencesDialog from "@/components/UserPreferencesDialog";
 import WeeklySummary from "@/components/WeeklySummary";
@@ -1449,9 +1450,9 @@ export default function Index() {
 
       const currentUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "";
 
-  // Get all lectures from all weeks - simplified
+  // Get all lectures from active course only (Klinisk medicin 4)
   const allLectures = (() => {
-    return weeksData.reduce((acc: Lecture[], week) => {
+    return km4Weeks.reduce((acc: Lecture[], week) => {
       return [...acc, ...week.lectures];
     }, []);
   })();
@@ -1934,11 +1935,33 @@ export default function Index() {
         </div>
 
         {/* Smart AI Recommendations */}
-        <SmartRecommendations
-          lectures={allLectures}
-          onLectureClick={handleCardClick}
-          onOpenPreferences={() => setShowPreferencesDialog(true)}
-        />
+                  <SmartRecommendations
+            lectures={allLectures}
+            onLectureClick={handleCardClick}
+            onOpenPreferences={() => setShowPreferencesDialog(true)}
+          />
+
+          {/* Notion Sync Section */}
+          <div style={{ 
+            marginTop: muiTheme.spacing(4), 
+            marginBottom: muiTheme.spacing(2),
+            display: 'flex',
+            justifyContent: 'center' 
+          }}>
+            <NotionSyncButton 
+              variant="button"
+              size="large"
+              onSyncComplete={(results) => {
+                console.log('Sync completed:', results);
+                // Optionally refresh data after sync
+                if (results.success) {
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+                }
+              }}
+            />
+          </div>
 
         {/* User Statistics Section */}
         <div className={classes.statsSection}>

@@ -25,6 +25,7 @@ import {
   ExpandLess as ExpandLessIcon,
   TrendingUp as TrendingUpIcon,
   Feedback as FeedbackIcon,
+  Settings as SettingsIcon,
 } from "@material-ui/icons";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { useSelector } from "react-redux";
@@ -334,13 +335,13 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         <Typography className={classes.title}>
           Smarta AI-rekommendationer
         </Typography>
-        <Tooltip title="Uppdatera preferenser">
+        <Tooltip title="AI-inställningar">
           <IconButton
             size="small"
             onClick={onOpenPreferences}
             style={{ marginLeft: "auto", color: "#ccc" }}
           >
-            <TrendingUpIcon />
+            <SettingsIcon />
           </IconButton>
         </Tooltip>
       </Box>

@@ -6,6 +6,8 @@ import { RootState } from "store/types";
 import Lecture from "types/lecture";
 import { Box, Button, Typography } from "@material-ui/core";
 import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
+import { updateNotionLectureTags, isNotionIntegrationEnabled } from "../utils/notionIntegration";
+import { triggerNotionSync } from "../utils/notionCRUD";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -290,6 +292,32 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
         // Trigger celebration only for confirm actions
         if (field === "confirm" && isChecked) {
           setTimeout(() => triggerCelebration(), 200);
+        }
+
+        // Trigger Notion sync for the enhanced CRUD system
+        try {
+          const lectureData = {
+            id: lecture.id,
+            title: lecture.title,
+            lectureNumber: lecture.lectureNumber,
+            date: lecture.date,
+            time: lecture.time,
+            lecturer: lecture.lecturer || '',
+            vems: Object.keys(updatedState).filter(user => updatedState[user]?.confirm).map(user => {
+              const userLetters: { [key: string]: string } = { David: 'D', Albin: 'A', Mattias: 'M' };
+              return userLetters[user] || '';
+            }).filter(Boolean)
+          };
+
+          const action = field === "confirm" 
+            ? (isChecked ? 'lecture_selected' : 'lecture_unselected')
+            : 'lecture_updated';
+
+          await triggerNotionSync(action, lectureData, name);
+          console.log(`✅ Notion sync triggered for ${action}: ${lecture.title}`);
+        } catch (notionError) {
+          console.error('❌ Notion sync failed:', notionError);
+          // Don't block the main functionality if Notion sync fails
         }
       } catch (error) {
         console.error("Error updating checkbox state:", error);
