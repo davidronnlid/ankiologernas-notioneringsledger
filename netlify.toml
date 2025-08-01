@@ -8,3 +8,20 @@ directory = "netlify/functions"
 # Enable Netlify Identity
 [build.environment]
   NETLIFY_IDENTITY = "enabled"
+
+# Netlify Identity configuration
+[[redirects]]
+  from = "/.netlify/identity/*"
+  to = "/.netlify/identity/:splat"
+  status = 200
+
+# Enable Identity service
+[template.environment]
+  NETLIFY_AUTH_PROVIDERS = "email,google,github"
+
+# Additional headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"

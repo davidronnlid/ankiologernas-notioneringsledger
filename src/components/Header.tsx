@@ -88,20 +88,34 @@ export default function Header() {
         
         // Initialize Netlify Identity with proper configuration
         netlifyIdentity.init({
-          locale: 'en' // Optional: specify locale
+          locale: 'en', // Optional: specify locale
+          // Add production-specific configuration
+          ...(process.env.NODE_ENV === 'production' && {
+            APIUrl: window.location.origin + '/.netlify/identity',
+          })
           // Removed container specification to use default body container
         });
 
         // Check if a user is already logged in
         const currentUser = netlifyIdentity.currentUser();
+        console.log("Current user check:", currentUser);
+        console.log("Environment:", process.env.NODE_ENV);
+        console.log("Window location:", window.location.origin);
+        
         if (currentUser) {
           console.log("Found existing user:", currentUser);
+          console.log("User metadata:", currentUser.user_metadata);
+          console.log("User token:", currentUser.token ? "Present" : "Missing");
+          
           const userData = {
             email: currentUser.email || "",
             id: currentUser.id,
             full_name: currentUser.user_metadata?.full_name || currentUser.email || "",
           };
+          console.log("Dispatching user data:", userData);
           dispatch(signIn(userData));
+        } else {
+          console.log("No existing user found");
         }
 
         // Handle login events
@@ -146,10 +160,14 @@ export default function Header() {
         const handleError = (error: any) => {
           console.error("Netlify Identity error:", error);
           // If there's a token error, try to refresh or logout the user
-          if (error.message && error.message.includes("token")) {
+          if (error && error.message && error.message.includes("token")) {
             console.warn("Token error detected, logging out user");
             dispatch(signOut());
             persistor.purge();
+          } else if (error && error.message) {
+            console.error("Netlify Identity error message:", error.message);
+          } else {
+            console.error("Netlify Identity error (no message):", error);
           }
         };
 
