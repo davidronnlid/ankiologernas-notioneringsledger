@@ -300,7 +300,20 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
   };
 
   const canCheck = (label: string) => {
-    return full_name?.toLowerCase().includes(label.toLowerCase());
+    const userNameLower = full_name?.toLowerCase() || '';
+    const personLower = label.toLowerCase();
+    
+    // Direct name match (e.g., "David" in "David Rönnlid")
+    if (userNameLower.includes(personLower)) {
+      return true;
+    }
+    
+    // Special mapping for dronnlid -> David
+    if (userNameLower.includes('dronnlid') && personLower === 'david') {
+      return true;
+    }
+    
+    return false;
   };
 
   const getPersonStatus = (person: string) => {

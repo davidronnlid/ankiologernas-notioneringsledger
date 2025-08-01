@@ -1140,7 +1140,7 @@ export default function Index() {
 
       if (
         crossedMilestone &&
-        currentUser?.full_name?.split(" ")[0] === person
+        mapUserNameToPerson(currentUser?.full_name || "") === person
       ) {
         console.log(`🎉 MILESTONE REACHED: ${crossedMilestone}% 🎉`);
       }
@@ -1215,10 +1215,23 @@ export default function Index() {
     );
   })();
 
+  // Map username to person (handles special cases like dronnlid -> David)
+  const mapUserNameToPerson = (fullName: string): string => {
+    const nameLower = fullName.toLowerCase();
+    
+    // Special mapping for dronnlid -> David
+    if (nameLower.includes('dronnlid')) {
+      return 'David';
+    }
+    
+    // Default: use first name
+    return fullName.split(" ")[0];
+  };
+
   // Check if lecture is selected by current user - simplified
   const isLectureSelected = (lecture: Lecture): boolean => {
     if (!currentUser?.full_name) return false;
-    const userName = currentUser.full_name.split(" ")[0]; // Get first name
+    const userName = mapUserNameToPerson(currentUser.full_name);
     return lecture.checkboxState?.[userName]?.confirm || false;
   };
 
@@ -1326,7 +1339,7 @@ export default function Index() {
   const handleCardClick = async (lecture: Lecture) => {
     if (!currentUser?.full_name) return;
 
-    const userName = currentUser.full_name.split(" ")[0];
+    const userName = mapUserNameToPerson(currentUser.full_name);
     const currentState = lecture.checkboxState?.[userName]?.confirm || false;
     const newState = !currentState;
 
@@ -1434,7 +1447,7 @@ export default function Index() {
     );
   }
 
-  const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
+      const currentUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "";
 
   // Get all lectures from all weeks - simplified
   const allLectures = (() => {

@@ -201,7 +201,20 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   const [selectedLecture, setSelectedLecture] = useState<Lecture>(lecture);
 
   const allUsers = ["Mattias", "Albin", "David"];
-  const currentUserName = currentUser?.full_name?.split(" ")[0] || "";
+  // Map username to person (handles special cases like dronnlid -> David)
+  const mapUserNameToPerson = (fullName: string): string => {
+    const nameLower = fullName.toLowerCase();
+    
+    // Special mapping for dronnlid -> David
+    if (nameLower.includes('dronnlid')) {
+      return 'David';
+    }
+    
+    // Default: use first name
+    return fullName.split(" ")[0];
+  };
+
+  const currentUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "";
   const otherUsers = allUsers.filter((user) => user !== currentUserName);
 
   // Get lectures that have been selected by current user only

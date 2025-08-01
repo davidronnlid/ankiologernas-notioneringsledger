@@ -38,6 +38,19 @@ import { RootState } from "store/types";
 import Lecture from "types/lecture";
 // Updated to use new AI learning system
 
+// Map username to person (handles special cases like dronnlid -> David)
+const mapUserNameToPerson = (fullName: string): string => {
+  const nameLower = fullName.toLowerCase();
+  
+  // Special mapping for dronnlid -> David
+  if (nameLower.includes('dronnlid')) {
+    return 'David';
+  }
+  
+  // Default: use first name
+  return fullName.split(" ")[0];
+};
+
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     recommendationsContainer: {
@@ -183,7 +196,7 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         const recs = getSmartRecommendations(
           lectures,
           preferences,
-          currentUser.full_name?.split(" ")[0] || "",
+          currentUser.full_name ? mapUserNameToPerson(currentUser.full_name) : "",
           2
         );
         setRecommendations(recs);
