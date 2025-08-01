@@ -17,9 +17,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
 } from "@material-ui/core";
 import NotifyButton from "@/components/NotifyButton";
 import NotionSyncButton from "@/components/NotionSyncButton";
+import NotionSetupManager from "@/components/NotionSetupManager";
 import SmartRecommendations from "@/components/SmartRecommendations";
 import UserPreferencesDialog from "@/components/UserPreferencesDialog";
 import WeeklySummary from "@/components/WeeklySummary";
@@ -1941,12 +1943,14 @@ export default function Index() {
             onOpenPreferences={() => setShowPreferencesDialog(true)}
           />
 
-          {/* Notion Sync Section */}
+          {/* Notion Integration Section */}
           <div style={{ 
             marginTop: muiTheme.spacing(4), 
             marginBottom: muiTheme.spacing(2),
             display: 'flex',
-            justifyContent: 'center' 
+            justifyContent: 'center',
+            gap: muiTheme.spacing(2),
+            flexWrap: 'wrap'
           }}>
             <NotionSyncButton 
               variant="button"
@@ -1961,6 +1965,22 @@ export default function Index() {
                 }
               }}
             />
+            
+            {/* Manual setup trigger for advanced users */}
+            <NotionSetupManager autoPrompt={false}>
+              <Button
+                variant="outlined"
+                size="large"
+                style={{
+                  borderColor: '#666',
+                  color: '#bbb',
+                  fontWeight: 'bold'
+                }}
+                startIcon={<div>⚙️</div>}
+              >
+                Notion Setup
+              </Button>
+            </NotionSetupManager>
           </div>
 
         {/* User Statistics Section */}
