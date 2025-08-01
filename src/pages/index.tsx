@@ -66,6 +66,7 @@ import {
 import { handleLectureUrlHash } from "../utils/urlGenerator";
 import { syncLectureUrls, updateLectureUrl } from "../utils/notionUrlSync";
 import { logNotionEnvironmentVariables, testNotionConnection } from "../utils/notionDebug";
+import { syncAllLecturesToNotion } from "../utils/notionLectureSync";
 import { SubjectArea } from "../types/lecture";
 import { 
   addLecture, 
@@ -948,6 +949,7 @@ export default function Index() {
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
   const [urlSyncCompleted, setUrlSyncCompleted] = useState(false);
+  const [lectureSyncCompleted, setLectureSyncCompleted] = useState(false);
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -1341,7 +1343,7 @@ export default function Index() {
             console.log(`🔄 Starting Notion sync for new lecture: ${lectureData.title} (${lectureData.subjectArea})`);
             
             // Debug user and environment
-            const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+            const userName = currentUser.full_name || currentUser.email || 'Unknown';
             console.log(`👤 User: ${userName}, Environment: ${process.env.NODE_ENV}`);
             
             // Test Notion connection for this specific subject area
@@ -1530,7 +1532,7 @@ export default function Index() {
       setUrlSyncCompleted(true);
       
       // Debug Notion configuration
-      const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+      const userName = currentUser.full_name || currentUser.email || 'Unknown';
       console.log(`🔍 Debugging Notion setup for user: ${userName}`);
       logNotionEnvironmentVariables(userName);
       
@@ -1538,16 +1540,38 @@ export default function Index() {
       testNotionConnection(userName, 'Global hälsa').then(success => {
         if (success) {
           console.log('✅ Notion connection test passed');
-          // Proceed with URL sync
-          syncLectureUrls(allLectures, currentUser).catch(error => {
-            console.error('Failed to sync URLs to Notion:', error);
-          });
+          
+          // First: Comprehensive lecture sync to ensure all lectures have correct titles
+          if (!lectureSyncCompleted) {
+            setLectureSyncCompleted(true);
+            console.log('🔄 Starting comprehensive lecture synchronization...');
+            
+            syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
+              console.log('✅ Comprehensive lecture sync completed:', summary);
+              
+              // After lecture sync, proceed with URL sync
+              syncLectureUrls(allLectures, currentUser).catch(error => {
+                console.error('Failed to sync URLs to Notion:', error);
+              });
+            }).catch(error => {
+              console.error('❌ Comprehensive lecture sync failed:', error);
+              // Still try URL sync even if lecture sync fails
+              syncLectureUrls(allLectures, currentUser).catch(urlError => {
+                console.error('Failed to sync URLs to Notion:', urlError);
+              });
+            });
+          } else {
+            // If lecture sync already done, just do URL sync
+            syncLectureUrls(allLectures, currentUser).catch(error => {
+              console.error('Failed to sync URLs to Notion:', error);
+            });
+          }
         } else {
-          console.error('❌ Notion connection test failed - skipping URL sync');
+          console.error('❌ Notion connection test failed - skipping sync');
         }
       });
     }
-  }, [allLectures, currentUser, urlSyncCompleted]);
+  }, [allLectures, currentUser, urlSyncCompleted, lectureSyncCompleted]);
 
   return (
     <Layout>

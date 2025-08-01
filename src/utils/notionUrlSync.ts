@@ -64,7 +64,7 @@ export const updateLectureUrl = async (lecture: Partial<Lecture> & { id: string;
 
   try {
     const lectureUrl = generateLectureUrl(lecture.id);
-    const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+    const userName = currentUser.full_name || currentUser.email || 'Unknown';
     
     const lectureData = {
       id: lecture.id,
