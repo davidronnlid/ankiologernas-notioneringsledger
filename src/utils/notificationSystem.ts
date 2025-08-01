@@ -215,26 +215,7 @@ export const DatabaseNotifications = {
       }
     ),
 
-  duplicatesRemoved: (count: number, groups: number) =>
-    notificationManager.info(
-      'Duplicerade föreläsningar borttagna',
-      `Hittade ${groups} grupper med duplicerade föreläsningar och tog bort ${count} duplicerade poster för att säkerställa unika föreläsningsnamn.`,
-      { duration: 6000 }
-    ),
 
-  uniquenessCheckComplete: () =>
-    notificationManager.success(
-      'Unikhetskontroll slutförd',
-      'Alla föreläsningar har unika titlar - inga duplicerar hittades.',
-      { duration: 3000 }
-    ),
-
-  uniquenessCheckError: (error: string) =>
-    notificationManager.warning(
-      'Fel vid unikhetskontroll',
-      `Kunde inte kontrollera föreläsningarnas unikhet: ${error}`,
-      { duration: 8000 }
-    ),
 };
 
 /**

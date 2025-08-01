@@ -23,6 +23,9 @@ import {
   Title as TitleIcon,
 } from "@material-ui/icons";
 import Lecture from "types/lecture";
+import { useSelector } from "react-redux";
+import { RootState } from "store/types";
+import { isLectureTitleUnique, generateUniqueTitleSuggestions } from "../utils/uniqueLectureManager";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

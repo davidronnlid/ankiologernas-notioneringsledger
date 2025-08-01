@@ -184,7 +184,7 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
           lectures,
           preferences,
           currentUser.full_name?.split(" ")[0] || "",
-          3
+          2
         );
         setRecommendations(recs);
       } else {

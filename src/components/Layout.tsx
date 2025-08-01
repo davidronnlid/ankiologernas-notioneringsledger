@@ -16,7 +16,6 @@ import { RootState } from "store/types";
 import { removeDuplicateLectures, logDuplicateStats } from "utils/removeDuplicateLectures";
 import { sortLecturesIntoCoursesAndWeeks } from "utils/processLectures";
 import { dataSyncManager } from "utils/dataSync";
-import { DatabaseNotifications } from "utils/notificationSystem";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -48,40 +47,10 @@ export default function Layout({
       dataSyncManager.startPolling(30000);
     }
     
-    // Check for uniqueness results and show notifications
-    const checkUniquenessResults = () => {
-      const uniquenessResult = localStorage.getItem('lectureUniquenessResult');
-      if (uniquenessResult) {
-        try {
-          const result = JSON.parse(uniquenessResult);
-          const timeSinceCheck = Date.now() - result.timestamp;
-          
-          // Only show notification if the check was recent (within last 10 seconds)
-          if (timeSinceCheck < 10000) {
-            if (result.removedLecturesCount > 0) {
-              DatabaseNotifications.duplicatesRemoved(
-                result.removedLecturesCount,
-                result.duplicateGroupsCount
-              );
-            } else {
-              DatabaseNotifications.uniquenessCheckComplete();
-            }
-            
-            // Clear the result so we don't show it again
-            localStorage.removeItem('lectureUniquenessResult');
-          }
-        } catch (error) {
-          console.error('Error parsing uniqueness result:', error);
-        }
-      }
-    };
 
-    // Check for uniqueness results after a brief delay to allow data loading
-    const checkTimer = setTimeout(checkUniquenessResults, 2000);
     
     // Cleanup on unmount
     return () => {
-      clearTimeout(checkTimer);
       if (process.env.NODE_ENV === "production") {
         dataSyncManager.stopPolling();
       }

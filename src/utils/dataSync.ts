@@ -96,13 +96,6 @@ export class DataSyncManager {
       
       if (uniquenessResult.lecturesMarkedForRemoval.length > 0) {
         console.log(`🧹 DataSync: Found and removed ${uniquenessResult.lecturesMarkedForRemoval.length} duplicate lectures`);
-        
-        // Store uniqueness info for notifications
-        localStorage.setItem('lectureUniquenessResult', JSON.stringify({
-          duplicateGroupsCount: uniquenessResult.duplicateGroups.length,
-          removedLecturesCount: uniquenessResult.lecturesMarkedForRemoval.length,
-          timestamp: Date.now()
-        }));
       } else {
         console.log('✅ DataSync: All lectures have unique titles');
       }

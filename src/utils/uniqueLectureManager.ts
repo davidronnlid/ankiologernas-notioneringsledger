@@ -43,30 +43,12 @@ export function analyzeLectureUniqueness(lectures: Lecture[]): UniquenessScanRes
     if (groupLectures.length > 1) {
       console.log(`📋 Found ${groupLectures.length} lectures with title: "${groupLectures[0].title}"`);
       
-      // Sort by date (newest first), then by presence of comments/state
+      // Sort by date (oldest first) to keep the first one chronologically
       const sortedLectures = [...groupLectures].sort((a, b) => {
-        // First priority: date (newer is better)
-        const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
-        if (dateComparison !== 0) return dateComparison;
-        
-        // Second priority: has comments (more data is better)
-        const aHasComments = (a.comments && a.comments.length > 0) ? 1 : 0;
-        const bHasComments = (b.comments && b.comments.length > 0) ? 1 : 0;
-        const commentsComparison = bHasComments - aHasComments;
-        if (commentsComparison !== 0) return commentsComparison;
-        
-        // Third priority: has checkbox states (user interactions)
-        const aHasStates = Object.values(a.checkboxState || {}).some(
-          state => state.confirm || state.unwish
-        ) ? 1 : 0;
-        const bHasStates = Object.values(b.checkboxState || {}).some(
-          state => state.confirm || state.unwish
-        ) ? 1 : 0;
-        
-        return bHasStates - aHasStates;
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
 
-      const keepLecture = sortedLectures[0]; // Keep the "best" one
+      const keepLecture = sortedLectures[0]; // Keep the first (oldest) one
       const removeLectures = sortedLectures.slice(1); // Remove the rest
 
       duplicateGroups.push({
@@ -78,7 +60,7 @@ export function analyzeLectureUniqueness(lectures: Lecture[]): UniquenessScanRes
 
       lecturesMarkedForRemoval.push(...removeLectures);
 
-      console.log(`📌 Keeping lecture: ${keepLecture.id} (${keepLecture.date})`);
+      console.log(`📌 Keeping first lecture: ${keepLecture.id} (${keepLecture.date})`);
       console.log(`🗑️ Removing ${removeLectures.length} duplicates:`, 
         removeLectures.map(l => `${l.id} (${l.date})`));
     }
