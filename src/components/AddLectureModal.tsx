@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +10,10 @@ import {
   Typography,
   IconButton,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@material-ui/core";
 import {
   makeStyles,
@@ -25,7 +29,8 @@ import {
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 import { isLectureTitleUnique, generateUniqueTitleSuggestions } from "../utils/uniqueLectureManager";
-import Lecture from "../types/lecture";
+import Lecture, { SubjectArea } from "../types/lecture";
+import { SUBJECT_AREAS, detectSubjectArea } from "../utils/subjectAreas";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -157,6 +162,8 @@ interface AddLectureModalProps {
     title: string;
     date: string;
     time: string;
+    lecturer?: string;
+    subjectArea: SubjectArea;
     duration: number;
   }) => void;
   suggestedDate?: string;
@@ -180,8 +187,20 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
   const [date, setDate] = useState(suggestedDate || "");
   const [startTime, setStartTime] = useState(suggestedTime?.split("-")[0] || "09:00");
   const [endTime, setEndTime] = useState(suggestedTime?.split("-")[1] || "10:00");
+  const [lecturer, setLecturer] = useState("");
+  const [subjectArea, setSubjectArea] = useState<SubjectArea | "">("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+
+  // Auto-detect subject area when title changes
+  useEffect(() => {
+    if (title.trim() && !subjectArea) {
+      const detected = detectSubjectArea(title);
+      if (detected) {
+        setSubjectArea(detected);
+      }
+    }
+  }, [title, subjectArea]);
 
   // Get all lectures for uniqueness checking
   const allLectures: Lecture[] = lecturesData.flatMap(week => week.lectures);
@@ -232,6 +251,10 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
       newErrors.time = "Sluttid måste vara efter starttid";
     }
 
+    if (!subjectArea) {
+      newErrors.subjectArea = "Ämnesområde är obligatoriskt";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -242,6 +265,8 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
         title: title.trim(),
         date,
         time: `${startTime}-${endTime}`,
+        lecturer: lecturer.trim() || "",
+        subjectArea: subjectArea as SubjectArea,
         duration,
       });
       
@@ -250,7 +275,10 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
       setDate("");
       setStartTime("09:00");
       setEndTime("10:00");
+      setLecturer("");
+      setSubjectArea("");
       setErrors({});
+      setTitleSuggestions([]);
       onClose();
     }
   };
@@ -260,6 +288,8 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
     setDate("");
     setStartTime("09:00");
     setEndTime("10:00");
+    setLecturer("");
+    setSubjectArea("");
     setErrors({});
     setTitleSuggestions([]);
     onClose();
@@ -390,8 +420,45 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
           )}
         </div>
 
+        <div className={classes.formSection}>
+          <Typography variant="subtitle1" style={{ marginBottom: 16, color: "rgba(255, 255, 255, 0.9)", fontWeight: 600 }}>
+            📚 Föreläsningsdetaljer
+          </Typography>
+          
+          <TextField
+            fullWidth
+            label="Föreläsare (valfritt)"
+            value={lecturer}
+            onChange={(e) => setLecturer(e.target.value)}
+            className={classes.textField}
+            placeholder="T.ex. Dr. Anna Andersson"
+            style={{ marginBottom: 16 }}
+          />
+
+          <FormControl fullWidth className={classes.textField} error={!!errors.subjectArea}>
+            <InputLabel id="subject-area-label">Ämnesområde *</InputLabel>
+            <Select
+              labelId="subject-area-label"
+              value={subjectArea}
+              onChange={(e) => setSubjectArea(e.target.value as SubjectArea)}
+              label="Ämnesområde *"
+            >
+              {SUBJECT_AREAS.map((area) => (
+                <MenuItem key={area} value={area}>
+                  {area}
+                </MenuItem>
+              ))}
+            </Select>
+            {errors.subjectArea && (
+              <Typography className={classes.errorText}>
+                {errors.subjectArea}
+              </Typography>
+            )}
+          </FormControl>
+        </div>
+
         <Typography className={classes.infoText}>
-          💡 Föreläsningen kommer att läggas till i den aktuella kursen och vara tillgänglig för alla användare.
+          💡 Föreläsningen kommer att läggas till i {subjectArea ? `${subjectArea}-databasen` : 'den valda ämnesområdesdatabasen'} för alla användare.
         </Typography>
       </DialogContent>
 
@@ -403,7 +470,7 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
           onClick={handleAddLecture}
           className={classes.addButton}
           startIcon={isLoading ? undefined : <AddIcon />}
-          disabled={!title.trim() || !date || isLoading}
+          disabled={!title.trim() || !date || !subjectArea || isLoading}
         >
           {isLoading ? "Lägger till..." : "Lägg till föreläsning"}
         </Button>

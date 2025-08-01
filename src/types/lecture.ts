@@ -13,6 +13,15 @@ export interface CheckboxState {
   };
 }
 
+// Subject areas for Klinisk medicin 4
+export type SubjectArea = 
+  | 'Global hälsa'
+  | 'Geriatrik'
+  | 'Pediatrik'
+  | 'Öron-Näsa-Hals'
+  | 'Gynekologi & Obstetrik'
+  | 'Oftalmologi';
+
 export default interface Lecture {
   title: string;
   lecturer?: string;
@@ -21,5 +30,6 @@ export default interface Lecture {
   id: string;
   checkboxState: CheckboxState;
   lectureNumber: number;
+  subjectArea?: SubjectArea;
   comments?: Comment[];
 }
