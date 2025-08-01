@@ -1231,6 +1231,13 @@ export default function Index() {
     return fullName.split(" ")[0];
   };
 
+  // Format hours to show exact values without unnecessary decimals
+  const formatHours = (hours: number): string => {
+    // Remove trailing zeros and show exact value
+    // This handles cases like 3.0 -> "3" and 3.25 -> "3.25"
+    return parseFloat(hours.toString()).toString();
+  };
+
   // Check if lecture is selected by current user - simplified
   const isLectureSelected = (lecture: Lecture): boolean => {
     if (!currentUser?.full_name) return false;
@@ -2021,7 +2028,7 @@ export default function Index() {
                   <div className={classes.statRow}>
                     <span className={classes.statLabel}>Timmar:</span>
                     <span className={classes.statValue}>
-                      {stats.hours.toFixed(1)}
+                      {formatHours(stats.hours)}
                     </span>
                   </div>
 
@@ -2086,7 +2093,7 @@ export default function Index() {
                             >
                               <span>{weekData.week}:</span>
                               <span>
-                                {weekData.FL} FL ({weekData.hours.toFixed(1)}h)
+                                {weekData.FL} FL ({formatHours(weekData.hours)}h)
                               </span>
                             </div>
                           ))}
