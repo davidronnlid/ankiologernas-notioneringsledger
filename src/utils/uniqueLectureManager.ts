@@ -43,9 +43,27 @@ export function analyzeLectureUniqueness(lectures: Lecture[]): UniquenessScanRes
     if (groupLectures.length > 1) {
       console.log(`📋 Found ${groupLectures.length} lectures with title: "${groupLectures[0].title}"`);
       
-      // Sort by date (oldest first) to keep the first one chronologically
+      // Sort by date (oldest first) then by time to keep the first one chronologically
       const sortedLectures = [...groupLectures].sort((a, b) => {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        
+        // First sort by date
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        
+        // If dates are equal, sort by start time
+        const timeA = a.time ? a.time.split('-')[0] : '00:00';
+        const timeB = b.time ? b.time.split('-')[0] : '00:00';
+        
+        // Convert time to minutes for comparison
+        const getMinutes = (time: string) => {
+          const [hours, minutes] = time.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
+        
+        return getMinutes(timeA) - getMinutes(timeB);
       });
 
       const keepLecture = sortedLectures[0]; // Keep the first (oldest) one

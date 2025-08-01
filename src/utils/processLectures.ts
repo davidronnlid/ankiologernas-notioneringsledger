@@ -98,9 +98,27 @@ export const sortLecturesIntoCoursesAndWeeks = (
     Array.from(lectureNumberCounters.keys())
   );
 
-  const sortedLectures = lectures.sort(
-    (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedLectures = lectures.sort((a: any, b: any) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    
+    // First sort by date
+    if (dateA !== dateB) {
+      return dateA - dateB;
+    }
+    
+    // If dates are equal, sort by start time
+    const timeA = a.time ? a.time.split('-')[0] : '00:00'; // Get start time
+    const timeB = b.time ? b.time.split('-')[0] : '00:00'; // Get start time
+    
+    // Convert time to minutes for comparison (e.g., "09:00" -> 540)
+    const getMinutes = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    return getMinutes(timeA) - getMinutes(timeB);
+  });
   console.log("Lectures sorted by date: ", sortedLectures);
   let globalLectureCounter = 0; // Counter for lectures that don't belong to any course
   
