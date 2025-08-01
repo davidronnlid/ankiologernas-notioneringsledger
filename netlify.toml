@@ -2,6 +2,9 @@
 command = "npm run build"
 publish = ".next" # The directory for Next.js output
 
-
 [functions]
 directory = "netlify/functions"
+
+# Enable Netlify Identity
+[build.environment]
+  NETLIFY_IDENTITY = "enabled"

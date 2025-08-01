@@ -10,6 +10,11 @@ export default class MyDocument extends Document {
         <Head>
           {/* PWA primary color */}
           <meta name="theme-color" content={theme.palette.primary.main} />
+          {/* Netlify Identity Widget */}
+          <script
+            type="text/javascript"
+            src="https://identity.netlify.com/v1/netlify-identity-widget.js"
+          ></script>
         </Head>
         <body>
           <Main />
