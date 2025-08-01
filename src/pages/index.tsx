@@ -1542,25 +1542,32 @@ export default function Index() {
           console.log('✅ Notion connection test passed');
           
           // First: Comprehensive lecture sync to ensure all lectures have correct titles
-          if (!lectureSyncCompleted) {
+          if (!lectureSyncCompleted && allLectures.length > 0) {
             setLectureSyncCompleted(true);
             console.log('🔄 Starting comprehensive lecture synchronization...');
             
-            syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
-              console.log('✅ Comprehensive lecture sync completed:', summary);
-              
-              // After lecture sync, proceed with URL sync
-              syncLectureUrls(allLectures, currentUser).catch(error => {
-                console.error('Failed to sync URLs to Notion:', error);
+            // Use setTimeout to avoid blocking the main thread
+            setTimeout(() => {
+              syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
+                console.log('✅ Comprehensive lecture sync completed:', summary);
+                
+                // After lecture sync, proceed with URL sync
+                if (allLectures.length > 0) {
+                  syncLectureUrls(allLectures, currentUser).catch(error => {
+                    console.error('Failed to sync URLs to Notion:', error);
+                  });
+                }
+              }).catch(error => {
+                console.error('❌ Comprehensive lecture sync failed:', error);
+                // Still try URL sync even if lecture sync fails
+                if (allLectures.length > 0) {
+                  syncLectureUrls(allLectures, currentUser).catch(urlError => {
+                    console.error('Failed to sync URLs to Notion:', urlError);
+                  });
+                }
               });
-            }).catch(error => {
-              console.error('❌ Comprehensive lecture sync failed:', error);
-              // Still try URL sync even if lecture sync fails
-              syncLectureUrls(allLectures, currentUser).catch(urlError => {
-                console.error('Failed to sync URLs to Notion:', urlError);
-              });
-            });
-          } else {
+            }, 1000);
+          } else if (lectureSyncCompleted && allLectures.length > 0) {
             // If lecture sync already done, just do URL sync
             syncLectureUrls(allLectures, currentUser).catch(error => {
               console.error('Failed to sync URLs to Notion:', error);
@@ -1571,7 +1578,7 @@ export default function Index() {
         }
       });
     }
-  }, [allLectures, currentUser, urlSyncCompleted, lectureSyncCompleted]);
+  }, [allLectures.length, currentUser?.id, urlSyncCompleted, lectureSyncCompleted]);
 
   return (
     <Layout>

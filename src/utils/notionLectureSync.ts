@@ -36,6 +36,12 @@ const findLectureInNotion = async (
   userName: string, 
   subjectArea: SubjectArea
 ): Promise<any> => {
+  // Skip in development mode to avoid errors
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📝 Skipping Notion search in development mode`);
+    return null;
+  }
+
   const { tokenKey, databaseKey } = getNotionEnvVars(userName, subjectArea);
   const token = process.env[tokenKey];
   const databaseId = process.env[databaseKey];
@@ -46,10 +52,8 @@ const findLectureInNotion = async (
   }
 
   try {
-    // Use appropriate endpoint based on environment
-    const endpoint = process.env.NODE_ENV === 'development' 
-      ? '/api/notion-database-query' 
-      : '/.netlify/functions/notion-database-query';
+    // Use production endpoint only
+    const endpoint = '/.netlify/functions/notion-database-query';
     
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -235,10 +239,23 @@ export const syncAllLecturesToNotion = async (
   if (!currentUser || process.env.NODE_ENV !== 'production') {
     console.log('📝 Skipping lecture sync - not in production or no user');
     return {
-      totalLectures: 0,
+      totalLectures: lectures.length,
       created: 0,
       updated: 0,
       skipped: lectures.length,
+      errors: 0,
+      results: []
+    };
+  }
+
+  // Add safety check for empty lectures array
+  if (!lectures || lectures.length === 0) {
+    console.log('📝 No lectures to sync');
+    return {
+      totalLectures: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
       errors: 0,
       results: []
     };
