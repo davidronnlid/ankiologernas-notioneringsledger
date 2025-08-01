@@ -8,9 +8,19 @@ export function getProfilePicUrl(fullName: string): string {
   const nameToPicMap: { [key: string]: string } = {
     "Mattias Österdahl": "/images/mattias.png",
     "David Rönnlid": "/images/david.png",
-    albin: "/images/albin.png",
+    "Albin Lindberg": "/images/albin.png",
+    // Support for first names only (used in celebrations)
+    "Mattias": "/images/mattias.png",
+    "David": "/images/david.png", 
+    "Albin": "/images/albin.png",
     // Add more mappings as needed
   };
+
+  // Check for special username mappings (like dronnlid -> David)
+  const lowerName = fullName.toLowerCase();
+  if (lowerName.includes('dronnlid')) {
+    return "/images/david.png";
+  }
 
   // Use the name to get the corresponding picture URL or return a default picture URL.
   return nameToPicMap[fullName] || "/images/alt_logo.png";
