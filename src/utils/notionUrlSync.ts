@@ -57,7 +57,7 @@ export const syncLectureUrls = async (lectures: Lecture[], currentUser: any): Pr
 };
 
 // Update URL for a single lecture (called when lecture is modified)
-export const updateLectureUrl = async (lecture: Lecture, action: string, currentUser: any): Promise<void> => {
+export const updateLectureUrl = async (lecture: Partial<Lecture> & { id: string; title: string; subjectArea?: any }, action: string, currentUser: any): Promise<void> => {
   if (!currentUser || process.env.NODE_ENV !== 'production') {
     return;
   }

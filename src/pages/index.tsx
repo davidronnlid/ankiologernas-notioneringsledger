@@ -65,6 +65,8 @@ import {
 } from "utils/notionIntegration";
 import { handleLectureUrlHash } from "../utils/urlGenerator";
 import { syncLectureUrls, updateLectureUrl } from "../utils/notionUrlSync";
+import { logNotionEnvironmentVariables, testNotionConnection } from "../utils/notionDebug";
+import { SubjectArea } from "../types/lecture";
 import { 
   addLecture, 
   calculateNextLectureNumber, 
@@ -1302,6 +1304,8 @@ export default function Index() {
     title: string;
     date: string;
     time: string;
+    lecturer?: string;
+    subjectArea: SubjectArea;
     duration: number;
   }) => {
     try {
@@ -1330,6 +1334,53 @@ export default function Index() {
         DatabaseNotifications.lectureAdded(lectureData.title);
         
         console.log("🎉 Lecture added successfully:", response.lecture);
+        
+        // Trigger Notion subject sync for the new lecture
+        if (currentUser) {
+          try {
+            console.log(`🔄 Starting Notion sync for new lecture: ${lectureData.title} (${lectureData.subjectArea})`);
+            
+            // Debug user and environment
+            const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+            console.log(`👤 User: ${userName}, Environment: ${process.env.NODE_ENV}`);
+            
+            // Test Notion connection for this specific subject area
+            const connectionTest = await testNotionConnection(userName, lectureData.subjectArea);
+            if (!connectionTest) {
+              console.error(`❌ Notion connection test failed for ${userName} - ${lectureData.subjectArea}`);
+              return;
+            }
+            
+            // Wait a moment for the database to be updated and then get the lecture ID
+            setTimeout(async () => {
+              try {
+                // Trigger a data refresh to get the latest data with the new lecture
+                await dataSyncManager.forceRefresh();
+                
+                // Find the newly created lecture to get its ID and properties
+                // We'll attempt to sync even without the full lecture object
+                const newLectureForNotion = {
+                  id: response.lecture?.id || `temp-${Date.now()}`, // Use returned ID or temp ID
+                  title: lectureData.title,
+                  lectureNumber: response.lecture?.lectureNumber || 0,
+                  date: lectureData.date,
+                  time: lectureData.time,
+                  lecturer: lectureData.lecturer || '',
+                  subjectArea: lectureData.subjectArea,
+                };
+                
+                console.log(`📤 Sending lecture data to Notion:`, newLectureForNotion);
+                await updateLectureUrl(newLectureForNotion, 'lecture_created', currentUser);
+                console.log(`✅ Notion sync completed for new lecture: ${lectureData.title} (${lectureData.subjectArea})`);
+              } catch (notionError) {
+                console.error('❌ Notion sync failed for new lecture:', notionError);
+                console.error('Error details:', notionError);
+              }
+            }, 2000);
+          } catch (syncError) {
+            console.error('❌ Error setting up Notion sync:', syncError);
+          }
+        }
         
       } else {
         throw new Error("Failed to add lecture");
@@ -1477,8 +1528,23 @@ export default function Index() {
     // Sync URLs to Notion when app loads (only once)
     if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
       setUrlSyncCompleted(true);
-      syncLectureUrls(allLectures, currentUser).catch(error => {
-        console.error('Failed to sync URLs to Notion:', error);
+      
+      // Debug Notion configuration
+      const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+      console.log(`🔍 Debugging Notion setup for user: ${userName}`);
+      logNotionEnvironmentVariables(userName);
+      
+      // Test Notion connection
+      testNotionConnection(userName, 'Global hälsa').then(success => {
+        if (success) {
+          console.log('✅ Notion connection test passed');
+          // Proceed with URL sync
+          syncLectureUrls(allLectures, currentUser).catch(error => {
+            console.error('Failed to sync URLs to Notion:', error);
+          });
+        } else {
+          console.error('❌ Notion connection test failed - skipping URL sync');
+        }
       });
     }
   }, [allLectures, currentUser, urlSyncCompleted]);
