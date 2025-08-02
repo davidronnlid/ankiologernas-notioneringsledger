@@ -1485,8 +1485,9 @@ export default function Index() {
 
       // Trigger celebration animation if lecture was selected (not deselected)
       if (newState) {
-        // Randomly select one of the 10 celebration animations (0-9)
-        const randomAnimation = Math.floor(Math.random() * 10);
+        // Deterministically select celebration animation to prevent hydration mismatches
+        const userHash = userName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+        const randomAnimation = userHash % 10;
         setCelebrationType(randomAnimation);
         setCelebrationUser(userName);
         setCelebrationLecture({ title: lecture.title, number: lecture.lectureNumber });

@@ -262,7 +262,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
       // Send in-app notifications to other users
       otherUsers.forEach((userName) => {
         const notification = {
-          id: `${Date.now()}-${Math.random()}`,
+          id: `${Date.now()}-${userName}-${lecture.id}`, // Deterministic ID to prevent hydration mismatches
           type: "lecture_notified" as const,
           title: `${currentUserName} har notifierat dig`,
           message: message,

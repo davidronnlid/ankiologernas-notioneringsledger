@@ -221,8 +221,8 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
       color: ["#FFD700", "#FFA500", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"][
         i % 6
       ],
-      left: Math.random() * 100,
-      delay: Math.random() * 0.5,
+      left: (i * 8.33) % 100, // Deterministic distribution to prevent hydration mismatches
+      delay: (i * 0.04) % 0.5, // Deterministic delays to prevent hydration mismatches
     }));
 
     setConfetti(newConfetti);

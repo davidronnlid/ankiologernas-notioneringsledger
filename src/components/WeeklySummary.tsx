@@ -197,7 +197,9 @@ const WeeklySummary: React.FC<WeeklySummaryProps> = ({ lectures }) => {
           `Study aesthetic report: ${user} created ${stats.selectedCount} perfectly curated moments med ${stats.topSpecialty} som signature style. ${stats.totalHours > 12 ? 'Pinterest board goals - absolutely iconic! 📌' : 'Cozy academic vibes - soft och sustainable 🕯️'}`
         ];
         
-        return genZTemplates[Math.floor(Math.random() * genZTemplates.length)];
+        // Use deterministic selection based on user name to prevent hydration mismatches
+        const userHash = user.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+        return genZTemplates[userHash % genZTemplates.length];
       };
 
       // Generate individual user summaries
@@ -212,15 +214,17 @@ const WeeklySummary: React.FC<WeeklySummaryProps> = ({ lectures }) => {
       const mostActiveUser = sortedUsers[0][0];
       const leastActiveUser = sortedUsers[sortedUsers.length - 1][0];
       
-      // Ensure we don't use the same user twice - pick different users for variety
-      const getRandomOtherUser = (excludeUser: string) => {
+      // Ensure we don't use the same user twice - pick deterministically to prevent hydration mismatches
+      const getDeterministicOtherUser = (excludeUser: string) => {
         const otherUsers = allUsers.filter(user => user !== excludeUser);
-        return otherUsers[Math.floor(Math.random() * otherUsers.length)];
+        // Use hash of excluded user name for deterministic selection
+        const userHash = excludeUser.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+        return otherUsers[userHash % otherUsers.length];
       };
       
       const user1 = mostActiveUser;
-      const user2 = mostActiveUser === leastActiveUser ? getRandomOtherUser(mostActiveUser) : leastActiveUser;
-      const user3 = allUsers.find(user => user !== user1 && user !== user2) || getRandomOtherUser(user1);
+      const user2 = mostActiveUser === leastActiveUser ? getDeterministicOtherUser(mostActiveUser) : leastActiveUser;
+      const user3 = allUsers.find(user => user !== user1 && user !== user2) || getDeterministicOtherUser(user1);
 
       const overallTemplates = [
         `📱 Ankiologernas TikTok-era: ${totalSelected} medicinska "för dig"-sidor har scrollats! Content creator ${user1} går viral medan ${user2} droppar deep cuts som bara intellectuals fattar. ${user3} hovrar på discover page och viber. ${totalSelected > 25 ? 'Algoritmen har godkänt er - ni trending! 🔥' : 'Organic growth era - respekt för kvalitet över kvantitet 💎'}`,
@@ -246,7 +250,8 @@ const WeeklySummary: React.FC<WeeklySummaryProps> = ({ lectures }) => {
         `🎪 Dark academia fantasy: ${totalSelected} mystiska böcker lästa i ancient library! Scholar ${user1} deep-dives i rabbit holes, ${user2} apprecierar aesthetic knowledge och ${user3} skapar perfect study atmosphere. ${totalSelected > 27 ? 'Hogwarts acceptance letter incoming! 🦉' : 'Secret society vibes - intellectual elite status! 📚'}`
       ];
 
-      const overallSummary = overallTemplates[Math.floor(Math.random() * overallTemplates.length)];
+      // Use deterministic selection based on total count to prevent hydration mismatches
+      const overallSummary = overallTemplates[totalSelected % overallTemplates.length];
 
       setSummary(overallSummary);
       setUserSummaries(newUserSummaries);
@@ -304,7 +309,8 @@ const WeeklySummary: React.FC<WeeklySummaryProps> = ({ lectures }) => {
               "Skannar för medicinska memes...",
               "Komponerar en symfoni av studiestatistik..."
             ];
-            return loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+            // Use deterministic selection to prevent hydration mismatches
+            return loadingMessages[0]; // Always show first message for consistency
           })()}
         </Typography>
       ) : (
