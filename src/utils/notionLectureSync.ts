@@ -236,17 +236,16 @@ export const syncAllLecturesToNotion = async (
   lectures: any[],
   currentUser: any
 ): Promise<SyncSummary> => {
-  if (!currentUser || process.env.NODE_ENV !== 'production') {
-    console.log('📝 Skipping lecture sync - not in production or no user');
-    return {
-      totalLectures: lectures.length,
-      created: 0,
-      updated: 0,
-      skipped: lectures.length,
-      errors: 0,
-      results: []
-    };
-  }
+  // DISABLED: Old database-based sync replaced by new page-based system (updateNotionPage.js)
+  console.log('📝 Skipping old database-based lecture sync - now using page-based system');
+  return {
+    totalLectures: lectures.length,
+    created: 0,
+    updated: 0,
+    skipped: lectures.length,
+    errors: 0,
+    results: []
+  };
 
   // Add safety check for empty lectures array
   if (!lectures || lectures.length === 0) {

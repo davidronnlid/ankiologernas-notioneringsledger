@@ -6,10 +6,9 @@ import Lecture from '../types/lecture';
 
 // Sync URLs for all lectures to Notion (called when app loads)
 export const syncLectureUrls = async (lectures: Lecture[], currentUser: any): Promise<void> => {
-  if (!currentUser || process.env.NODE_ENV !== 'production') {
-    console.log('📝 Skipping URL sync - not in production or no user');
-    return;
-  }
+  // DISABLED: Old database-based URL sync replaced by new page-based system (updateNotionPage.js)
+  console.log('📝 Skipping old database-based URL sync - now using page-based system');
+  return;
 
   console.log(`🔗 Starting URL sync for ${lectures.length} lectures`);
   
