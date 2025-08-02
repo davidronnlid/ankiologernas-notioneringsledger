@@ -18,7 +18,8 @@ const COURSE_PAGE_IDS = {
 const USER_LETTERS = {
   'David': 'D',
   'Albin': 'A', 
-  'Mattias': 'M'
+  'Mattias': 'M',
+  'System': '' // For bulk operations, no user letter needed
 };
 
 // Subject area emojis for better visual organization
@@ -159,9 +160,13 @@ async function addLectureToSection(notion, sectionId, lectureTitle, lectureNumbe
         if (!currentContent.includes(`[${userLetter}]`)) {
           updatedContent = `${currentContent} [${userLetter}]`;
         }
-      } else {
+      } else if (action === 'unselect') {
         // Remove user letter
         updatedContent = currentContent.replace(new RegExp(`\\s*\\[${userLetter}\\]`, 'g'), '');
+      } else if (action === 'bulk_add') {
+        // For bulk_add, don't modify existing content
+        console.log(`📝 Lecture already exists: ${lectureText} - skipping bulk add`);
+        return existingLecture;
       }
 
       await notion.blocks.update({
@@ -183,7 +188,16 @@ async function addLectureToSection(notion, sectionId, lectureTitle, lectureNumbe
     } else {
       // Create new lecture item
       console.log(`📝 Creating new lecture: ${lectureText}`);
-      const initialContent = action === 'select' ? `${lectureText} [${userLetter}]` : lectureText;
+      
+      let initialContent;
+      if (action === 'bulk_add') {
+        // For bulk add, just add the lecture without user tracking
+        initialContent = lectureText;
+      } else if (action === 'select') {
+        initialContent = `${lectureText} [${userLetter}]`;
+      } else {
+        initialContent = lectureText;
+      }
       
       const newLecture = await notion.blocks.children.append({
         block_id: sectionId,
@@ -242,6 +256,11 @@ exports.handler = async (event, context) => {
           error: 'Missing required fields: lectureTitle, lectureNumber, selectedByUser, subjectArea, action' 
         })
       };
+    }
+
+    // Handle bulk_add action - just add the lecture without user tracking
+    if (action === 'bulk_add') {
+      selectedByUser = 'System'; // Override for bulk operations
     }
 
     const userLetter = USER_LETTERS[selectedByUser];

@@ -21,8 +21,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import { 
   syncWithNotion, 
   readLecturesFromNotion, 
-  isNotionIntegrationAvailable 
+  isNotionIntegrationAvailable,
+  syncAllLecturesToNotionPages
 } from 'utils/notionCRUD';
+import { useSelector } from 'react-redux';
+import { RootState } from 'store/types';
 
 const useStyles = makeStyles((theme) => ({
   syncButton: {
@@ -96,6 +99,11 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [syncResults, setSyncResults] = useState<any>(null);
+  const [isBulkSyncing, setIsBulkSyncing] = useState(false);
+  
+  // Get lectures from Redux store
+  const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
+  const allLectures = lecturesData.flatMap(week => week.lectures);
 
   const isAvailable = isNotionIntegrationAvailable();
 
@@ -124,6 +132,44 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBulkSync = async () => {
+    setIsBulkSyncing(true);
+    setSyncResults(null);
+    
+    try {
+      console.log('🔄 Starting bulk sync to Notion pages...');
+      
+      // Perform bulk sync to add all lectures to Notion pages
+      const results = await syncAllLecturesToNotionPages(allLectures);
+      
+      setSyncResults({
+        success: results.success,
+        message: results.message,
+        results: results.results,
+        summary: {
+          successful: results.results.filter(r => r.status === 'success').length,
+          failed: results.results.filter(r => r.status === 'error').length,
+          total: results.results.length
+        }
+      });
+      
+      onSyncComplete?.(results);
+      
+      console.log('✅ Bulk sync to Notion pages completed:', results);
+      
+    } catch (error) {
+      console.error('❌ Bulk sync failed:', error);
+      setSyncResults({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        results: [],
+        summary: { successful: 0, failed: 1, total: 1 }
+      });
+    } finally {
+      setIsBulkSyncing(false);
     }
   };
 
@@ -189,33 +235,53 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
         </DialogTitle>
         
         <DialogContent className={classes.dialogContent}>
-          {!syncResults && !isLoading && (
-            <Typography>
-              Synkronisera föreläsningsdata med alla Notion-databaser. Detta kommer att:
-            </Typography>
-          )}
-          
-          {!syncResults && !isLoading && (
-            <Box mt={2}>
-              <Typography variant="body2" style={{ marginBottom: 8 }}>
-                • Läsa data från Notion-databaser
+          {!syncResults && !isLoading && !isBulkSyncing && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Välj synkroniseringstyp:
               </Typography>
-              <Typography variant="body2" style={{ marginBottom: 8 }}>
-                • Uppdatera checkboxar och status
-              </Typography>
-              <Typography variant="body2" style={{ marginBottom: 8 }}>
-                • Skapa nya föreläsningar om de saknas
-              </Typography>
-              <Typography variant="body2">
-                • Synkronisera för David, Albin och Mattias
-              </Typography>
+              
+              <Box mt={2} mb={3}>
+                <Typography variant="subtitle1" gutterBottom>
+                  📄 Synka till Notion-sidor (Rekommenderas)
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Lägger till ALLA föreläsningar i Notion-sidor
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Organiserar per ämnesområde (Oftalmologi, Pediatrik, etc.)
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Skapar formaterade listor som i Oftalmologi-exemplet
+                </Typography>
+                <Typography variant="body2">
+                  • Fungerar för alla användare: David, Albin och Mattias
+                </Typography>
+              </Box>
+
+              <Box mt={2}>
+                <Typography variant="subtitle1" gutterBottom>
+                  🗄️ Gammal databas-synk (Legacy)
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Läsa data från Notion-databaser
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Uppdatera checkboxar och status
+                </Typography>
+                <Typography variant="body2">
+                  • Fungerar bara om databaser är konfigurerade
+                </Typography>
+              </Box>
             </Box>
           )}
 
-          {isLoading && (
+          {(isLoading || isBulkSyncing) && (
             <Box display="flex" alignItems="center" justifyContent="center" py={4}>
               <CircularProgress style={{ marginRight: 16 }} />
-              <Typography>Synkroniserar med Notion...</Typography>
+              <Typography>
+                {isBulkSyncing ? 'Synkar alla föreläsningar till Notion-sidor...' : 'Synkroniserar med Notion...'}
+              </Typography>
             </Box>
           )}
 
@@ -228,12 +294,17 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
               {syncResults.results?.map((result: any, index: number) => (
                 <div key={index} className={classes.resultItem}>
                   <Typography>
-                    {result.user}: {result.operation}
+                    {result.lecture || `${result.user}: ${result.operation}`}
+                    {result.subjectArea && ` (${result.subjectArea})`}
                   </Typography>
                   <Chip
-                    icon={result.success ? <CheckIcon /> : <ErrorIcon />}
-                    label={result.success ? 'Lyckades' : 'Misslyckades'}
-                    className={result.success ? classes.successChip : classes.errorChip}
+                    icon={(result.success || result.status === 'success') ? <CheckIcon /> : <ErrorIcon />}
+                    label={
+                      result.status === 'success' ? 'Tillagd' :
+                      result.status === 'skipped' ? 'Hoppades över' :
+                      result.success ? 'Lyckades' : 'Misslyckades'
+                    }
+                    className={(result.success || result.status === 'success') ? classes.successChip : classes.errorChip}
                     size="small"
                   />
                 </div>
@@ -257,10 +328,24 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
         </DialogContent>
         
         <DialogActions className={classes.dialogActions}>
-          {!isLoading && !syncResults && (
-            <Button onClick={handleSync} color="primary" variant="contained">
-              Starta synkronisering
-            </Button>
+          {!isLoading && !isBulkSyncing && !syncResults && (
+            <>
+              <Button 
+                onClick={handleBulkSync} 
+                color="primary" 
+                variant="contained"
+                style={{ marginRight: 8 }}
+              >
+                📄 Synka till sidor
+              </Button>
+              <Button 
+                onClick={handleSync} 
+                color="default" 
+                variant="outlined"
+              >
+                🗄️ Gammal synk
+              </Button>
+            </>
           )}
           <Button onClick={handleCloseDialog} color="secondary">
             {syncResults ? 'Stäng' : 'Avbryt'}

@@ -35,7 +35,20 @@ exports.handler = async (event, context) => {
     const database = client.db("ankiologernasnotioneringsledger");
     const collection = database.collection("forelasningsdata");
 
-    const { title, date, time, duration, course } = JSON.parse(event.body);
+    const { title, date, time, duration, course, userFullName } = JSON.parse(event.body);
+
+    // Authentication check for lecture creation
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    if (!userFullName || !allowedNames.includes(userFullName)) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: "Unauthorized",
+          message: "Only authorized users (David, Albin, or Mattias) can create lectures"
+        }),
+      };
+    }
 
     // Validate required fields
     if (!title || !date || !time || !course) {

@@ -942,6 +942,10 @@ export default function Index() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   
+  // Authentication check for lecture creation
+  const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+  const isAllowedToCreateLectures = currentUser?.full_name ? allowedNames.includes(currentUser.full_name) : false;
+  
   // Debug logging for development
   React.useEffect(() => {
     console.log("🔍 Index Debug Info:");
@@ -1495,7 +1499,8 @@ export default function Index() {
         lectureData.date,
         lectureData.time,
         lectureData.duration,
-        courseTitle
+        courseTitle,
+        currentUser?.full_name || ""
       );
 
       // Add lecture to database
@@ -2167,47 +2172,49 @@ export default function Index() {
                 ));
           })}
               
-              {/* Add lecture button as last card */}
-              <Grid item xs={12} sm={6} md={4}>
-                <div 
-                  onClick={() => handleGapClick()}
-                  style={{
-                    height: "200px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    borderRadius: "12px",
-                    background: "rgba(76, 175, 80, 0.1)",
-                    border: "2px dashed rgba(76, 175, 80, 0.5)",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(76, 175, 80, 0.2)";
-                    e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.8)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(76, 175, 80, 0.1)";
-                    e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.5)";
-                  }}
-                  title="Lägg till ny föreläsning"
-                >
-                  <div style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: "rgba(76, 175, 80, 0.9)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontSize: "24px",
-                    fontWeight: "bold"
-                  }}>
-                    +
+              {/* Add lecture button as last card - only for authenticated users */}
+              {isAllowedToCreateLectures && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <div 
+                    onClick={() => handleGapClick()}
+                    style={{
+                      height: "200px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      borderRadius: "12px",
+                      background: "rgba(76, 175, 80, 0.1)",
+                      border: "2px dashed rgba(76, 175, 80, 0.5)",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(76, 175, 80, 0.2)";
+                      e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.8)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(76, 175, 80, 0.1)";
+                      e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.5)";
+                    }}
+                    title="Lägg till ny föreläsning"
+                  >
+                    <div style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      background: "rgba(76, 175, 80, 0.9)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontSize: "24px",
+                      fontWeight: "bold"
+                    }}>
+                      +
+                    </div>
                   </div>
-                </div>
-              </Grid>
+                </Grid>
+              )}
             </Grid>
           </div>
 

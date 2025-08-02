@@ -6,6 +6,7 @@ interface AddLectureData {
   time: string;
   duration: number;
   course: string;
+  userFullName: string;
 }
 
 interface AddLectureResponse {
@@ -111,7 +112,8 @@ export function formatLectureData(
   date: string,
   time: string,
   duration: number,
-  course: string
+  course: string,
+  userFullName: string
 ): AddLectureData {
   return {
     title: title.trim(),
@@ -119,6 +121,7 @@ export function formatLectureData(
     time,
     duration,
     course,
+    userFullName,
   };
 }
 

@@ -27,7 +27,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { title, date, time, duration, course } = req.body;
+    const { title, date, time, duration, course, userFullName } = req.body;
+    
+    // Authentication check for lecture creation
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    if (!userFullName || !allowedNames.includes(userFullName)) {
+      return res.status(403).json({ 
+        error: 'Unauthorized',
+        message: 'Only authorized users (David, Albin, or Mattias) can create lectures'
+      });
+    }
 
     // Validate required fields
     if (!title || !date || !time || !course) {

@@ -183,6 +183,10 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
   
+  // Authentication check for lecture creation
+  const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+  const isAllowedToCreateLectures = currentUser?.full_name ? allowedNames.includes(currentUser.full_name) : false;
+  
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(suggestedDate || "");
   const [startTime, setStartTime] = useState(suggestedTime?.split("-")[0] || "09:00");
@@ -260,6 +264,12 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
   };
 
   const handleAddLecture = () => {
+    // Check authentication first
+    if (!isAllowedToCreateLectures) {
+      setErrors({ auth: "Du måste vara inloggad som David, Albin eller Mattias för att skapa föreläsningar." });
+      return;
+    }
+    
     if (validateForm()) {
       onAddLecture({
         title: title.trim(),
@@ -320,6 +330,21 @@ const AddLectureModal: React.FC<AddLectureModalProps> = ({
       </DialogTitle>
 
       <DialogContent className={classes.dialogContent}>
+        {/* Authentication Error Display */}
+        {errors.auth && (
+          <div style={{ 
+            marginBottom: 24, 
+            padding: 16, 
+            background: "rgba(244, 67, 54, 0.1)", 
+            border: "1px solid rgba(244, 67, 54, 0.3)",
+            borderRadius: "8px" 
+          }}>
+            <Typography className={classes.errorText} style={{ fontSize: "0.9rem" }}>
+              ⚠️ {errors.auth}
+            </Typography>
+          </div>
+        )}
+        
         <div className={classes.formSection}>
           <div className={classes.sectionTitle}>
             <TitleIcon />
