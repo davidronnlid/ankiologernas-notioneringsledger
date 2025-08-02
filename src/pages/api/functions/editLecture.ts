@@ -19,13 +19,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, title, date, time, duration } = req.body;
+    const { id, title, date, time, subjectArea, duration } = req.body;
 
-    if (!id || !title || !date || !time) {
+    if (!id || !title || !date || !time || !subjectArea) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    console.log('📝 Editing lecture:', { id, title, date, time, duration });
+    console.log('📝 Editing lecture:', { id, title, date, time, subjectArea, duration });
 
     // In development, update the lecture in persistent storage
     if (process.env.NODE_ENV === 'development') {
@@ -44,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           title,
           date,
           time,
+          subjectArea,
           updatedAt: new Date().toISOString(),
           updatedBy: mockUser.full_name,
         };
@@ -70,6 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           title,
           date,
           time,
+          subjectArea,
           updatedAt: new Date().toISOString(),
           updatedBy: mockUser.full_name,
         };

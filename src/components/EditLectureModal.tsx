@@ -10,6 +10,10 @@ import {
   Typography,
   IconButton,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@material-ui/core";
 import {
   makeStyles,
@@ -22,10 +26,11 @@ import {
   Schedule as ScheduleIcon,
   Title as TitleIcon,
 } from "@material-ui/icons";
-import Lecture from "types/lecture";
+import Lecture, { SubjectArea } from "types/lecture";
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 import { isLectureTitleUnique, generateUniqueTitleSuggestions } from "../utils/uniqueLectureManager";
+import { SUBJECT_AREAS } from "../utils/subjectAreas";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -166,6 +171,7 @@ interface EditLectureModalProps {
     title: string;
     date: string;
     time: string;
+    subjectArea: SubjectArea;
     duration: number;
   }) => void;
   isLoading?: boolean;
@@ -185,6 +191,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [subjectArea, setSubjectArea] = useState<SubjectArea | "">("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
 
@@ -208,6 +215,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
     if (lecture) {
       setTitle(lecture.title);
       setDate(lecture.date);
+      setSubjectArea(lecture.subjectArea || "");
       
       // Parse time if it exists
       if (lecture.time) {
@@ -231,6 +239,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
       setDate("");
       setStartTime("09:00");
       setEndTime("10:00");
+      setSubjectArea("");
       setErrors({});
       setTitleSuggestions([]);
     }
@@ -273,6 +282,11 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
       newErrors.time = "Sluttid måste vara efter starttid";
     }
 
+    // Validate subject area
+    if (!subjectArea) {
+      newErrors.subjectArea = "Ämnesområde är obligatoriskt";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -286,6 +300,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
         title: title.trim(),
         date,
         time: timeString,
+        subjectArea: subjectArea as SubjectArea,
         duration,
       });
     }
@@ -412,7 +427,36 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
               {errors.time}
             </Typography>
           )}
+        </div>
 
+        <div className={classes.formSection}>
+          <div className={classes.sectionTitle}>
+            <TitleIcon />
+            Ämnesområde
+          </div>
+          
+          <FormControl fullWidth className={classes.textField} error={!!errors.subjectArea}>
+            <InputLabel>Välj ämnesområde</InputLabel>
+            <Select
+              value={subjectArea}
+              onChange={(e) => setSubjectArea(e.target.value as SubjectArea)}
+              variant="outlined"
+            >
+              {SUBJECT_AREAS.map((area) => (
+                <MenuItem key={area} value={area}>
+                  {area}
+                </MenuItem>
+              ))}
+            </Select>
+            {errors.subjectArea && (
+              <Typography className={classes.errorText}>
+                {errors.subjectArea}
+              </Typography>
+            )}
+          </FormControl>
+        </div>
+
+        <div className={classes.formSection}>
           <Chip
             label={`${duration.toFixed(1)} timmar`}
             className={classes.durationChip}

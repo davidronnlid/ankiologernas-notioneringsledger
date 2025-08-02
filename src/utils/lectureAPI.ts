@@ -1,4 +1,4 @@
-import Lecture from "../types/lecture";
+import Lecture, { SubjectArea } from "../types/lecture";
 
 interface AddLectureData {
   title: string;
@@ -130,6 +130,7 @@ export interface EditLectureData {
   title: string;
   date: string;
   time: string;
+  subjectArea: SubjectArea;
   duration: number;
 }
 

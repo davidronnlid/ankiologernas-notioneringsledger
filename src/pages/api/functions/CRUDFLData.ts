@@ -115,6 +115,7 @@ const mockLectureData = [
         title: "Introduktion till Klinisk Medicin",
         date: "2025-07-25",
         time: "09:00-11:00",
+        subjectArea: "Global hälsa",
         checkboxState: {
           Mattias: { confirm: false, unwish: false },
           Albin: { confirm: true, unwish: false },
@@ -127,6 +128,7 @@ const mockLectureData = [
         title: "Kardiovaskulär Patofysiologi",
         date: "2025-07-26",
         time: "13:00-15:00",
+        subjectArea: "Geriatrik",
         checkboxState: {
           Mattias: { confirm: true, unwish: false },
           Albin: { confirm: false, unwish: false },
@@ -145,6 +147,7 @@ const mockLectureData = [
         title: "Respiratorisk Fysiologi",
         date: "2025-07-28",
         time: "10:00-12:00",
+        subjectArea: "Pediatrik",
         checkboxState: {
           Mattias: { confirm: false, unwish: false },
           Albin: { confirm: false, unwish: false },
@@ -157,6 +160,7 @@ const mockLectureData = [
         title: "Neurologiska Undersökningar",
         date: "2025-07-30",
         time: "14:00-16:00",
+        subjectArea: "Öron-Näsa-Hals",
         checkboxState: {
           Mattias: { confirm: false, unwish: true },
           Albin: { confirm: true, unwish: false },
@@ -169,6 +173,7 @@ const mockLectureData = [
         title: "Gastrointestinala Sjukdomar",
         date: "2025-08-01",
         time: "09:00-11:00",
+        subjectArea: "Gynekologi & Obstetrik",
         checkboxState: {
           Mattias: { confirm: true, unwish: false },
           Albin: { confirm: false, unwish: false },
@@ -187,6 +192,7 @@ const mockLectureData = [
         title: "Endokrinologi Grunder",
         date: "2025-08-04",
         time: "08:00-10:00",
+        subjectArea: "Oftalmologi",
         checkboxState: {
           Mattias: { confirm: false, unwish: false },
           Albin: { confirm: false, unwish: true },
@@ -324,6 +330,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
                   title: edit.title,
                   date: edit.date,
                   time: edit.time,
+                  subjectArea: edit.subjectArea,
                   updatedAt: edit.updatedAt,
                   updatedBy: edit.updatedBy,
                 };

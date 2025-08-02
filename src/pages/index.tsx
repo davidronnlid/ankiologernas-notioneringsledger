@@ -383,6 +383,19 @@ const useStyles = makeStyles((muiTheme: Theme) =>
         color: "#FFD700",
       },
     },
+    categoryTag: {
+      display: "inline-block",
+      padding: "4px 12px",
+      borderRadius: "16px",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      marginBottom: muiTheme.spacing(1),
+      textAlign: "center" as const,
+      color: "white",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+      minWidth: "80px",
+    },
     lectureInfo: {
       fontSize: "0.875rem",
       color: "#ccc",
@@ -2047,6 +2060,13 @@ export default function Index() {
                         <Typography className={classes.lectureTitle}>
                           {lecture.title}
                         </Typography>
+
+                        {/* Category Tag */}
+                        {lecture.subjectArea && (
+                          <div className={classes.categoryTag}>
+                            {lecture.subjectArea}
+                          </div>
+                        )}
 
                         {/* Lecture Info */}
                         <div className={classes.lectureInfo}>
