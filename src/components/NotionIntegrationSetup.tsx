@@ -179,6 +179,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
   const [activeStep, setActiveStep] = useState(0);
   const [notionToken, setNotionToken] = useState("");
   const [pageId, setPageId] = useState("");
+  const [pageTitle, setPageTitle] = useState("");
   const [isTestingToken, setIsTestingToken] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [setupStatus, setSetupStatus] = useState<"idle" | "success" | "error">("idle");
@@ -216,6 +217,9 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
         if (result.pageId) {
           setPageId(result.pageId);
         }
+        if (result.pageTitle) {
+          setPageTitle(result.pageTitle);
+        }
       } else {
         setSetupStatus("error");
         setErrorMessage(result.message || "Token verifiering misslyckades");
@@ -249,9 +253,24 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
       const result = await response.json();
 
       if (result.success) {
-        onSetupComplete();
-        onClose();
+        if (result.development) {
+          // In development mode, show development message
+          setSetupStatus("success");
+          setErrorMessage(`📝 ${result.message}`);
+          console.log("Development mode: Configuration simulated but not saved");
+          
+          // Auto-close after showing development message for a few seconds
+          setTimeout(() => {
+            onSetupComplete();
+            onClose();
+          }, 3000);
+        } else {
+          // In production, close and complete setup
+          onSetupComplete();
+          onClose();
+        }
       } else {
+        setSetupStatus("error");
         setErrorMessage(result.message || "Kunde inte spara konfiguration");
       }
     } catch (error) {
@@ -389,7 +408,8 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
             
             {setupStatus === "success" && (
               <CustomAlert severity="success" style={{ marginBottom: 16 }}>
-                ✅ Token verifierad! {pageId && `Sida hittad: ${pageId.substring(0, 8)}...`}
+                ✅ Token verifierad! {pageTitle ? `Sida hittad: "${pageTitle}"` : pageId ? `Sida hittad: ${pageId.substring(0, 8)}...` : ""}
+                {errorMessage && <br />}{errorMessage}
               </CustomAlert>
             )}
             

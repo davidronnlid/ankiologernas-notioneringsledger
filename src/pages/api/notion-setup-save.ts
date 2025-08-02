@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(`💾 Saving Notion configuration for ${userName}...`);
 
-    // In development, just log the configuration
+    // In development, just log the configuration but don't actually save
     if (process.env.NODE_ENV === 'development') {
       console.log(`📝 Development mode - would save:`);
       console.log(`   NOTION_TOKEN_${userName.toUpperCase()}=${token.substring(0, 20)}...`);
@@ -25,9 +25,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log(`   NOTION_COURSE_PAGE_${userName.toUpperCase()}=${pageId}`);
       }
       
+      // For development, let's simulate success but note it's not actually saved
       return res.status(200).json({
         success: true,
-        message: 'Konfiguration sparad (development mode)',
+        message: 'Konfiguration simulerad (development mode - inte faktiskt sparad)',
         development: true
       });
     }

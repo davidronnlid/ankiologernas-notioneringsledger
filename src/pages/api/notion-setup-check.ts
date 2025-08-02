@@ -57,12 +57,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       if (coursePage) {
-        console.log(`✅ Found "Klinisk medicin 4" page: ${coursePage.id}`);
+        // Extract the page title
+        const pageTitle = coursePage.properties?.title?.title?.[0]?.text?.content ||
+                         coursePage.properties?.Name?.title?.[0]?.text?.content ||
+                         coursePage.title?.[0]?.text?.content ||
+                         'Klinisk medicin 4';
+        
+        console.log(`✅ Found "${pageTitle}" page: ${coursePage.id}`);
         
         return res.status(200).json({
           success: true,
           message: 'Token verifierad och kurssida hittad!',
           pageId: coursePage.id,
+          pageTitle: pageTitle,
           hasAccess: true
         });
       } else {
