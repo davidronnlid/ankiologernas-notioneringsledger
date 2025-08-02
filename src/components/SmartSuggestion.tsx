@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -193,6 +193,11 @@ const SmartSuggestion: React.FC<SmartSuggestionProps> = ({ onLectureSelect, onDi
   const classes = useStyles();
   const [isDismissed, setIsDismissed] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
+  
+  useEffect(() => {
+    setCurrentTime(new Date().getTime());
+  }, []);
   
   const weeksData = useSelector((state: RootState) => state.lectures.lectures);
   const currentUser = useSelector((state: RootState) => state.auth.user);
@@ -329,7 +334,7 @@ const SmartSuggestion: React.FC<SmartSuggestionProps> = ({ onLectureSelect, onDi
 
   // Create detailed tooltip text explaining the AI reasoning
   const selectedByOthers = otherUsers.filter(user => lecture.checkboxState?.[user]?.confirm).length;
-  const daysLeft = Math.ceil((new Date(lecture.date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+  const daysLeft = currentTime ? Math.ceil((new Date(lecture.date).getTime() - currentTime) / (1000 * 3600 * 24)) : 0;
   
   const tooltipText = `🤖 AI-rekommendation med ${confidence}% säkerhet
 

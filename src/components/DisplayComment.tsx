@@ -9,6 +9,7 @@ import Image from "next/image";
 import { deleteComment } from "store/slices/commentsReducer";
 import { getProfilePicUrl } from "utils/profilePicMapper";
 import TooltipComponent from "./Tooltip";
+import { format } from "date-fns";
 
 interface DisplayCommentsProps {
   lectureId: string;
@@ -67,22 +68,12 @@ const DisplayComments: React.FC<DisplayCommentsProps> = ({
         [...comments, ...reduxComments].map((comment: Comment) => {
           const profilePicUrl = getProfilePicUrl(comment.fullName);
 
-          const commentDate = new Date(comment.dateAdded);
-
           const formattedDate = comment.dateAdded
-            ? commentDate.toLocaleDateString("en-US", {
-                year: "2-digit",
-                month: "2-digit",
-                day: "2-digit",
-              })
+            ? format(new Date(comment.dateAdded), "yy/MM/dd")
             : "Inget datum";
 
           const formattedTime = comment.dateAdded
-            ? commentDate.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false, // change to false for 24-hour format
-              })
+            ? format(new Date(comment.dateAdded), "HH:mm")
             : "";
 
           return (

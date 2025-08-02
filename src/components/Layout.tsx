@@ -11,7 +11,7 @@ import { LayoutProps } from "@/types";
 import { setLectures } from "store/slices/lecturesReducer";
 
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RootState } from "store/types";
 import { removeDuplicateLectures, logDuplicateStats } from "utils/removeDuplicateLectures";
 import { sortLecturesIntoCoursesAndWeeks } from "utils/processLectures";
@@ -28,8 +28,14 @@ export default function Layout({
 }: LayoutProps) {
     const dispatch = useDispatch();
   
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
+  // Use consistent date initialization to prevent hydration mismatches
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0); // Set time to midnight for correct date comparison
+    setCurrentDate(date);
+  }, []);
 
   const lecturesData = useSelector(
     (state: RootState) => state.lectures.lectures
@@ -133,7 +139,7 @@ export default function Layout({
           
           processedData = sortLecturesIntoCoursesAndWeeks(
             data.events,
-            currentDate
+            currentDate || new Date()
           );
         }
 
