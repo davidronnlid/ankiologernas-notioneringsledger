@@ -48,6 +48,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Test basic site access first
+    console.log(`🧪 Testing basic site access...`);
+    try {
+      const siteTestResponse = await fetch(
+        `https://api.netlify.com/api/v1/sites/${netlifySiteId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${netlifyApiToken}`,
+          }
+        }
+      );
+
+      if (!siteTestResponse.ok) {
+        const errorText = await siteTestResponse.text();
+        console.error(`❌ Site access test failed: ${siteTestResponse.status} - ${errorText}`);
+        return res.status(500).json({
+          success: false,
+          message: `Site access misslyckades: ${siteTestResponse.status} - Token kan inte komma åt site ${netlifySiteId}`
+        });
+      }
+
+      const siteInfo = await siteTestResponse.json();
+      console.log(`✅ Site access OK: ${siteInfo.name}`);
+    } catch (siteError) {
+      console.error(`❌ Site access error:`, siteError);
+      return res.status(500).json({
+        success: false,
+        message: `Kunde inte kontakta Netlify API: ${siteError instanceof Error ? siteError.message : 'Okänt fel'}`
+      });
+    }
+
     // Prepare environment variables to set
     const envVars: { [key: string]: string } = {
       [`NOTION_TOKEN_${userName.toUpperCase()}`]: token
