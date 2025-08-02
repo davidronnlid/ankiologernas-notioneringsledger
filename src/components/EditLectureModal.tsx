@@ -31,6 +31,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 import { isLectureTitleUnique, generateUniqueTitleSuggestions } from "../utils/uniqueLectureManager";
 import { SUBJECT_AREAS } from "../utils/subjectAreas";
+import { calculateDuration as calculateDurationWithBreaks } from "../utils/processLectures";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -198,17 +199,14 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
   // Get all lectures for uniqueness checking
   const allLectures: Lecture[] = lecturesData.flatMap(week => week.lectures);
 
-  // Calculate duration between start and end time
-  const calculateDuration = (start: string, end: string): number => {
+  // Calculate duration between start and end time (with 15-minute breaks per hour)
+  const calculateDurationForTimes = (start: string, end: string): number => {
     if (!start || !end) return 0;
-    const startParts = start.split(":").map(Number);
-    const endParts = end.split(":").map(Number);
-    const startMinutes = startParts[0] * 60 + startParts[1];
-    const endMinutes = endParts[0] * 60 + endParts[1];
-    return Math.max(0, (endMinutes - startMinutes) / 60);
+    const timeString = `${start}-${end}`;
+    return calculateDurationWithBreaks(timeString);
   };
 
-  const duration = calculateDuration(startTime, endTime);
+  const duration = calculateDurationForTimes(startTime, endTime);
 
   // Initialize form when lecture changes
   useEffect(() => {
