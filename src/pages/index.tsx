@@ -1593,6 +1593,7 @@ export default function Index() {
             lecture.title,
             lecture.lectureNumber,
             userName,
+            lecture.subjectArea || 'Global hälsa', // Default if no subject area
             newState ? 'select' : 'unselect'
           );
           

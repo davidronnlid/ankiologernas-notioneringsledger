@@ -1,9 +1,10 @@
-// Notion integration utility for updating all users' databases
+// Notion integration utility for updating all users' course pages
 
 interface NotionUpdateRequest {
   lectureTitle: string;
   lectureNumber: string | number;
   selectedByUser: string;
+  subjectArea: string;
   action: 'select' | 'unselect';
 }
 
@@ -37,6 +38,7 @@ export const updateNotionLectureTags = async (
   lectureTitle: string,
   lectureNumber: string | number,
   selectedByUser: string,
+  subjectArea: string,
   action: 'select' | 'unselect'
 ): Promise<NotionUpdateResponse> => {
   try {
@@ -44,16 +46,17 @@ export const updateNotionLectureTags = async (
       lectureTitle,
       lectureNumber: lectureNumber.toString(),
       selectedByUser,
+      subjectArea,
       action
     };
 
     const userLetter = USER_LETTERS[selectedByUser];
-    console.log(`🎯 Sending Notion update request: ${selectedByUser} (${userLetter}) ${action} lecture ${lectureNumber}: ${lectureTitle}`);
+    console.log(`🎯 Sending Notion page update: ${selectedByUser} (${userLetter}) ${action} lecture ${lectureNumber}: ${lectureTitle} (${subjectArea})`);
 
     // Use local API during development, Netlify function in production
     const endpoint = process.env.NODE_ENV === 'development' 
       ? '/api/notion-test' 
-      : '/.netlify/functions/updateNotionTags';
+      : '/.netlify/functions/updateNotionPage';
     
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -85,7 +88,7 @@ export const updateNotionLectureTags = async (
 
       // Log page creation summary
       if (result.summary.pagesCreated > 0) {
-        console.log(`📝 Created ${result.summary.pagesCreated} new lecture pages across all databases`);
+        console.log(`📝 Created ${result.summary.pagesCreated} new lecture sections across all course pages`);
       }
     } else {
       console.error(`❌ Notion update failed:`, result);
@@ -99,7 +102,7 @@ export const updateNotionLectureTags = async (
     // Return error response in expected format
     return {
       success: false,
-      message: `Failed to update Notion: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Failed to update Notion pages: ${error instanceof Error ? error.message : 'Unknown error'}`,
       results: [],
       summary: {
         successfulUpdates: 0,
@@ -120,18 +123,18 @@ export const isNotionIntegrationEnabled = (): boolean => {
 // Helper function to show user-friendly notifications
 export const getNotionUpdateNotification = (response: NotionUpdateResponse): string => {
   if (!response.success) {
-    return `❌ Notion-uppdatering misslyckades: ${response.message}`;
+    return `❌ Notion-siduppdatering misslyckades: ${response.message}`;
   }
 
   const { successfulUpdates, failedUpdates, pagesCreated } = response.summary;
   
   if (successfulUpdates === 3 && failedUpdates === 0) {
-    const createdText = pagesCreated > 0 ? ` (${pagesCreated} nya sidor skapade)` : '';
-    return `✅ Alla Notion-databaser uppdaterade framgångsrikt!${createdText} 🎉`;
+    const createdText = pagesCreated > 0 ? ` (${pagesCreated} nya sektioner skapade)` : '';
+    return `✅ Alla Notion-kurssidor uppdaterade framgångsrikt!${createdText} 🎉`;
   } else if (successfulUpdates > 0) {
     const createdText = pagesCreated > 0 ? ` (${pagesCreated} skapade)` : '';
-    return `⚠️ ${successfulUpdates}/3 Notion-databaser uppdaterade (${failedUpdates} misslyckades)${createdText}`;
+    return `⚠️ ${successfulUpdates}/3 Notion-kurssidor uppdaterade (${failedUpdates} misslyckades)${createdText}`;
   } else {
-    return `❌ Inga Notion-databaser kunde uppdateras`;
+    return `❌ Inga Notion-kurssidor kunde uppdateras`;
   }
 }; 
