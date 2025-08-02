@@ -7,13 +7,12 @@ import { AppProps } from "next/app";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "../store/store";
 import { Provider } from "react-redux";
-import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import { CircularProgress } from "@material-ui/core";
 import ErrorBoundary from "../components/ErrorBoundary";
 
-// Component that provides dynamic theme based on context
+// Component that provides dynamic theme - moved inside ThemeProvider
 const DynamicThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme } = useTheme();
   const muiTheme = createAppTheme();
 
   return (
