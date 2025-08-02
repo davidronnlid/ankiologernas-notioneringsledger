@@ -60,5 +60,25 @@ export const detectSubjectArea = (lectureTitle: string): SubjectArea | null => {
     return 'Oftalmologi';
   }
   
+  // Additional keyword mappings for common medical specialties
+  if (title.includes('allergologi') || title.includes('allergi') || title.includes('dermatologi') || title.includes('hud')) {
+    return 'Oftalmologi'; // Default mapping for dermatology/allergy
+  }
+  if (title.includes('kardiologi') || title.includes('hjärt') || title.includes('kärl')) {
+    return 'Global hälsa'; // Default mapping for cardiology
+  }
+  if (title.includes('endokrinologi') || title.includes('diabetes') || title.includes('sköldkörtel')) {
+    return 'Global hälsa'; // Default mapping for endocrinology
+  }
+  if (title.includes('neurologi') || title.includes('neuro') || title.includes('hjärn')) {
+    return 'Global hälsa'; // Default mapping for neurology
+  }
+  if (title.includes('psykiatri') || title.includes('psyk') || title.includes('mental')) {
+    return 'Global hälsa'; // Default mapping for psychiatry
+  }
+  if (title.includes('ortopedi') || title.includes('ben') || title.includes('fraktur') || title.includes('trauma')) {
+    return 'Global hälsa'; // Default mapping for orthopedics
+  }
+  
   return null; // Default to null if can't detect
 };
