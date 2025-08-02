@@ -29,9 +29,9 @@ Instead of manually setting environment variables, users can now:
 - Instructions to create "Klinisk medicin 4" page
 - Page will be auto-populated by the app
 
-#### Step 3: Share Page with Integration
-- Instructions to share page with the integration
-- Grant "Edit" permissions
+#### Step 3: Connect Integration to Page
+- Instructions to connect integration to page via "..." menu
+- Grant integration access permissions
 
 #### Step 4: Configure Token
 - Text input for Notion token

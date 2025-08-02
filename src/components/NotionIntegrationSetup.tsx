@@ -187,7 +187,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
   const steps = [
     "Skapa Notion Integration",
     "Skapa din kurssida",
-    "Dela sidan med integrationen",
+    "Koppla integration till sidan",
     "Konfigurera token i appen"
   ];
 
@@ -343,18 +343,22 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               </Typography>
               
               <Typography variant="body2" style={{ marginBottom: 8 }}>
-                <strong>2.</strong> Klicka på "Share" (upp till höger)
+                <strong>2.</strong> Klicka på "..." (tre punkter) i övre högra hörnet
               </Typography>
               
               <Typography variant="body2" style={{ marginBottom: 8 }}>
-                <strong>3.</strong> Klicka "Invite" och sök efter:
+                <strong>3.</strong> Välj "Connect to" → "Add connections"
+              </Typography>
+              
+              <Typography variant="body2" style={{ marginBottom: 8 }}>
+                <strong>4.</strong> Hitta och välj din integration:
               </Typography>
               <Box className={classes.codeBlock}>
                 Ankiologernas Notioneringsledger - {userName}
               </Box>
               
               <Typography variant="body2" style={{ marginTop: 16 }}>
-                <strong>4.</strong> Ge integrationen "Can edit" behörighet
+                <strong>5.</strong> Klicka "Allow access" för att ge integrationen behörighet
               </Typography>
             </Box>
           </Box>
