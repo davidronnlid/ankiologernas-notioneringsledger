@@ -291,7 +291,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
             
             <Box className={classes.instructionBox}>
               <Typography variant="body2" style={{ marginBottom: 8 }}>
-                <strong>1.</strong> Gå till Notion Integrations:
+                <strong>1.</strong> Öppna Notion Integrations:
               </Typography>
               <Link
                 href="https://www.notion.so/my-integrations"
@@ -304,20 +304,42 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               </Link>
               
               <Typography variant="body2" style={{ marginTop: 16, marginBottom: 8 }}>
-                <strong>2.</strong> Klicka på "New integration"
+                <strong>2.</strong> Skapa ny integration:
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Klicka på "New integration"
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Name: <span style={{ fontFamily: 'monospace' }}>Ankiologernas Notioneringsledger - {userName}</span>
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Associated workspace: Välj din workspace
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Capabilities: Lämna standardinställningar (Read, Update, Insert content)
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 8, marginLeft: 16 }}>
+                • Klicka "Submit"
               </Typography>
               
-              <Typography variant="body2" style={{ marginBottom: 8 }}>
-                <strong>3.</strong> Fyll i:
+              <Typography variant="body2" style={{ marginTop: 16, marginBottom: 8 }}>
+                <strong>3.</strong> Kopiera din token:
               </Typography>
-              <Box className={classes.codeBlock}>
-                Name: Ankiologernas Notioneringsledger - {userName}<br/>
-                Associated workspace: [Välj din workspace]<br/>
-                Capabilities: Read content, Update content, Insert content
-              </Box>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Du kommer till integrationens sida
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Under "Internal Integration Token" ser du en lång text som börjar med "secret_" eller "ntn_"
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Klicka på "Show" för att visa hela token
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
+                • Klicka på "Copy" eller markera hela token och kopiera (Cmd+C)
+              </Typography>
               
-              <Typography variant="body2" style={{ marginTop: 16 }}>
-                <strong>4.</strong> Klicka "Submit" och kopiera din "Internal Integration Token"
+              <Typography variant="body2" style={{ marginTop: 16, color: '#90caf9', fontStyle: 'italic' }}>
+                💡 Tips: Token är ca 50 tecken lång och ser ut som: secret_abc123... eller ntn_abc123...
               </Typography>
             </Box>
           </Box>
