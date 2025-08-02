@@ -26,7 +26,6 @@ const DynamicThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 function MyApp(props: AppProps) {
   const { Component, pageProps } = props;
-  const [isSSR, setIsSSR] = useState(true);
 
   useEffect(() => {
     // Remove the server-side injected CSS.
@@ -34,25 +33,7 @@ function MyApp(props: AppProps) {
     if (jssStyles) {
       jssStyles.parentElement!.removeChild(jssStyles);
     }
-    
-    // Mark as client-side rendered to prevent hydration mismatches
-    setIsSSR(false);
   }, []);
-
-  // Show loading during SSR hydration to prevent mismatches
-  if (isSSR) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: '#1a1a1a'
-      }}>
-        <CircularProgress style={{ color: 'white' }} />
-      </div>
-    );
-  }
 
   return (
     <>
