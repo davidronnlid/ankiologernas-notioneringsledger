@@ -43,6 +43,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import Lecture from "types/lecture";
 import { RootState } from "store/types";
 import { useSelector, useDispatch } from "react-redux";
@@ -1335,6 +1336,66 @@ export default function Index() {
     setShowEditLectureModal(true);
   };
 
+  const handleDeleteLecture = async (lecture: Lecture) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Är du säker på att du vill ta bort föreläsningen "${lecture.title}"?\n\nDenna åtgärd kan inte ångras.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      // Show loading state
+      setIsUpdating(`deleting-${lecture.id}`);
+      
+      console.log("🗑️ Deleting lecture:", lecture.title);
+
+      // Call delete API
+      const apiUrl = process.env.NODE_ENV === "development"
+        ? process.env.NEXT_PUBLIC_API_URL || "/api"
+        : "/.netlify";
+
+      const response = await fetch(`${apiUrl}/functions/CRUDFLData`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          lectureId: lecture.id,
+          action: "deleteLecture"
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("✅ Lecture deleted successfully:", result);
+        
+        // Refresh data to update UI
+        await dataSyncManager.forceRefresh();
+        
+        // Show success message
+        DatabaseNotifications.lectureDeleted(lecture.title);
+        
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete lecture");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error deleting lecture:", error);
+      
+      // Show error message  
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      DatabaseNotifications.lectureDeleteError(errorMessage);
+      
+    } finally {
+      // Clear loading state
+      setIsUpdating(null);
+    }
+  };
+
   const handleUpdateLecture = async (lectureData: EditLectureData) => {
     try {
       // Show loading state
@@ -1882,6 +1943,54 @@ export default function Index() {
                           position: "relative", // For positioning add button
                         }}
                       >
+
+                        {/* Delete Button */}
+                        <div 
+                          style={{
+                            position: "absolute",
+                            top: "12px",
+                            right: isSelected ? "82px" : "44px", // Further right than edit button
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "50%",
+                            background: isUpdating === `deleting-${lecture.id}` 
+                              ? "rgba(244, 67, 54, 0.3)" 
+                              : "rgba(244, 67, 54, 0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: isUpdating === `deleting-${lecture.id}` ? "not-allowed" : "pointer",
+                            transition: "all 0.3s ease",
+                            zIndex: 20,
+                            opacity: isUpdating === `deleting-${lecture.id}` ? 1 : 0.7,
+                            pointerEvents: isUpdating === `deleting-${lecture.id}` ? "none" : "auto",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isUpdating !== `deleting-${lecture.id}`) {
+                              handleDeleteLecture(lecture);
+                            }
+                          }}
+                          onMouseEnter={(e) => {
+                            if (isUpdating !== `deleting-${lecture.id}`) {
+                              e.currentTarget.style.background = "rgba(244, 67, 54, 0.2)";
+                              e.currentTarget.style.opacity = "1";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (isUpdating !== `deleting-${lecture.id}`) {
+                              e.currentTarget.style.background = "rgba(244, 67, 54, 0.1)";
+                              e.currentTarget.style.opacity = "0.7";
+                            }
+                          }}
+                          title={isUpdating === `deleting-${lecture.id}` ? "Tar bort..." : "Ta bort föreläsning"}
+                        >
+                          {isUpdating === `deleting-${lecture.id}` ? (
+                            <CircularProgress size={14} style={{ color: "#f44336" }} />
+                          ) : (
+                            <DeleteIcon style={{ fontSize: "14px", color: "#f44336" }} />
+                          )}
+                        </div>
 
                         {/* Edit Button */}
                         <div 

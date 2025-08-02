@@ -70,6 +70,36 @@ export function addLectureToMemory(lecture: any) {
   console.log('💾 Total lectures in persistent storage:', addedLectures.length);
 }
 
+// File path for deleted lectures
+const deletedLecturesFilePath = path.join(process.cwd(), 'data', 'deletedLectures.json');
+
+// Function to load deleted lectures from file
+function loadDeletedLectures(): string[] {
+  try {
+    if (fs.existsSync(deletedLecturesFilePath)) {
+      const data = fs.readFileSync(deletedLecturesFilePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading deleted lectures:', error);
+  }
+  return [];
+}
+
+// Function to save deleted lectures to file
+function saveDeletedLectures(deletedIds: string[]) {
+  try {
+    // Ensure the data directory exists
+    const dataDir = path.dirname(deletedLecturesFilePath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    fs.writeFileSync(deletedLecturesFilePath, JSON.stringify(deletedIds, null, 2));
+  } catch (error) {
+    console.error('Error saving deleted lectures:', error);
+  }
+}
+
 // Export functions for use by editLecture API
 export { loadAddedLectures, saveAddedLectures, loadEditedLectures, saveEditedLectures };
 
@@ -262,8 +292,20 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     switch (req.method) {
       case "GET":
+        // Load deleted lectures to filter them out
+        const deletedLectureIds = loadDeletedLectures();
+        
         // Combine mock data with any added lectures
         let allLectureData = [...mockLectureData];
+        
+        // Filter out deleted lectures from mock data
+        if (deletedLectureIds.length > 0) {
+          console.log('🗑️ Filtering out', deletedLectureIds.length, 'deleted lectures');
+          allLectureData = allLectureData.map(week => ({
+            ...week,
+            lectures: week.lectures.filter(lecture => !deletedLectureIds.includes(lecture.id))
+          })).filter(week => week.lectures.length > 0); // Remove empty weeks
+        }
         
         // Apply any edits to mock lectures
         const editedLectures = loadEditedLectures();
@@ -292,7 +334,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         }
         
         // Load and add any dynamically added lectures to the appropriate week
-        const addedLectures = loadAddedLectures();
+        const addedLectures = loadAddedLectures()
+          .filter(lecture => !deletedLectureIds.includes(lecture.id)); // Filter out deleted lectures
         if (addedLectures.length > 0) {
           addedLectures.forEach(newLecture => {
             // Find or create the appropriate week
@@ -366,14 +409,55 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         break;
 
       case "DELETE":
-        // Mock lecture deletion
-        const { lectureId } = req.query;
-        console.log("Mock: Deleting lecture:", lectureId);
-        res.status(200).json({
-          success: true,
-          message: "Mock lecture deleted successfully",
-          lectureId,
-        });
+        // Handle lecture deletion
+        const deleteBody = req.body;
+        const { lectureId, action } = deleteBody;
+        
+        if (action === "deleteLecture" && lectureId) {
+          console.log("🗑️ Deleting lecture:", lectureId);
+          
+          // Load current deleted lectures list
+          const deletedLectureIds = loadDeletedLectures();
+          
+          // Add to deleted list if not already there
+          if (!deletedLectureIds.includes(lectureId)) {
+            deletedLectureIds.push(lectureId);
+            saveDeletedLectures(deletedLectureIds);
+            console.log("✅ Added lecture to deleted list:", lectureId);
+          }
+          
+          // Remove from added lectures if it exists there
+          const addedLectures = loadAddedLectures();
+          const filteredAddedLectures = addedLectures.filter(lecture => lecture.id !== lectureId);
+          if (filteredAddedLectures.length !== addedLectures.length) {
+            saveAddedLectures(filteredAddedLectures);
+            console.log("✅ Removed lecture from added lectures:", lectureId);
+          }
+          
+          // Remove from edited lectures if it exists there
+          const editedLectures = loadEditedLectures();
+          if (editedLectures[lectureId]) {
+            delete editedLectures[lectureId];
+            saveEditedLectures(editedLectures);
+            console.log("✅ Removed lecture from edited lectures:", lectureId);
+          }
+          
+          res.status(200).json({
+            success: true,
+            message: "Lecture deleted successfully",
+            lectureId,
+          });
+        } else {
+          // Handle comment deletion (existing functionality)
+          const { lectureId: commentLectureId, commentId } = req.query;
+          console.log("Mock: Deleting comment:", commentId, "from lecture:", commentLectureId);
+          res.status(200).json({
+            success: true,
+            message: "Mock comment deleted successfully",
+            lectureId: commentLectureId,
+            commentId,
+          });
+        }
         break;
 
       default:

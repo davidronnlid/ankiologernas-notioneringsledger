@@ -157,6 +157,13 @@ export const DatabaseNotifications = {
       { duration: 4000 }
     ),
 
+  lectureDeleted: (title: string) =>
+    notificationManager.success(
+      'Föreläsning borttagen',
+      `"${title}" har tagits bort framgångsrikt!`,
+      { duration: 4000 }
+    ),
+
   lectureAddError: (error: string) =>
     notificationManager.error(
       'Fel vid tillägg av föreläsning',
@@ -182,6 +189,21 @@ export const DatabaseNotifications = {
           onClick: () => {
             // This could trigger a retry mechanism
             console.log('Retry update lecture requested');
+          }
+        }
+      }
+    ),
+
+  lectureDeleteError: (error: string) =>
+    notificationManager.error(
+      'Fel vid borttagning av föreläsning',
+      `Ett fel uppstod: ${error}`,
+      {
+        action: {
+          label: 'Försök igen',
+          onClick: () => {
+            // This could trigger a retry mechanism
+            console.log('Retry delete lecture requested');
           }
         }
       }
