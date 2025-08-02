@@ -997,7 +997,7 @@ export default function Index() {
   // Check Notion setup status and prompt if needed
   useEffect(() => {
     if (!notionSetupStatus.isLoading && !notionSetupStatus.isSetup && notionSetupStatus.userName) {
-      // Show setup dialog after a short delay to let other dialogs appear first
+      // Show setup dialog for new users OR users who need reconfiguration
       const timer = setTimeout(() => {
         setShowNotionSetup(true);
       }, 2000);
@@ -2262,15 +2262,17 @@ export default function Index() {
                 size="large"
                 onClick={() => setShowNotionSetup(true)}
                 style={{
-                  borderColor: notionSetupStatus.isSetup ? '#4caf50' : '#ff9800',
-                  color: notionSetupStatus.isSetup ? '#4caf50' : '#ff9800',
+                  borderColor: notionSetupStatus.isSetup ? '#4caf50' : (notionSetupStatus.needsReconfiguration ? '#ff5722' : '#ff9800'),
+                  color: notionSetupStatus.isSetup ? '#4caf50' : (notionSetupStatus.needsReconfiguration ? '#ff5722' : '#ff9800'),
                   fontWeight: 'bold'
                 }}
-                startIcon={notionSetupStatus.isSetup ? <div>✅</div> : <div>⚙️</div>}
+                startIcon={notionSetupStatus.isSetup ? <div>✅</div> : (notionSetupStatus.needsReconfiguration ? <div>🔄</div> : <div>⚙️</div>)}
               >
                 {notionSetupStatus.isSetup 
                   ? `Notion (${notionSetupStatus.userName})` 
-                  : 'Konfigurera Notion'}
+                  : notionSetupStatus.needsReconfiguration
+                    ? 'Uppdatera Notion'
+                    : 'Konfigurera Notion'}
               </Button>
             )}
             
@@ -2485,6 +2487,7 @@ export default function Index() {
           open={showNotionSetup}
           onClose={() => setShowNotionSetup(false)}
           userName={notionSetupStatus.userName || ""}
+          isReconfiguration={notionSetupStatus.needsReconfiguration || false}
           onSetupComplete={() => {
             setShowNotionSetup(false);
             // Refresh setup status

@@ -165,6 +165,7 @@ interface NotionIntegrationSetupProps {
   onClose: () => void;
   userName: string;
   onSetupComplete: () => void;
+  isReconfiguration?: boolean;
 }
 
 const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
@@ -172,6 +173,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
   onClose,
   userName,
   onSetupComplete,
+  isReconfiguration = false,
 }) => {
   const classes = useStyles();
   const [activeStep, setActiveStep] = useState(0);
@@ -362,7 +364,10 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
         return (
           <Box>
             <Typography variant="body2" style={{ color: "rgba(255, 255, 255, 0.8)", marginBottom: 16 }}>
-              Klistra in din Notion token här för att slutföra kopplingen:
+              {isReconfiguration 
+                ? `Klistra in din Notion token här. Du kan använda din befintliga token eller skapa en ny enligt instruktionerna ovan:`
+                : `Klistra in din Notion token här för att slutföra kopplingen:`
+              }
             </Typography>
             
             <TextField
@@ -430,14 +435,16 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
       <DialogTitle className={classes.dialogTitle}>
         <IntegrationIcon className={classes.titleIcon} />
         <Typography variant="h6">
-          Notion Integration Setup - {userName}
+          {isReconfiguration ? `Uppdatera Notion Integration - ${userName}` : `Notion Integration Setup - ${userName}`}
         </Typography>
       </DialogTitle>
       
       <DialogContent style={{ padding: "24px" }}>
         <Typography variant="body1" style={{ color: "white", marginBottom: 24 }}>
-          Välkommen! För att koppla ditt konto till Notion behöver vi göra en enkel installation.
-          Detta behöver bara göras en gång.
+          {isReconfiguration 
+            ? `Hej ${userName}! Du behöver uppdatera din Notion-integration till det nya sidbaserade systemet. Detta ersätter det gamla databasbaserade systemet med en mer flexibel lösning. Din gamla konfiguration kommer automatiskt ersättas.`
+            : `Välkommen! För att koppla ditt konto till Notion behöver vi göra en enkel installation. Detta behöver bara göras en gång.`
+          }
         </Typography>
         
         <Stepper activeStep={activeStep} orientation="vertical" className={classes.stepper}>

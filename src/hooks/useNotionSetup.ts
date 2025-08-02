@@ -5,6 +5,8 @@ interface NotionSetupStatus {
   isLoading: boolean;
   userName: string | null;
   error: string | null;
+  needsReconfiguration?: boolean;
+  message?: string | null;
 }
 
 export const useNotionSetup = (currentUser: any): NotionSetupStatus => {
@@ -59,7 +61,9 @@ export const useNotionSetup = (currentUser: any): NotionSetupStatus => {
           isSetup: result.isSetup || false,
           isLoading: false,
           userName: userName,
-          error: result.error || null
+          error: result.error || null,
+          needsReconfiguration: result.needsReconfiguration || false,
+          message: result.message || null
         });
 
       } catch (error) {
