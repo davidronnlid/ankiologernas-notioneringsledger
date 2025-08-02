@@ -10,8 +10,10 @@ import notificationsReducer from "./slices/notificationsReducer";
 
 const persistConfig = {
   key: "root",
-  storage,
+  storage: safeStorage,
   whitelist: ["auth", "checkbox", "comments", "lectures", "notifications"],
+  serialize: false, // Improve performance
+  deserialize: false, // Improve performance
 };
 
 const persistedAuthReducer = persistReducer(persistConfig, authReducer);

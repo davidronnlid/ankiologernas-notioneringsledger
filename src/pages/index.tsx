@@ -895,6 +895,12 @@ const defaultStartDate = currentCourse?.startDate || "";
 const defaultEndDate = currentCourse?.endDate || "";
 
 export default function Index() {
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration mismatch by only rendering full content on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const classes = useStyles();
   const muiTheme = useMuiTheme();
   const { theme: currentTheme } = useTheme();
@@ -1494,7 +1500,7 @@ export default function Index() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !isClient) {
     return (
       <Layout>
         <div className={classes.pageContainer}>
