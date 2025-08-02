@@ -1370,10 +1370,15 @@ export default function Index() {
         ? process.env.NEXT_PUBLIC_API_URL || "/api"
         : "/.netlify";
 
-      console.log("🗑️ Making DELETE request to:", `${apiUrl}/functions/CRUDFLData`);
+      // Use appropriate endpoint based on environment
+      const deleteEndpoint = process.env.NODE_ENV === "development"
+        ? `${apiUrl}/functions/CRUDFLData`
+        : `${apiUrl}/functions/deleteLecture`;
+
+      console.log("🗑️ Making DELETE request to:", deleteEndpoint);
       console.log("🗑️ Request payload:", { lectureId: lecture.id, action: "deleteLecture" });
 
-      const response = await fetch(`${apiUrl}/functions/CRUDFLData`, {
+      const response = await fetch(deleteEndpoint, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

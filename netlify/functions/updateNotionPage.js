@@ -31,107 +31,32 @@ const SUBJECT_AREA_EMOJIS = {
   'Oftalmologi': '👁️'
 };
 
-// Helper function to find or create a course page
-async function findOrCreateCoursePage(notion, courseTitle = "Klinisk medicin 4") {
+// Helper function to get the specific course page for a user
+async function getUserCoursePage(notion, userName) {
   try {
-    // Search for existing course page
-    const searchResults = await notion.search({
-      query: courseTitle,
-      filter: {
-        property: 'object',
-        value: 'page'
-      }
-    });
-
-    // Check if we found an existing page
-    const existingPage = searchResults.results.find(page => 
-      page.properties?.title?.title?.[0]?.text?.content === courseTitle
-    );
-
-    if (existingPage) {
-      console.log(`✅ Found existing course page: ${courseTitle}`);
-      return existingPage;
+    const pageId = COURSE_PAGE_IDS[userName];
+    
+    if (!pageId) {
+      throw new Error(`No course page ID configured for ${userName}. Please set NOTION_COURSE_PAGE_${userName.toUpperCase()} environment variable.`);
     }
 
-    // Create new course page if not found
-    console.log(`📝 Creating new course page: ${courseTitle}`);
-    const newPage = await notion.pages.create({
-      parent: { type: 'page_id', page_id: 'YOUR_PARENT_PAGE_ID' }, // Replace with actual parent
-      properties: {
-        title: {
-          title: [
-            {
-              text: {
-                content: courseTitle
-              }
-            }
-          ]
-        }
-      },
-      children: [
-        {
-          object: 'block',
-          type: 'heading_1',
-          heading_1: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: courseTitle
-                }
-              }
-            ]
-          }
-        },
-        {
-          object: 'block',
-          type: 'bulleted_list_item',
-          bulleted_list_item: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: 'Mattias'
-                }
-              }
-            ]
-          }
-        },
-        {
-          object: 'block',
-          type: 'bulleted_list_item',
-          bulleted_list_item: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: 'Albin'
-                }
-              }
-            ]
-          }
-        },
-        {
-          object: 'block',
-          type: 'bulleted_list_item',
-          bulleted_list_item: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: 'David'
-                }
-              }
-            ]
-          }
-        }
-      ]
-    });
-
-    console.log(`✅ Created new course page: ${courseTitle}`);
-    return newPage;
+    // Get the specific page by ID
+    console.log(`🎯 Getting course page for ${userName}: ${pageId}`);
+    const page = await notion.pages.retrieve({ page_id: pageId });
+    
+    console.log(`✅ Found course page for ${userName}`);
+    return page;
+    
   } catch (error) {
-    console.error(`❌ Failed to find/create course page: ${courseTitle}`, error);
+    // If page doesn't exist or no access, provide helpful error
+    if (error.code === 'object_not_found') {
+      throw new Error(`Course page not found for ${userName}. Please check:
+        1. Page ID in NOTION_COURSE_PAGE_${userName.toUpperCase()} is correct
+        2. Integration has access to the page
+        3. Page exists in ${userName}'s Notion workspace`);
+    }
+    
+    console.error(`❌ Failed to get course page for ${userName}:`, error);
     throw error;
   }
 }
@@ -340,8 +265,8 @@ exports.handler = async (event, context) => {
       try {
         const notion = new Client({ auth: token });
         
-        // Step 1: Find or create the main course page
-        const coursePage = await findOrCreateCoursePage(notion, "Klinisk medicin 4");
+        // Step 1: Get the user's specific course page
+        const coursePage = await getUserCoursePage(notion, userName);
         
         // Step 2: Find or create the subject area section
         const subjectSection = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);

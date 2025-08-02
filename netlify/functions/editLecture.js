@@ -29,9 +29,9 @@ exports.handler = async (event, context) => {
   const client = new MongoClient(uri);
 
   try {
-    const { id, title, date, time, duration } = JSON.parse(event.body);
+    const { id, title, date, time, subjectArea, duration } = JSON.parse(event.body);
 
-    if (!id || !title || !date || !time) {
+    if (!id || !title || !date || !time || !subjectArea) {
       return {
         statusCode: 400,
         headers,
@@ -39,7 +39,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('📝 Editing lecture in MongoDB:', { id, title, date, time, duration });
+    console.log('📝 Editing lecture in MongoDB:', { id, title, date, time, subjectArea, duration });
 
     // Connect to MongoDB
     await client.connect();
@@ -56,6 +56,7 @@ exports.handler = async (event, context) => {
           title: title.trim(),
           date, 
           time,
+          subjectArea,
           updatedAt: new Date().toISOString(),
           updatedBy: 'System' // In production, get from authentication
         } 
@@ -71,6 +72,7 @@ exports.handler = async (event, context) => {
             title: title.trim(),
             date, 
             time,
+            subjectArea,
             updatedAt: new Date().toISOString(),
             updatedBy: 'System'
           } 
