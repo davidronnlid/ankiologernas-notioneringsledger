@@ -1036,6 +1036,13 @@ export default function Index() {
     return weeksData.filter((week) => week.course === courseTitle);
   }, [weeksData, courseTitle]);
 
+  // Get all lectures from active course only (Klinisk medicin 4) - moved before early return
+  const allLectures = useMemo(() => {
+    return km4Weeks.reduce((acc: Lecture[], week) => {
+      return [...acc, ...week.lectures];
+    }, []);
+  }, [km4Weeks]);
+
   // Calculate user statistics with weekly breakdown - made reactive with useMemo
   const userStats = useMemo(() => {
     console.log("🔄 Recalculating user statistics...");
@@ -1134,6 +1141,70 @@ export default function Index() {
   })();
 
 
+
+  // Handle URL hash on page load and sync URLs to Notion - moved before early return
+  useEffect(() => {
+    try {
+      // Handle URL hash for direct lecture links
+      handleLectureUrlHash();
+      
+      // Sync URLs to Notion when app loads (only once)
+      if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
+        setUrlSyncCompleted(true);
+        
+        // Debug Notion configuration
+        const userName = currentUser.full_name || currentUser.email || 'Unknown';
+        console.log(`🔍 Debugging Notion setup for user: ${userName}`);
+        logNotionEnvironmentVariables(userName);
+        
+        // Test Notion connection
+        testNotionConnection(userName, 'Global hälsa').then(success => {
+          if (success) {
+            console.log('✅ Notion connection test passed');
+            
+            // First: Comprehensive lecture sync to ensure all lectures have correct titles
+            if (!lectureSyncCompleted && allLectures.length > 0) {
+              setLectureSyncCompleted(true);
+              console.log('🔄 Starting comprehensive lecture synchronization...');
+              
+              // Use setTimeout to avoid blocking the main thread
+              setTimeout(() => {
+                syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
+                  console.log('✅ Comprehensive lecture sync completed:', summary);
+                  
+                  // After lecture sync, proceed with URL sync
+                  if (allLectures.length > 0) {
+                    syncLectureUrls(allLectures, currentUser).catch(error => {
+                      console.error('Failed to sync URLs to Notion:', error);
+                    });
+                  }
+                }).catch(error => {
+                  console.error('❌ Comprehensive lecture sync failed:', error);
+                  // Still try URL sync even if lecture sync fails
+                  if (allLectures.length > 0) {
+                    syncLectureUrls(allLectures, currentUser).catch(urlError => {
+                      console.error('Failed to sync URLs to Notion:', urlError);
+                    });
+                  }
+                });
+              }, 1000);
+            } else if (lectureSyncCompleted && allLectures.length > 0) {
+              // If lecture sync already done, just do URL sync
+              syncLectureUrls(allLectures, currentUser).catch(error => {
+                console.error('Failed to sync URLs to Notion:', error);
+              });
+            }
+          } else {
+            console.error('❌ Notion connection test failed - skipping sync');
+          }
+        }).catch(error => {
+          console.error('❌ Notion connection test error:', error);
+        });
+      }
+    } catch (error) {
+      console.error('❌ UseEffect error in index.tsx:', error);
+    }
+  }, [allLectures.length, currentUser?.id, urlSyncCompleted, lectureSyncCompleted]);
 
   // Check for milestone achievements
   useEffect(() => {
@@ -1515,77 +1586,6 @@ export default function Index() {
   }
 
       const currentUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "";
-
-  // Get all lectures from active course only (Klinisk medicin 4)
-  const allLectures = (() => {
-    return km4Weeks.reduce((acc: Lecture[], week) => {
-      return [...acc, ...week.lectures];
-    }, []);
-  })();
-
-  // Handle URL hash on page load and sync URLs to Notion
-  useEffect(() => {
-    try {
-      // Handle URL hash for direct lecture links
-      handleLectureUrlHash();
-      
-      // Sync URLs to Notion when app loads (only once)
-      if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
-      setUrlSyncCompleted(true);
-      
-      // Debug Notion configuration
-      const userName = currentUser.full_name || currentUser.email || 'Unknown';
-      console.log(`🔍 Debugging Notion setup for user: ${userName}`);
-      logNotionEnvironmentVariables(userName);
-      
-      // Test Notion connection
-      testNotionConnection(userName, 'Global hälsa').then(success => {
-        if (success) {
-          console.log('✅ Notion connection test passed');
-          
-          // First: Comprehensive lecture sync to ensure all lectures have correct titles
-          if (!lectureSyncCompleted && allLectures.length > 0) {
-            setLectureSyncCompleted(true);
-            console.log('🔄 Starting comprehensive lecture synchronization...');
-            
-            // Use setTimeout to avoid blocking the main thread
-            setTimeout(() => {
-              syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
-                console.log('✅ Comprehensive lecture sync completed:', summary);
-                
-                // After lecture sync, proceed with URL sync
-                if (allLectures.length > 0) {
-                  syncLectureUrls(allLectures, currentUser).catch(error => {
-                    console.error('Failed to sync URLs to Notion:', error);
-                  });
-                }
-              }).catch(error => {
-                console.error('❌ Comprehensive lecture sync failed:', error);
-                // Still try URL sync even if lecture sync fails
-                if (allLectures.length > 0) {
-                  syncLectureUrls(allLectures, currentUser).catch(urlError => {
-                    console.error('Failed to sync URLs to Notion:', urlError);
-                  });
-                }
-              });
-            }, 1000);
-          } else if (lectureSyncCompleted && allLectures.length > 0) {
-            // If lecture sync already done, just do URL sync
-            syncLectureUrls(allLectures, currentUser).catch(error => {
-              console.error('Failed to sync URLs to Notion:', error);
-            });
-          }
-        } else {
-          console.error('❌ Notion connection test failed - skipping sync');
-        }
-      }).catch(error => {
-        console.error('❌ Notion connection test error:', error);
-      });
-    }
-    } catch (error) {
-      console.error('❌ UseEffect error in index.tsx:', error);
-    }
-  }, [allLectures.length, currentUser?.id, urlSyncCompleted, lectureSyncCompleted]);
 
   return (
     <Layout>
