@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Chip,
   Link,
+  IconButton,
 } from "@material-ui/core";
 // Custom Alert component since @material-ui/lab might not be available
 const CustomAlert: React.FC<{ severity: 'success' | 'error'; children: React.ReactNode; style?: any }> = ({ severity, children, style }) => (
@@ -41,6 +42,7 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Launch as LaunchIcon,
+  FileCopy as CopyIcon,
 } from "@material-ui/icons";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -150,6 +152,27 @@ const useStyles = makeStyles((theme: Theme) =>
         textDecoration: "underline",
       },
     },
+    copyableText: {
+      display: "inline-flex",
+      alignItems: "center",
+      background: "rgba(0, 0, 0, 0.3)",
+      padding: "4px 8px",
+      borderRadius: "4px",
+      fontFamily: "monospace",
+      fontSize: "0.875rem",
+      color: "#90caf9",
+      gap: theme.spacing(0.5),
+      border: "1px solid rgba(255, 255, 255, 0.2)",
+    },
+    copyButton: {
+      minWidth: "auto",
+      padding: "2px",
+      color: "rgba(255, 255, 255, 0.7)",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        color: "white",
+      },
+    },
     screenshot: {
       width: "100%",
       maxWidth: "400px",
@@ -184,6 +207,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [setupStatus, setSetupStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [copiedText, setCopiedText] = useState("");
 
   const steps = [
     "Skapa Notion Integration",
@@ -191,6 +215,33 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
     "Koppla integration till sidan",
     "Konfigurera token i appen"
   ];
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(text);
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedText("");
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
+  const CopyableText: React.FC<{ text: string }> = ({ text }) => (
+    <Box className={classes.copyableText}>
+      <span>{text}</span>
+      <IconButton
+        size="small"
+        className={classes.copyButton}
+        onClick={() => copyToClipboard(text)}
+        title="Kopiera"
+      >
+        {copiedText === text ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+      </IconButton>
+    </Box>
+  );
 
   const testNotionToken = async () => {
     if (!notionToken) return;
@@ -309,9 +360,12 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
                 • Klicka på "New integration"
               </Typography>
-              <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
-                • Name: <span style={{ fontFamily: 'monospace' }}>Ankiologernas Notioneringsledger - {userName}</span>
-              </Typography>
+              <Box style={{ marginBottom: 4, marginLeft: 16, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Typography variant="body2" component="span">
+                  • Name:
+                </Typography>
+                <CopyableText text={`Ankiologernas Notioneringsledger - ${userName}`} />
+              </Box>
               <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
                 • Associated workspace: Välj din workspace
               </Typography>
@@ -360,8 +414,8 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               <Typography variant="body2" style={{ marginBottom: 8 }}>
                 <strong>2.</strong> Skapa en ny sida med titeln:
               </Typography>
-              <Box className={classes.codeBlock}>
-                Klinisk medicin 4
+              <Box style={{ marginBottom: 8 }}>
+                <CopyableText text="Klinisk medicin 4" />
               </Box>
               
               <Typography variant="body2" style={{ marginTop: 16 }}>
@@ -394,8 +448,8 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               <Typography variant="body2" style={{ marginBottom: 8 }}>
                 <strong>4.</strong> Hitta och välj din integration:
               </Typography>
-              <Box className={classes.codeBlock}>
-                Ankiologernas Notioneringsledger - {userName}
+              <Box style={{ marginBottom: 8 }}>
+                <CopyableText text={`Ankiologernas Notioneringsledger - ${userName}`} />
               </Box>
               
               <Typography variant="body2" style={{ marginTop: 16 }}>
