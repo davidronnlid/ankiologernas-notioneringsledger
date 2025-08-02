@@ -97,7 +97,7 @@ interface PersonTotals {
   FL: number;
   hours: number;
   wishedHours: number;
-
+}
 type Totals = {
   [key: string]: PersonTotals;
 };
