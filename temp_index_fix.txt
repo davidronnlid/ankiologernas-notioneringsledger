@@ -1,0 +1,13 @@
+Looking for these problematic lines in index.tsx:
+
+Expected around lines 903-907:
+    // Initialize development user safely on client-side
+    if (process.env.NODE_ENV === "development") {
+      dispatch(initializeDevelopmentUser());
+    }
+  }, [dispatch]);
+
+Should become:
+  }, []);
+
+The issue is that git thinks the file is clean but the build is still failing.

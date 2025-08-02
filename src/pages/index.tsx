@@ -97,7 +97,6 @@ interface PersonTotals {
   FL: number;
   hours: number;
   wishedHours: number;
-}
 
 type Totals = {
   [key: string]: PersonTotals;
@@ -900,12 +899,7 @@ export default function Index() {
   // Prevent hydration mismatch by only rendering full content on client
   useEffect(() => {
     setIsClient(true);
-    // Initialize development user safely on client-side
-    if (process.env.NODE_ENV === "development") {
-      dispatch(initializeDevelopmentUser());
-    }
-  }, [dispatch]);
-  const classes = useStyles();
+  }, []);  const classes = useStyles();
   const muiTheme = useMuiTheme();
   const { theme: currentTheme } = useTheme();
   const dispatch = useDispatch();
@@ -979,8 +973,6 @@ export default function Index() {
         setShowDuplicateNotification(true);
         // Clear from localStorage after showing
         localStorage.removeItem('removedDuplicates');
-      }
-    }
   }, []);
 
   // Debounce search term to improve performance
@@ -1005,14 +997,12 @@ export default function Index() {
       if (event.ctrlKey || event.metaKey || event.altKey || 
           event.key.length > 1 && !['Backspace', 'Delete'].includes(event.key)) {
         return;
-      }
 
       // Handle Escape key to clear search and blur input
       if (event.key === 'Escape') {
         setSearchTerm('');
         searchInputRef.current?.blur();
         return;
-      }
 
       // If user starts typing and not already in an input field, focus search and add the character
       if (!isInputField && event.key.match(/^[a-zA-Z0-9åäöÅÄÖ\s]$/)) {
@@ -1022,14 +1012,11 @@ export default function Index() {
         // Add the typed character to search term
         if (event.key === ' ' || event.key.match(/^[a-zA-Z0-9åäöÅÄÖ]$/)) {
           setSearchTerm(prev => prev + event.key);
-        }
-      }
 
       // Handle backspace when search field is focused but empty
       if (event.key === 'Backspace' && searchInputRef.current === activeElement && searchTerm === '') {
         // Allow normal backspace behavior
         return;
-      }
     };
 
     document.addEventListener('keydown', handleGlobalKeyDown);
@@ -1070,11 +1057,9 @@ export default function Index() {
               console.log(`✅ ${person} confirmed lecture: ${lecture.title}`);
               newAcc[person].FL += 1;
               newAcc[person].hours += duration;
-            }
             if (lecture.checkboxState?.[person]?.unwish) {
               console.log(`❌ ${person} unwished lecture: ${lecture.title}`);
               newAcc[person].wishedHours += duration;
-            }
           });
         });
 
@@ -1111,7 +1096,6 @@ export default function Index() {
           if (lecture.checkboxState?.[person]?.confirm) {
             weekStats[person as keyof typeof weekStats].FL += 1;
             weekStats[person as keyof typeof weekStats].hours += duration;
-          }
         });
       });
 
@@ -1125,7 +1109,6 @@ export default function Index() {
             week: weekData.week,
             ...weekStats[person as keyof typeof weekStats],
           });
-        }
       });
     });
 
@@ -1163,7 +1146,6 @@ export default function Index() {
         mapUserNameToPerson(currentUser?.full_name || "") === person
       ) {
         console.log(`🎉 MILESTONE REACHED: ${crossedMilestone}% 🎉`);
-      }
       
       // Update the ref with current progress
       previousProgressRef.current[person] = currentProgress;
@@ -1196,8 +1178,6 @@ export default function Index() {
               const isSelectedByPerson =
                 lecture.checkboxState?.[selectedFilter]?.confirm || false;
               matchesPersonFilter = isSelectedByPerson;
-            }
-          }
 
           // Date filter
           let matchesDateFilter = true;
@@ -1216,8 +1196,6 @@ export default function Index() {
             } catch (error) {
               console.warn("Invalid date format:", lecture.date, startDate, endDate);
               matchesDateFilter = true; // Don't filter out if date parsing fails
-            }
-          }
 
 
 
@@ -1242,7 +1220,6 @@ export default function Index() {
     // Special mapping for dronnlid -> David
     if (nameLower.includes('dronnlid')) {
       return 'David';
-    }
     
     // Default: use first name
     return fullName.split(" ")[0];
@@ -1296,7 +1273,6 @@ export default function Index() {
         
       } else {
         throw new Error("Failed to update lecture");
-      }
       
     } catch (error) {
       console.error("❌ Error updating lecture:", error);
@@ -1309,7 +1285,6 @@ export default function Index() {
     } finally {
       // Clear loading state
       setIsUpdating(null);
-    }
   };
 
   const handleAddLecture = async (lectureData: {
@@ -1361,7 +1336,6 @@ export default function Index() {
             if (!connectionTest) {
               console.error(`❌ Notion connection test failed for ${userName} - ${lectureData.subjectArea}`);
               return;
-            }
             
             // Wait a moment for the database to be updated and then get the lecture ID
             setTimeout(async () => {
@@ -1387,16 +1361,12 @@ export default function Index() {
               } catch (notionError) {
                 console.error('❌ Notion sync failed for new lecture:', notionError);
                 console.error('Error details:', notionError);
-              }
             }, 2000);
           } catch (syncError) {
             console.error('❌ Error setting up Notion sync:', syncError);
-          }
-        }
         
       } else {
         throw new Error("Failed to add lecture");
-      }
       
     } catch (error) {
       console.error("❌ Error adding lecture:", error);
@@ -1409,7 +1379,6 @@ export default function Index() {
     } finally {
       // Clear loading state
       setIsUpdating(null);
-    }
   };
 
   const handleCardClick = async (lecture: Lecture) => {
@@ -1473,13 +1442,10 @@ export default function Index() {
               timestamp: Date.now(),
               read: false,
             }));
-          }
         } catch (notionError) {
           console.error("❌ Notion integration error:", notionError);
-        }
       } else {
         console.log("ℹ️ Notion integration disabled or not configured");
-      }
 
       // Trigger celebration animation if lecture was selected (not deselected)
       if (newState) {
@@ -1496,12 +1462,10 @@ export default function Index() {
           setCelebrationUser(null);
           setCelebrationLecture(null);
         }, 2000);
-      }
     } catch (error) {
       console.error("Error updating checkbox state:", error);
     } finally {
       setIsUpdating(null);
-    }
   };
 
   if (isLoading || !isClient) {
@@ -1521,7 +1485,6 @@ export default function Index() {
         </div>
       </Layout>
     );
-  }
 
       const currentUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "";
 
@@ -1567,7 +1530,6 @@ export default function Index() {
                   syncLectureUrls(allLectures, currentUser).catch(error => {
                     console.error('Failed to sync URLs to Notion:', error);
                   });
-                }
               }).catch(error => {
                 console.error('❌ Comprehensive lecture sync failed:', error);
                 // Still try URL sync even if lecture sync fails
@@ -1575,7 +1537,6 @@ export default function Index() {
                   syncLectureUrls(allLectures, currentUser).catch(urlError => {
                     console.error('Failed to sync URLs to Notion:', urlError);
                   });
-                }
               });
             }, 1000);
           } else if (lectureSyncCompleted && allLectures.length > 0) {
@@ -1583,17 +1544,13 @@ export default function Index() {
             syncLectureUrls(allLectures, currentUser).catch(error => {
               console.error('Failed to sync URLs to Notion:', error);
             });
-          }
         } else {
           console.error('❌ Notion connection test failed - skipping sync');
-        }
       }).catch(error => {
         console.error('❌ Notion connection test error:', error);
       });
-    }
     } catch (error) {
       console.error('❌ UseEffect error in index.tsx:', error);
-    }
   }, [allLectures.length, currentUser?.id, urlSyncCompleted, lectureSyncCompleted]);
 
   return (
@@ -1611,7 +1568,6 @@ export default function Index() {
                   className={
                     `${classes.celebrationProfile} ` +
                     (classes as any)[`celebration${celebrationType}Profile`]
-                  }
                 />
               </div>
 
@@ -1655,7 +1611,6 @@ export default function Index() {
                         : "Crown"
                     }`
                   ]
-                }
               >
                 {celebrationType === 0
                   ? "💖"
@@ -1848,7 +1803,6 @@ export default function Index() {
                   const date = lecture.date;
                   if (!acc[date]) {
                     acc[date] = [];
-                  }
                   acc[date].push(lecture);
                   return acc;
                 }, {} as { [date: string]: Lecture[] });
@@ -2100,7 +2054,6 @@ export default function Index() {
                   setTimeout(() => {
                     window.location.reload();
                   }, 1000);
-                }
               }}
             />
             
@@ -2312,6 +2265,5 @@ export default function Index() {
       </>
     </Layout>
   );
-}
 
 
