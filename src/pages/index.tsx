@@ -1524,11 +1524,12 @@ export default function Index() {
 
   // Handle URL hash on page load and sync URLs to Notion
   useEffect(() => {
-    // Handle URL hash for direct lecture links
-    handleLectureUrlHash();
-    
-    // Sync URLs to Notion when app loads (only once)
-    if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
+    try {
+      // Handle URL hash for direct lecture links
+      handleLectureUrlHash();
+      
+      // Sync URLs to Notion when app loads (only once)
+      if (!urlSyncCompleted && allLectures.length > 0 && currentUser) {
       setUrlSyncCompleted(true);
       
       // Debug Notion configuration
@@ -1576,7 +1577,12 @@ export default function Index() {
         } else {
           console.error('❌ Notion connection test failed - skipping sync');
         }
+      }).catch(error => {
+        console.error('❌ Notion connection test error:', error);
       });
+    }
+    } catch (error) {
+      console.error('❌ UseEffect error in index.tsx:', error);
     }
   }, [allLectures.length, currentUser?.id, urlSyncCompleted, lectureSyncCompleted]);
 

@@ -261,7 +261,7 @@ export const syncAllLecturesToNotion = async (
     };
   }
 
-  const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+  const userName = currentUser.full_name || currentUser.email || 'Unknown';
   console.log(`🔄 Starting comprehensive lecture sync for ${userName}`);
   console.log(`📚 Total lectures to sync: ${lectures.length}`);
 

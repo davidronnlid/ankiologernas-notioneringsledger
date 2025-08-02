@@ -52,34 +52,42 @@ export default function Layout({
   };
 
   useEffect(() => {
-    // Initialize DataSyncManager with dispatch
-    dataSyncManager.init(dispatch);
-    
-    // Initial data fetch if no data exists
-    if (lecturesData.length === 0) {
-      fetchDataAndDispatch();
-    }
-    
-    // Start polling for real-time updates (every 30 seconds)
-    // Only in production to avoid unnecessary API calls during development
-    if (process.env.NODE_ENV === "production") {
-      dataSyncManager.startPolling(30000);
-    }
-    
-
-    
-    // Cleanup on unmount
-    return () => {
-      if (process.env.NODE_ENV === "production") {
-        dataSyncManager.stopPolling();
+    try {
+      // Initialize DataSyncManager with dispatch
+      dataSyncManager.init(dispatch);
+      
+      // Initial data fetch if no data exists
+      if (lecturesData.length === 0) {
+        fetchDataAndDispatch();
       }
-    };
+      
+      // Start polling for real-time updates (every 30 seconds)
+      // Only in production to avoid unnecessary API calls during development
+      if (process.env.NODE_ENV === "production") {
+        dataSyncManager.startPolling(30000);
+      }
+      
+
+      
+      // Cleanup on unmount
+      return () => {
+        if (process.env.NODE_ENV === "production") {
+          dataSyncManager.stopPolling();
+        }
+      };
+    } catch (error) {
+      console.error('❌ Layout useEffect error:', error);
+    }
   }, [dispatch]);
 
   // Separate effect for checking if data needs to be loaded
   useEffect(() => {
-    if (lecturesData.length === 0) {
-      fetchDataAndDispatch();
+    try {
+      if (lecturesData.length === 0) {
+        fetchDataAndDispatch();
+      }
+    } catch (error) {
+      console.error('❌ Layout data loading error:', error);
     }
   }, [lecturesData.length]);
 

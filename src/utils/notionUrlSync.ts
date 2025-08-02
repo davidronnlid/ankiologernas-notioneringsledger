@@ -13,7 +13,7 @@ export const syncLectureUrls = async (lectures: Lecture[], currentUser: any): Pr
 
   console.log(`🔗 Starting URL sync for ${lectures.length} lectures`);
   
-  const userName = currentUser.user_metadata?.full_name || currentUser.email || 'Unknown';
+      const userName = currentUser.full_name || currentUser.email || 'Unknown';
   const batchSize = 5; // Process in batches to avoid overwhelming Notion API
   
   for (let i = 0; i < lectures.length; i += batchSize) {
