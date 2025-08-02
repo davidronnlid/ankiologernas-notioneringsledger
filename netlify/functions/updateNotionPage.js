@@ -224,7 +224,13 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { lectureTitle, lectureNumber, selectedByUser, subjectArea, action } = JSON.parse(event.body);
+    let { lectureTitle, lectureNumber, selectedByUser, subjectArea, action } = JSON.parse(event.body);
+    
+    // Handle special mapping for dronnlid -> David (consistent with frontend)
+    if (selectedByUser && selectedByUser.toLowerCase().includes('dronnlid')) {
+      console.log(`🔄 Mapping dronnlid to David for backend processing`);
+      selectedByUser = 'David';
+    }
     
     console.log(`🎯 Notion page update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle} (${subjectArea})`);
 

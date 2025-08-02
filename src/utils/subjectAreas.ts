@@ -22,10 +22,16 @@ export const SUBJECT_TO_DB_SUFFIX: { [key in SubjectArea]: string } = {
 
 // Get database environment variable names for a user and subject
 export const getNotionEnvVars = (userName: string, subjectArea: SubjectArea) => {
+  // Handle special mapping for dronnlid -> David (consistent with other mappings)
+  let mappedUserName = userName;
+  if (userName.toLowerCase().includes('dronnlid')) {
+    mappedUserName = 'David';
+  }
+  
   const dbSuffix = SUBJECT_TO_DB_SUFFIX[subjectArea];
   return {
-    tokenKey: `NOTION_TOKEN_${userName.toUpperCase()}`,
-    databaseKey: `NOTION_DATABASE_${userName.toUpperCase()}_${dbSuffix}`
+    tokenKey: `NOTION_TOKEN_${mappedUserName.toUpperCase()}`,
+    databaseKey: `NOTION_DATABASE_${mappedUserName.toUpperCase()}_${dbSuffix}`
   };
 };
 
