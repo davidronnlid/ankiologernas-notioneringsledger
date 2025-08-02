@@ -8,6 +8,24 @@ import updateCheckboxReducer from "./slices/updateCheckbox";
 import commentsReducer from "./slices/commentsReducer";
 import notificationsReducer from "./slices/notificationsReducer";
 
+// Create a safe storage for SSR
+const createNoopStorage = () => {
+  return {
+    getItem(_key: string) {
+      return Promise.resolve(null);
+    },
+    setItem(_key: string, value: any) {
+      return Promise.resolve(value);
+    },
+    removeItem(_key: string) {
+      return Promise.resolve();
+    },
+  };
+};
+
+// Use proper storage based on environment
+const safeStorage = typeof window !== 'undefined' ? storage : createNoopStorage();
+
 const persistConfig = {
   key: "root",
   storage: safeStorage,
