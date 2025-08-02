@@ -380,9 +380,9 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
               variant="outlined"
               value={notionToken}
               onChange={(e) => setNotionToken(e.target.value)}
-              placeholder="secret_abc123..."
+              placeholder="secret_abc123... eller ntn_abc123..."
               className={classes.tokenInput}
-              helperText="Tokennet börjar vanligtvis med 'secret_'"
+              helperText="Tokennet börjar med 'secret_' eller 'ntn_'"
               multiline={false}
               style={{ marginBottom: 16 }}
             />

@@ -15,11 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Validate token format
-    if (!token.startsWith('secret_')) {
+    // Validate token format (both old and new formats)
+    if (!token.startsWith('secret_') && !token.startsWith('ntn_')) {
       return res.status(400).json({
         success: false,
-        message: 'Token ska börja med "secret_"'
+        message: 'Token ska börja med "secret_" eller "ntn_"'
       });
     }
 
