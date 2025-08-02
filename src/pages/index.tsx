@@ -22,6 +22,7 @@ import {
 import NotifyButton from "@/components/NotifyButton";
 import NotionSyncButton from "@/components/NotionSyncButton";
 import NotionSetupManager from "@/components/NotionSetupManager";
+import NotionIntegrationSetup from "@/components/NotionIntegrationSetup";
 import SmartRecommendations from "@/components/SmartRecommendations";
 import UserPreferencesDialog from "@/components/UserPreferencesDialog";
 import WeeklySummary from "@/components/WeeklySummary";
@@ -79,6 +80,7 @@ import {
 import { dataSyncManager } from "utils/dataSync";
 import { DatabaseNotifications } from "utils/notificationSystem";
 import { removeDuplicateLectures } from "utils/removeDuplicateLectures";
+import { useNotionSetup } from "../hooks/useNotionSetup";
 import {
   isWithinInterval,
   parseISO,
@@ -962,8 +964,13 @@ export default function Index() {
   // Edit lecture modal state
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
+  const [showNotionSetup, setShowNotionSetup] = useState(false);
   const [urlSyncCompleted, setUrlSyncCompleted] = useState(false);
   const [lectureSyncCompleted, setLectureSyncCompleted] = useState(false);
+  
+  // Check Notion setup status
+  const notionSetupStatus = useNotionSetup(currentUser);
+  
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -986,6 +993,18 @@ export default function Index() {
       }
     }
   }, []);
+
+  // Check Notion setup status and prompt if needed
+  useEffect(() => {
+    if (!notionSetupStatus.isLoading && !notionSetupStatus.isSetup && notionSetupStatus.userName) {
+      // Show setup dialog after a short delay to let other dialogs appear first
+      const timer = setTimeout(() => {
+        setShowNotionSetup(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [notionSetupStatus]);
 
   // Debounce search term to improve performance
   useEffect(() => {
@@ -2235,6 +2254,25 @@ export default function Index() {
                 }
               }}
             />
+
+            {/* Notion Setup Status Indicator */}
+            {!notionSetupStatus.isLoading && (
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => setShowNotionSetup(true)}
+                style={{
+                  borderColor: notionSetupStatus.isSetup ? '#4caf50' : '#ff9800',
+                  color: notionSetupStatus.isSetup ? '#4caf50' : '#ff9800',
+                  fontWeight: 'bold'
+                }}
+                startIcon={notionSetupStatus.isSetup ? <div>✅</div> : <div>⚙️</div>}
+              >
+                {notionSetupStatus.isSetup 
+                  ? `Notion (${notionSetupStatus.userName})` 
+                  : 'Konfigurera Notion'}
+              </Button>
+            )}
             
             {/* Manual setup trigger for advanced users */}
             <NotionSetupManager autoPrompt={false}>
@@ -2440,6 +2478,18 @@ export default function Index() {
           }}
           onUpdate={handleUpdateLecture}
           isLoading={isUpdating === "editing-lecture"}
+        />
+
+        {/* Notion Integration Setup */}
+        <NotionIntegrationSetup
+          open={showNotionSetup}
+          onClose={() => setShowNotionSetup(false)}
+          userName={notionSetupStatus.userName || ""}
+          onSetupComplete={() => {
+            setShowNotionSetup(false);
+            // Refresh setup status
+            window.location.reload();
+          }}
         />
       </>
     </Layout>
