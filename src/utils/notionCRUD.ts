@@ -270,6 +270,18 @@ export const syncAllLecturesToNotionPages = async (
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   console.log(`🔄 Starting bulk sync of ${lectures.length} lectures to Notion pages`);
 
+  // Filter to only include lectures from Klinisk medicin 4 course
+  const km4Lectures = lectures.filter(lecture => {
+    // Check if lecture has a course property or if it's part of KM4
+    // For now, we'll sync all lectures as they should be from the active course
+    // You can add more specific filtering here if needed
+    return true; // All lectures in the app should be from KM4
+  });
+
+  if (km4Lectures.length !== lectures.length) {
+    console.log(`📚 Filtered to ${km4Lectures.length} Klinisk medicin 4 lectures from ${lectures.length} total`);
+  }
+
   const results: any[] = [];
   let successCount = 0;
   let skipCount = 0;
@@ -290,7 +302,7 @@ export const syncAllLecturesToNotionPages = async (
     };
   }
 
-  for (const lecture of lectures) {
+  for (const lecture of km4Lectures) {
     try {
       // Determine subject area for the lecture
       const subjectArea = determineSubjectArea(lecture.title);
@@ -361,7 +373,7 @@ export const syncAllLecturesToNotionPages = async (
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  const message = `Bulk sync completed: ${successCount} successful, ${skipCount} skipped, ${errorCount} errors`;
+  const message = `Bulk sync completed: ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${km4Lectures.length} total lectures processed)`;
   console.log(`📊 ${message}`);
 
   return {

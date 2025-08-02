@@ -62,7 +62,7 @@ async function getUserCoursePage(notion, userName) {
   }
 }
 
-// Helper function to find or create a subject area section
+// Helper function to find or create a subject area section with database
 async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
   try {
     // Get all blocks from the course page
@@ -81,136 +81,55 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
 
     if (existingSection) {
       console.log(`✅ Found existing section: ${sectionTitle}`);
-      return existingSection;
+      
+      // Check if the section already has a database
+      const sectionChildren = await notion.blocks.children.list({
+        block_id: existingSection.id
+      });
+      
+      const existingDatabase = sectionChildren.results.find(block => 
+        block.type === 'child_database'
+      );
+      
+      if (existingDatabase) {
+        console.log(`✅ Found existing database in section: ${sectionTitle}`);
+        return { section: existingSection, database: existingDatabase };
+      }
     }
 
-    // Create new collapsible section for subject area
-    console.log(`📝 Creating new section: ${sectionTitle}`);
-    const newSection = await notion.blocks.children.append({
-      block_id: coursePageId,
-      children: [
-        {
-          object: 'block',
-          type: 'toggle',
-          toggle: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: sectionTitle
-                }
-              }
-            ],
-            children: [
-              {
-                object: 'block',
-                type: 'paragraph',
-                paragraph: {
-                  rich_text: [
-                    {
-                      type: 'text',
-                      text: {
-                        content: `Föreläsningar inom ${subjectArea}`
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ]
-    });
-
-    console.log(`✅ Created new section: ${sectionTitle}`);
-    return newSection.results[0];
-  } catch (error) {
-    console.error(`❌ Failed to find/create subject section: ${subjectArea}`, error);
-    throw error;
-  }
-}
-
-// Helper function to add or update lecture in subject section
-async function addLectureToSection(notion, sectionId, lectureTitle, lectureNumber, selectedByUser, action) {
-  try {
-    const userLetter = USER_LETTERS[selectedByUser];
+    // Create new section or update existing one with database
+    let section = existingSection;
     
-    // Get current children of the section
-    const sectionChildren = await notion.blocks.children.list({
-      block_id: sectionId
-    });
-
-    // Look for existing lecture
-    const lectureText = `${lectureNumber}. ${lectureTitle}`;
-    const existingLecture = sectionChildren.results.find(block => 
-      block.type === 'bulleted_list_item' && 
-      block.bulleted_list_item?.rich_text?.[0]?.text?.content?.includes(lectureTitle)
-    );
-
-    if (existingLecture) {
-      // Update existing lecture
-      console.log(`🔄 Updating existing lecture: ${lectureText}`);
-      
-      // Get current content to preserve user assignments
-      const currentContent = existingLecture.bulleted_list_item.rich_text[0].text.content;
-      let updatedContent = currentContent;
-      
-      if (action === 'select') {
-        // Add user letter if not already present
-        if (!currentContent.includes(`[${userLetter}]`)) {
-          updatedContent = `${currentContent} [${userLetter}]`;
-        }
-      } else if (action === 'unselect') {
-        // Remove user letter
-        updatedContent = currentContent.replace(new RegExp(`\\s*\\[${userLetter}\\]`, 'g'), '');
-      } else if (action === 'bulk_add') {
-        // For bulk_add, don't modify existing content
-        console.log(`📝 Lecture already exists: ${lectureText} - skipping bulk add`);
-        return existingLecture;
-      }
-
-      await notion.blocks.update({
-        block_id: existingLecture.id,
-        bulleted_list_item: {
-          rich_text: [
-            {
-              type: 'text',
-              text: {
-                content: updatedContent
-              }
-            }
-          ]
-        }
-      });
-
-      console.log(`✅ Updated lecture: ${lectureText}`);
-      return existingLecture;
-    } else {
-      // Create new lecture item
-      console.log(`📝 Creating new lecture: ${lectureText}`);
-      
-      let initialContent;
-      if (action === 'bulk_add') {
-        // For bulk add, just add the lecture without user tracking
-        initialContent = lectureText;
-      } else if (action === 'select') {
-        initialContent = `${lectureText} [${userLetter}]`;
-      } else {
-        initialContent = lectureText;
-      }
-      
-      const newLecture = await notion.blocks.children.append({
-        block_id: sectionId,
+    if (!section) {
+      console.log(`📝 Creating new section: ${sectionTitle}`);
+      const newSection = await notion.blocks.children.append({
+        block_id: coursePageId,
         children: [
           {
             object: 'block',
-            type: 'bulleted_list_item',
-            bulleted_list_item: {
+            type: 'toggle',
+            toggle: {
               rich_text: [
                 {
                   type: 'text',
                   text: {
-                    content: initialContent
+                    content: sectionTitle
+                  }
+                }
+              ],
+              children: [
+                {
+                  object: 'block',
+                  type: 'paragraph',
+                  paragraph: {
+                    rich_text: [
+                      {
+                        type: 'text',
+                        text: {
+                          content: `Föreläsningar inom ${subjectArea}`
+                        }
+                      }
+                    ]
                   }
                 }
               ]
@@ -218,9 +137,232 @@ async function addLectureToSection(notion, sectionId, lectureTitle, lectureNumbe
           }
         ]
       });
+      section = newSection.results[0];
+    }
 
-      console.log(`✅ Created new lecture: ${lectureText}`);
-      return newLecture.results[0];
+    // Create database within the section
+    console.log(`📊 Creating database for: ${sectionTitle}`);
+    const database = await notion.databases.create({
+      parent: {
+        type: 'block_id',
+        block_id: section.id
+      },
+      title: [
+        {
+          type: 'text',
+          text: {
+            content: `Föreläsningar inom ${subjectArea}`
+          }
+        }
+      ],
+      properties: {
+        'Föreläsning': {
+          title: {}
+        },
+        'Nummer': {
+          number: {
+            format: 'number'
+          }
+        },
+        'Status': {
+          select: {
+            options: [
+              {
+                name: 'Ej ankiz',
+                color: 'default'
+              },
+              {
+                name: 'Blå ankiz',
+                color: 'blue'
+              },
+              {
+                name: 'A',
+                color: 'green'
+              },
+              {
+                name: 'M',
+                color: 'yellow'
+              },
+              {
+                name: 'D',
+                color: 'red'
+              }
+            ]
+          }
+        },
+        'Vald av': {
+          multi_select: {
+            options: [
+              {
+                name: 'David',
+                color: 'red'
+              },
+              {
+                name: 'Albin',
+                color: 'green'
+              },
+              {
+                name: 'Mattias',
+                color: 'yellow'
+              }
+            ]
+          }
+        }
+      }
+    });
+
+    console.log(`✅ Created database in section: ${sectionTitle}`);
+    return { section, database };
+    
+  } catch (error) {
+    console.error(`❌ Failed to find/create subject section: ${subjectArea}`, error);
+    throw error;
+  }
+}
+
+// Helper function to add or update lecture in database
+async function addLectureToDatabase(notion, database, lectureTitle, lectureNumber, selectedByUser, action) {
+  try {
+    const userLetter = USER_LETTERS[selectedByUser];
+    const databaseId = database.id;
+    
+    // Search for existing lecture in database with exact matching
+    const existingPages = await notion.databases.query({
+      database_id: databaseId,
+      filter: {
+        property: 'Föreläsning',
+        title: {
+          contains: lectureTitle
+        }
+      }
+    });
+
+    // Find exact match by lecture number and title to prevent duplicates
+    const lectureIdentifier = `${lectureNumber}. ${lectureTitle}`;
+    const existingLecture = existingPages.results.find(page => {
+      const pageTitle = page.properties?.Föreläsning?.title?.[0]?.text?.content || '';
+      return pageTitle === lectureIdentifier || 
+             pageTitle.includes(lectureTitle) && 
+             page.properties?.Nummer?.number === lectureNumber;
+    });
+
+    if (existingLecture) {
+      // Lecture already exists in database
+      console.log(`📝 Found existing lecture: ${lectureNumber}. ${lectureTitle}`);
+      
+      if (action === 'bulk_add') {
+        // For bulk_add, if lecture exists, just skip (no update needed)
+        console.log(`✅ Lecture already exists in database - skipping bulk add`);
+        return existingLecture;
+      }
+
+      // For select/unselect actions, update the existing lecture
+      if (action === 'select' || action === 'unselect') {
+        console.log(`🔄 Updating user selection for existing lecture: ${selectedByUser} ${action}`);
+        
+        // Get current "Vald av" selections
+        const currentSelections = existingLecture.properties['Vald av']?.multi_select || [];
+        let updatedSelections = [...currentSelections];
+        
+        if (action === 'select') {
+          // Add user if not already selected
+          if (!updatedSelections.find(sel => sel.name === selectedByUser)) {
+            updatedSelections.push({ name: selectedByUser });
+          } else {
+            console.log(`📝 User ${selectedByUser} already selected this lecture`);
+            return existingLecture;
+          }
+        } else if (action === 'unselect') {
+          // Remove user from selections
+          const initialLength = updatedSelections.length;
+          updatedSelections = updatedSelections.filter(sel => sel.name !== selectedByUser);
+          if (updatedSelections.length === initialLength) {
+            console.log(`📝 User ${selectedByUser} was not selected for this lecture`);
+            return existingLecture;
+          }
+        }
+
+        // Determine status based on selections
+        let status = 'Ej ankiz';
+        if (updatedSelections.length > 0) {
+          if (updatedSelections.length === 1) {
+            const user = updatedSelections[0].name;
+            status = user === 'David' ? 'D' : user === 'Albin' ? 'A' : 'M';
+          } else {
+            status = 'Blå ankiz'; // Multiple users selected
+          }
+        }
+
+        await notion.pages.update({
+          page_id: existingLecture.id,
+          properties: {
+            'Vald av': {
+              multi_select: updatedSelections
+            },
+            'Status': {
+              select: {
+                name: status
+              }
+            }
+          }
+        });
+
+        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action}`);
+        return existingLecture;
+      }
+      
+      // For any other action, just return existing lecture without changes
+      return existingLecture;
+      
+    } else {
+      // Lecture doesn't exist in database
+      
+      if (action === 'bulk_add') {
+        // Only bulk_add action should create new lectures
+        console.log(`📝 Creating new lecture: ${lectureNumber}. ${lectureTitle}`);
+        
+        const newLecture = await notion.pages.create({
+          parent: {
+            database_id: databaseId
+          },
+          properties: {
+            'Föreläsning': {
+              title: [
+                {
+                  type: 'text',
+                  text: {
+                    content: `${lectureNumber}. ${lectureTitle}`
+                  }
+                }
+              ]
+            },
+            'Nummer': {
+              number: lectureNumber
+            },
+            'Status': {
+              select: {
+                name: 'Ej ankiz'
+              }
+            },
+            'Vald av': {
+              multi_select: []
+            }
+          }
+        });
+
+        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle}`);
+        return newLecture;
+        
+      } else if (action === 'select' || action === 'unselect') {
+        // User actions should NOT create new lectures, only update existing ones
+        console.log(`⚠️ Cannot ${action} lecture that doesn't exist in database: ${lectureNumber}. ${lectureTitle}`);
+        console.log(`💡 Lecture must be bulk-synced first before user selections can be applied`);
+        return null;
+        
+      } else {
+        console.log(`⚠️ Unknown action "${action}" for non-existing lecture: ${lectureNumber}. ${lectureTitle}`);
+        return null;
+      }
     }
   } catch (error) {
     console.error(`❌ Failed to add/update lecture: ${lectureTitle}`, error);
@@ -293,18 +435,27 @@ exports.handler = async (event, context) => {
         // Step 1: Get the user's specific course page
         const coursePage = await getUserCoursePage(notion, userName);
         
-        // Step 2: Find or create the subject area section
-        const subjectSection = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);
+        // Step 2: Find or create the subject area section with database
+        const { section: subjectSection, database: subjectDatabase } = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);
         
-        // Step 3: Add or update the lecture in the section
-        await addLectureToSection(notion, subjectSection.id, lectureTitle, lectureNumber, selectedByUser, action);
+        // Step 3: Add or update the lecture in the database
+        const result = await addLectureToDatabase(notion, subjectDatabase, lectureTitle, lectureNumber, selectedByUser, action);
         
-        results.push({
-          user: userName,
-          success: true,
-          pagesUpdated: 1,
-          created: 0 // We'll track this properly later
-        });
+        if (result) {
+          results.push({
+            user: userName,
+            success: true,
+            pagesUpdated: 1,
+            created: 0 // We'll track this properly later
+          });
+        } else {
+          // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
+          results.push({
+            user: userName,
+            success: false,
+            error: `Cannot ${action} lecture that doesn't exist in database. Bulk sync required first.`
+          });
+        }
 
         console.log(`✅ Successfully updated ${userName}'s Notion page`);
         

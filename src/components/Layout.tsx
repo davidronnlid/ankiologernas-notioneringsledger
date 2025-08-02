@@ -19,6 +19,7 @@ import { dataSyncManager } from "utils/dataSync";
 import { CheckboxState } from "types/lecture";
 import { WeekData } from "types";
 import { initializeDevelopmentUser } from "../store/slices/authReducer";
+import { syncAllLecturesToNotionPages } from "utils/notionCRUD";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -103,6 +104,39 @@ export default function Layout({
     }
   }, [lecturesData.length]);
 
+  // Auto-sync function to sync all lectures to Notion databases when app loads
+  const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
+    try {
+      // Only auto-sync in production to avoid unnecessary API calls during development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Skipping auto-sync in development mode');
+        return;
+      }
+
+      console.log('🚀 Auto-syncing lectures to Notion databases...');
+      
+      // Extract all lectures from the week data
+      const allLectures = lectureData.flatMap(week => week.lectures);
+      
+      if (allLectures.length === 0) {
+        console.log('📝 No lectures to sync');
+        return;
+      }
+
+      // Sync all lectures to Notion databases
+      const result = await syncAllLecturesToNotionPages(allLectures);
+      
+      if (result.success) {
+        console.log(`✅ Auto-sync completed: ${result.message}`);
+      } else {
+        console.log(`⚠️ Auto-sync had issues: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Auto-sync failed:', error);
+      // Don't throw - we don't want to break the app if Notion sync fails
+    }
+  };
+
   const fetchDataAndDispatch = async () => {
     const apiUrl =
       process.env.NODE_ENV === "development"
@@ -178,6 +212,9 @@ export default function Layout({
           
           dispatch(setLectures(dataWithCheckboxStates));
           console.log("✅ Layout: Data dispatched to Redux!");
+          
+          // Auto-sync all lectures to Notion databases
+          triggerAutoNotionSync(dataWithCheckboxStates);
         } else {
           console.log("❌ Layout: No processed data to dispatch");
         }
