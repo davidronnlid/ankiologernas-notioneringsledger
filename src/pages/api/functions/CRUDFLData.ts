@@ -101,7 +101,7 @@ function saveDeletedLectures(deletedIds: string[]) {
 }
 
 // Export functions for use by editLecture API
-export { loadAddedLectures, saveAddedLectures, loadEditedLectures, saveEditedLectures };
+export { loadAddedLectures, saveAddedLectures, loadEditedLectures, saveEditedLectures, loadDeletedLectures, saveDeletedLectures };
 
 // Mock lecture data for "Klinisk medicin 4"
 const mockLectureData = [
@@ -410,6 +410,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
       case "DELETE":
         // Handle lecture deletion
+        console.log("🗑️ DELETE request received");
+        console.log("🗑️ Request body:", req.body);
         const deleteBody = req.body;
         const { lectureId, action } = deleteBody;
         

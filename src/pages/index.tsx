@@ -1350,12 +1350,15 @@ export default function Index() {
       // Show loading state
       setIsUpdating(`deleting-${lecture.id}`);
       
-      console.log("🗑️ Deleting lecture:", lecture.title);
+      console.log("🗑️ Deleting lecture:", lecture.title, "ID:", lecture.id);
 
       // Call delete API
       const apiUrl = process.env.NODE_ENV === "development"
         ? process.env.NEXT_PUBLIC_API_URL || "/api"
         : "/.netlify";
+
+      console.log("🗑️ Making DELETE request to:", `${apiUrl}/functions/CRUDFLData`);
+      console.log("🗑️ Request payload:", { lectureId: lecture.id, action: "deleteLecture" });
 
       const response = await fetch(`${apiUrl}/functions/CRUDFLData`, {
         method: "DELETE",
@@ -1367,6 +1370,9 @@ export default function Index() {
           action: "deleteLecture"
         }),
       });
+
+      console.log("🗑️ Response status:", response.status);
+      console.log("🗑️ Response ok:", response.ok);
 
       if (response.ok) {
         const result = await response.json();
