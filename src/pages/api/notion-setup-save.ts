@@ -37,6 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
     const netlifySiteId = process.env.NETLIFY_SITE_ID;
 
+    console.log(`🔐 API Token exists: ${!!netlifyApiToken} (length: ${netlifyApiToken?.length || 0})`);
+    console.log(`🏗️ Site ID: ${netlifySiteId}`);
+
     if (!netlifyApiToken || !netlifySiteId) {
       console.error('❌ Missing Netlify API credentials');
       return res.status(500).json({
@@ -105,8 +108,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`✅ Updated ${key}`);
             results.push({ key, status: 'updated' });
           } else {
-            console.error(`❌ Failed to update ${key}: ${updateResponse.status}`);
-            results.push({ key, status: 'error', error: updateResponse.status });
+            const errorText = await updateResponse.text();
+            console.error(`❌ Failed to update ${key}: ${updateResponse.status} - ${errorText}`);
+            results.push({ key, status: 'error', error: updateResponse.status, details: errorText });
           }
           
         } else {
@@ -132,8 +136,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`✅ Created ${key}`);
             results.push({ key, status: 'created' });
           } else {
-            console.error(`❌ Failed to create ${key}: ${createResponse.status}`);
-            results.push({ key, status: 'error', error: createResponse.status });
+            const errorText = await createResponse.text();
+            console.error(`❌ Failed to create ${key}: ${createResponse.status} - ${errorText}`);
+            results.push({ key, status: 'error', error: createResponse.status, details: errorText });
           }
         }
       } catch (varError) {
@@ -181,12 +186,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       
     } else {
-      console.error(`❌ ${failed.length} operations failed`);
+      console.error(`❌ ${failed.length} operations failed:`, failed);
+      
+      // Create detailed error message
+      const errorDetails = failed.map(f => `${f.key}: ${f.error}${f.details ? ` (${f.details})` : ''}`).join(', ');
       
       return res.status(500).json({
         success: false,
-        message: `Några inställningar kunde inte sparas. Kontakta support.`,
-        results: results
+        message: `Kunde inte spara environment variables: ${errorDetails}`,
+        results: results,
+        failed: failed
       });
     }
 
