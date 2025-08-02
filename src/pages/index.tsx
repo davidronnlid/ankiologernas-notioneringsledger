@@ -900,7 +900,11 @@ export default function Index() {
   // Prevent hydration mismatch by only rendering full content on client
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Initialize development user safely on client-side
+    if (process.env.NODE_ENV === "development") {
+      dispatch(initializeDevelopmentUser());
+    }
+  }, [dispatch]);
   const classes = useStyles();
   const muiTheme = useMuiTheme();
   const { theme: currentTheme } = useTheme();

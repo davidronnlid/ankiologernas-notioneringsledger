@@ -18,6 +18,7 @@ import { sortLecturesIntoCoursesAndWeeks } from "utils/processLectures";
 import { dataSyncManager } from "utils/dataSync";
 import { CheckboxState } from "types/lecture";
 import { WeekData } from "types";
+import { initializeDevelopmentUser } from "../store/slices/authReducer";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -56,6 +57,11 @@ export default function Layout({
       // Initialize DataSyncManager with dispatch
       dataSyncManager.init(dispatch);
       
+      // Initialize development user safely on client-side
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === "development") {
+        dispatch(initializeDevelopmentUser());
+      }
+      
       // Initial data fetch if no data exists
       if (lecturesData.length === 0) {
         fetchDataAndDispatch();
@@ -63,7 +69,7 @@ export default function Layout({
       
       // Start polling for real-time updates (every 30 seconds)
       // Only in production to avoid unnecessary API calls during development
-      if (process.env.NODE_ENV === "production") {
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === "production") {
         dataSyncManager.startPolling(30000);
       }
       
@@ -71,7 +77,7 @@ export default function Layout({
       
       // Cleanup on unmount
       return () => {
-        if (process.env.NODE_ENV === "production") {
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === "production") {
           dataSyncManager.stopPolling();
         }
       };

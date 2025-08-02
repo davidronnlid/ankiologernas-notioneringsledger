@@ -16,12 +16,11 @@ const developmentUser: User = {
   profile_pic: "/images/david.png",
 };
 
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV === "development";
-
+// Safe initial state for SSR compatibility
+// Always start with non-authenticated state to prevent hydration mismatches
 const initialState: AuthState = {
-  isAuthenticated: isDevelopment,
-  user: isDevelopment ? developmentUser : null,
+  isAuthenticated: false,
+  user: null,
 };
 
 const authSlice = createSlice({
@@ -47,6 +46,14 @@ const authSlice = createSlice({
     },
   },
 });
+
+// Action to initialize development user safely (client-side only)
+export const initializeDevelopmentUser = () => (dispatch: any) => {
+  // Only auto-login in development and on client-side
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === "development") {
+    dispatch(signIn(developmentUser));
+  }
+};
 
 export const { signIn, signOut } = authSlice.actions;
 
