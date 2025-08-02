@@ -24,6 +24,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const theme: Theme = 'dark';
 
   useEffect(() => {
+    if (typeof document === 'undefined') return;
+    
     // Apply dark theme to document body
     document.body.setAttribute('data-theme', theme);
     
@@ -35,7 +37,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       document.documentElement.style.setProperty('--border-color', '#404040');
       document.documentElement.style.setProperty('--card-bg', '#2c2c2c');
       document.documentElement.style.setProperty('--shadow', '0 4px 20px rgba(0, 0, 0, 0.3)');
-  }, []);
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme }}>

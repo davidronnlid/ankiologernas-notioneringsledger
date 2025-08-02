@@ -165,7 +165,9 @@ export default function Layout({
           
           // Store removed duplicates for notification
           if (removedDuplicates.length > 0) {
-            localStorage.setItem('removedDuplicates', JSON.stringify(removedDuplicates));
+            if (typeof window !== 'undefined') {
+        localStorage.setItem('removedDuplicates', JSON.stringify(removedDuplicates));
+      }
           }
           
           dispatch(setLectures(dataWithCheckboxStates));

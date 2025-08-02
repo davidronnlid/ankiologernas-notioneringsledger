@@ -245,6 +245,8 @@ const UserPreferencesDialog: React.FC<UserPreferencesDialogProps> = ({
   ];
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     // Load existing preferences from localStorage
     const savedPreferences = localStorage.getItem(`userPreferences_${currentUser?.id}`);
     if (savedPreferences) {
@@ -259,7 +261,9 @@ const UserPreferencesDialog: React.FC<UserPreferencesDialogProps> = ({
 
   const handleSave = () => {
     // Save preferences to localStorage
-    localStorage.setItem(`userPreferences_${currentUser?.id}`, JSON.stringify(preferences));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`userPreferences_${currentUser?.id}`, JSON.stringify(preferences));
+    }
     onClose();
   };
 

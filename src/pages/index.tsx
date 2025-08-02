@@ -966,6 +966,8 @@ export default function Index() {
 
   // Check for removed duplicates notification
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const storedDuplicates = localStorage.getItem('removedDuplicates');
     if (storedDuplicates) {
       const duplicates = JSON.parse(storedDuplicates);
@@ -990,6 +992,8 @@ export default function Index() {
 
   // Global keyboard search functionality
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
       // Don't trigger if user is already typing in an input, textarea, or contenteditable element
       const activeElement = document.activeElement;
@@ -1031,7 +1035,9 @@ export default function Index() {
     document.addEventListener('keydown', handleGlobalKeyDown);
     
     return () => {
-      document.removeEventListener('keydown', handleGlobalKeyDown);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('keydown', handleGlobalKeyDown);
+      }
     };
   }, [searchTerm]);
 
@@ -2094,7 +2100,9 @@ export default function Index() {
                 // Optionally refresh data after sync
                 if (results.success) {
                   setTimeout(() => {
-                    window.location.reload();
+                    if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
                   }, 1000);
                 }
               }}
