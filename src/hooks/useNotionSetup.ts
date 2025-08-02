@@ -31,6 +31,13 @@ export const useNotionSetup = (currentUser: any): NotionSetupStatus => {
 
       // Map user names to the format used in environment variables
       const mapUserNameToPerson = (fullName: string): string => {
+        const nameLower = fullName.toLowerCase();
+        
+        // Special mapping for dronnlid -> David (matches other parts of codebase)
+        if (nameLower.includes('dronnlid')) {
+          return 'David';
+        }
+        
         const nameMappings: { [key: string]: string } = {
           'David Rönnlid': 'David',
           'Albin Otterhäll': 'Albin',
