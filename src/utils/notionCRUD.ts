@@ -302,9 +302,12 @@ const getCurrentActiveCourse = () => {
   const activeCourse = coursePeriods.find(course => {
     const startDate = new Date(course.startDate);
     const endDate = new Date(course.endDate);
-    return currentDate >= startDate && currentDate <= endDate;
+    const isActive = currentDate >= startDate && currentDate <= endDate;
+    console.log(`📅 Course: ${course.title}, Start: ${course.startDate}, End: ${course.endDate}, Active: ${isActive}`);
+    return isActive;
   });
 
+  console.log(`📚 Current date: ${currentDate.toISOString().split('T')[0]}, Active course: ${activeCourse?.title || 'None'}`);
   return activeCourse || null;
 };
 

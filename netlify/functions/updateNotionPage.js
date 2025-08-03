@@ -62,6 +62,45 @@ async function getUserCoursePage(notion, userName) {
   }
 }
 
+// Helper function to determine subject area from lecture title
+function determineSubjectAreaFromTitle(lectureTitle) {
+  const title = lectureTitle.toLowerCase();
+  
+  // Global hälsa keywords
+  if (title.includes('global') || title.includes('hälsa') || title.includes('world') || title.includes('international') || title.includes('equity') || title.includes('health')) {
+    return 'Global hälsa';
+  }
+  
+  // Geriatrik keywords
+  if (title.includes('geriatrik') || title.includes('äldre') || title.includes('demens') || title.includes('alzheimer')) {
+    return 'Geriatrik';
+  }
+  
+  // Öron-Näsa-Hals keywords
+  if (title.includes('öron') || title.includes('näsa') || title.includes('hals') || title.includes('ent') || title.includes('sinusit') || title.includes('otit') || title.includes('tonsill') || title.includes('larynx') || title.includes('farynx')) {
+    return 'Öron-Näsa-Hals';
+  }
+  
+  // Pediatrik keywords
+  if (title.includes('pediatrik') || title.includes('barn') || title.includes('spädbarn') || title.includes('ungdom') || title.includes('vaccination') || title.includes('tillväxt') || title.includes('utveckling')) {
+    return 'Pediatrik';
+  }
+  
+  // Oftalmologi keywords
+  if (title.includes('oftalmologi') || title.includes('öga') || title.includes('ögon') || title.includes('katarakt') || title.includes('glaukom') || title.includes('retina') || title.includes('macula') || title.includes('syn')) {
+    return 'Oftalmologi';
+  }
+  
+  // Gynekologi & Obstetrik keywords
+  if (title.includes('gynekologi') || title.includes('obstetrik') || title.includes('gravid') || title.includes('förlossning') || title.includes('menstruation') || title.includes('klimakterium') || title.includes('livmoder') || title.includes('äggstock')) {
+    return 'Gynekologi & Obstetrik';
+  }
+  
+  // Default fallback
+  console.log(`⚠️ Could not determine subject area for: "${lectureTitle}", defaulting to Global hälsa`);
+  return 'Global hälsa';
+}
+
 // Helper function to find or create a subject area section with database
 async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
   try {
@@ -161,20 +200,32 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
         'Föreläsning': {
           title: {}
         },
-        'Tag': {
+        'Subject area': {
           select: {
             options: [
               {
-                name: 'Bör göra',
-                color: 'default'
-              },
-              {
-                name: 'Ej ankiz',
-                color: 'gray'
-              },
-              {
-                name: 'Blå ankiz',
+                name: 'Global hälsa',
                 color: 'blue'
+              },
+              {
+                name: 'Geriatrik',
+                color: 'orange'
+              },
+              {
+                name: 'Öron-Näsa-Hals',
+                color: 'yellow'
+              },
+              {
+                name: 'Pediatrik',
+                color: 'green'
+              },
+              {
+                name: 'Oftalmologi',
+                color: 'purple'
+              },
+              {
+                name: 'Gynekologi & Obstetrik',
+                color: 'pink'
               }
             ]
           }
@@ -193,6 +244,24 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
               {
                 name: 'M',
                 color: 'yellow'
+              }
+            ]
+          }
+        },
+        'Status': {
+          select: {
+            options: [
+              {
+                name: 'Bör göra',
+                color: 'default'
+              },
+              {
+                name: 'Ej ankiz',
+                color: 'gray'
+              },
+              {
+                name: 'Blå ankiz',
+                color: 'blue'
               }
             ]
           }
@@ -262,7 +331,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
         // Get current person selection
         const currentPerson = existingLecture.properties['Person']?.select?.name || null;
         
-        let newTag = 'Bör göra'; // Default tag
+        let newStatus = 'Bör göra'; // Default status
         let newPerson = null; // Default person (empty)
         
         if (action === 'select') {
@@ -277,20 +346,20 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
           
           // If someone was already selected and it's different, it becomes Blå ankiz
           if (currentPerson && currentPerson !== newPerson) {
-            newTag = 'Blå ankiz';
+            newStatus = 'Blå ankiz';
             newPerson = null; // Clear person when multiple users
           } else if (newPerson) {
-            newTag = 'Bör göra'; // Keep default tag when single person selected
+            newStatus = 'Bör göra'; // Keep default status when single person selected
           }
         } else if (action === 'unselect') {
           // Remove selection - back to defaults
-          newTag = 'Bör göra';
+          newStatus = 'Bör göra';
           newPerson = null;
         }
 
         const updateProperties = {
-          'Tag': {
-            select: newTag ? { name: newTag } : null
+          'Status': {
+            select: newStatus ? { name: newStatus } : null
           }
         };
 
@@ -309,7 +378,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
           properties: updateProperties
         });
 
-        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Tag: ${newTag}, Person: ${newPerson || 'none'}`);
+        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Status: ${newStatus}, Person: ${newPerson || 'none'}`);
         return existingLecture;
       }
       
@@ -323,7 +392,10 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
         // Only bulk_add action should create new lectures
         console.log(`📝 Creating new lecture: ${lectureNumber}. ${lectureTitle}`);
         
-                const newLecture = await notion.pages.create({
+        // Determine subject area from the lecture title
+        const lectureSubjectArea = determineSubjectAreaFromTitle(lectureTitle);
+        
+        const newLecture = await notion.pages.create({
           parent: {
             database_id: databaseId
           },
@@ -338,7 +410,12 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
                 }
               ]
             },
-            'Tag': {
+            'Subject area': {
+              select: {
+                name: lectureSubjectArea
+              }
+            },
+            'Status': {
               select: {
                 name: 'Bör göra'
               }
