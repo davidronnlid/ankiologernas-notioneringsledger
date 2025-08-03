@@ -114,11 +114,6 @@ export default function Layout({
   const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
     try {
       console.log('🚀 Starting auto-sync of lectures to Notion databases...');
-      console.log('🔍 Environment check:', {
-        NODE_ENV: process.env.NODE_ENV,
-        hasNotionTokens: !!(process.env.NOTION_TOKEN_DAVID || process.env.NEXT_PUBLIC_NOTION_TOKEN_DAVID),
-        hasPageIds: !!(process.env.NOTION_COURSE_PAGE_DAVID || process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID)
-      });
       
       // Extract all lectures from the week data
       const allLectures = lectureData.flatMap(week => week.lectures);
@@ -140,7 +135,7 @@ export default function Layout({
         ? '/api/updateNotionPage'
         : '/.netlify/functions/updateNotionPage';
         
-      console.log(`🎯 Testing endpoint: ${endpoint}`);
+      console.log(`🎯 Using endpoint: ${endpoint}`);
 
       // Sync all lectures to Notion databases using bulk_add action
       const result = await syncAllLecturesToNotionPages(allLectures);

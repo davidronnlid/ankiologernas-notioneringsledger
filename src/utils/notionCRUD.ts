@@ -273,18 +273,6 @@ export const syncAllLecturesToNotionPages = async (
   lectures: any[]
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   console.log(`🔄 Starting bulk sync of ${lectures.length} lectures to Notion pages`);
-  console.log('🔧 Environment debug:', {
-    NODE_ENV: process.env.NODE_ENV,
-    hasPageConfig: !!(
-      process.env.NOTION_COURSE_PAGE_DAVID ||
-      process.env.NOTION_COURSE_PAGE_ALBIN ||
-      process.env.NOTION_COURSE_PAGE_MATTIAS ||
-      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID ||
-      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_ALBIN ||
-      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_MATTIAS
-    ),
-    availableEnvVars: Object.keys(process.env).filter(key => key.includes('NOTION')).slice(0, 5)
-  });
 
   // Filter to only include lectures from Klinisk medicin 4 course
   const km4Lectures = lectures.filter(lecture => {
@@ -302,27 +290,6 @@ export const syncAllLecturesToNotionPages = async (
   let successCount = 0;
   let skipCount = 0;
   let errorCount = 0;
-
-  // Check if we have the necessary environment variables for page-based sync
-  const hasPageConfig = !!(
-    process.env.NOTION_COURSE_PAGE_DAVID ||
-    process.env.NOTION_COURSE_PAGE_ALBIN ||
-    process.env.NOTION_COURSE_PAGE_MATTIAS ||
-    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID ||
-    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_ALBIN ||
-    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_MATTIAS
-  );
-
-  console.log(`🏗️ Page configuration check: ${hasPageConfig ? 'CONFIGURED' : 'MISSING'}`);
-
-  if (!hasPageConfig) {
-    console.error('❌ Missing Notion page configuration');
-    return {
-      success: false,
-      message: 'Notion page-based integration not configured - missing NOTION_COURSE_PAGE_* environment variables',
-      results: []
-    };
-  }
 
   for (const lecture of km4Lectures) {
     try {
