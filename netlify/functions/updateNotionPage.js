@@ -161,11 +161,6 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
         'Föreläsning': {
           title: {}
         },
-        'Nummer': {
-          number: {
-            format: 'number'
-          }
-        },
         'Tag': {
           select: {
             options: [
@@ -225,34 +220,29 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
     const userLetter = USER_LETTERS[selectedByUser];
     const databaseId = database.id;
     
-    // Search for existing lecture in database with exact matching
-    console.log(`🔍 Searching for existing lecture: ${lectureNumber}. ${lectureTitle}`);
+    // Search for existing lecture in database with exact title matching
+    const lectureIdentifier = `${lectureNumber}. ${lectureTitle}`;
+    console.log(`🔍 Searching for existing lecture with exact title: "${lectureIdentifier}"`);
+    
     const existingPages = await notion.databases.query({
       database_id: databaseId,
       filter: {
         property: 'Föreläsning',
         title: {
-          contains: lectureTitle
+          equals: lectureIdentifier
         }
       }
     });
 
-    console.log(`📊 Found ${existingPages.results.length} potential matches`);
+    console.log(`📊 Found ${existingPages.results.length} exact matches for: "${lectureIdentifier}"`);
 
-    // Find exact match by lecture number and title to prevent duplicates
-    const lectureIdentifier = `${lectureNumber}. ${lectureTitle}`;
-    const existingLecture = existingPages.results.find(page => {
-      const pageTitle = page.properties?.Föreläsning?.title?.[0]?.text?.content || '';
-      const pageNumber = page.properties?.Nummer?.number;
-      console.log(`🔍 Checking page: "${pageTitle}" (number: ${pageNumber})`);
-      return pageTitle === lectureIdentifier || 
-             (pageTitle.includes(lectureTitle) && pageNumber === lectureNumber);
-    });
+    // Get the first exact match (should be 0 or 1 due to exact matching)
+    const existingLecture = existingPages.results.length > 0 ? existingPages.results[0] : null;
 
     if (existingLecture) {
-      console.log(`✅ Found existing lecture: ${lectureIdentifier}`);
+      console.log(`✅ Found existing lecture with exact title match: "${lectureIdentifier}"`);
     } else {
-      console.log(`❌ No existing lecture found for: ${lectureIdentifier}`);
+      console.log(`❌ No existing lecture found for: "${lectureIdentifier}"`);
     }
 
     if (existingLecture) {
@@ -347,9 +337,6 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
                   }
                 }
               ]
-            },
-            'Nummer': {
-              number: lectureNumber
             },
             'Tag': {
               select: {
