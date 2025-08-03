@@ -132,8 +132,8 @@ export default function Layout({
 
       // Test endpoint availability first
       const endpoint = process.env.NODE_ENV === 'development'
-        ? '/api/updateNotionPage'
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
         
       console.log(`🎯 Using endpoint: ${endpoint}`);
 

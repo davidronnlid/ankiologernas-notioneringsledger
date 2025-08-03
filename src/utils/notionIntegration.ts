@@ -56,7 +56,7 @@ export const updateNotionLectureTags = async (
     // Use local API during development, Netlify function in production
     const endpoint = process.env.NODE_ENV === 'development' 
       ? '/api/notion-test' 
-      : '/.netlify/functions/updateNotionPage';
+      : '/.netlify/functions/updateNotionDatabase';
     
     const response = await fetch(endpoint, {
       method: 'POST',

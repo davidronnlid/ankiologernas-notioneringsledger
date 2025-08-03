@@ -153,19 +153,19 @@ export const triggerNotionSync = async (
   lectureData: any,
   user?: string
 ) => {
-  // Check if we have the necessary environment variables for page-based sync
-  const hasPageConfig = !!(
-    process.env.NOTION_COURSE_PAGE_DAVID ||
-    process.env.NOTION_COURSE_PAGE_ALBIN ||
-    process.env.NOTION_COURSE_PAGE_MATTIAS
+  // Check if we have the necessary environment variables for database-based sync
+  const hasDatabaseConfig = !!(
+    process.env.NOTION_DATABASE_DAVID ||
+    process.env.NOTION_DATABASE_ALBIN ||
+    process.env.NOTION_DATABASE_MATTIAS
   );
 
-  if (!hasPageConfig) {
-    console.log('🔄 Notion page-based integration not configured, skipping sync');
+  if (!hasDatabaseConfig) {
+    console.log('🔄 Notion database-based integration not configured, skipping sync');
     return;
   }
 
-  console.log(`🔄 Triggering Notion page sync for action: ${action}`);
+  console.log(`🔄 Triggering Notion database sync for action: ${action}`);
 
   try {
     // For the new page-based system, we only need to handle select/unselect actions
@@ -184,10 +184,10 @@ export const triggerNotionSync = async (
         return;
       }
 
-      // Use the new updateNotionPage endpoint
+      // Use the new updateNotionDatabase endpoint
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionPage' // We'll need to create this API route
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -382,10 +382,10 @@ export const syncAllLecturesToNotionPages = async (
 
       console.log(`📂 Subject area determined: ${subjectArea} for lecture: ${lecture.title}`);
 
-      // Use the new updateNotionPage endpoint to add the lecture
+      // Use the new updateNotionDatabase endpoint to add the lecture
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionPage'
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
       
       console.log(`📡 Calling ${endpoint} for bulk_add action`);
       

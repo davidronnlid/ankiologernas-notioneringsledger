@@ -358,8 +358,8 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
                     console.log('📊 Notion Config Debug:', configResult);
                     
                     // Test a simple API call
-                    console.log('🧪 Testing updateNotionPage endpoint...');
-                    const testResponse = await fetch('/api/updateNotionPage', {
+                    console.log('🧪 Testing updateNotionDatabase endpoint...');
+                    const testResponse = await fetch('/api/updateNotionDatabase', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
