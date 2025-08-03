@@ -503,11 +503,11 @@ exports.handler = async (event, context) => {
     }
 
     // Process single user's Notion database
+    const userName = targetUser;
+    const token = targetUserToken;
+    const pageId = targetUserPageId;
+    
     try {
-      const userName = targetUser;
-      const token = targetUserToken;
-      const pageId = targetUserPageId;
-      
       console.log(`🔄 Processing ${userName}'s Notion database...`);
       
       const notion = new Client({ auth: token });
