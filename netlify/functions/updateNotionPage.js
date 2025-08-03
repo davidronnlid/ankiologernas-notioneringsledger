@@ -101,80 +101,44 @@ function determineSubjectAreaFromTitle(lectureTitle) {
   return 'Global hälsa';
 }
 
-// Helper function to find or create a subject area section with database
+// Helper function to find or create a subject area database (directly on page, no sections)
 async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
   try {
-    // Get all blocks from the course page
+    // Get all blocks from the course page to look for existing databases
     const blocks = await notion.blocks.children.list({
       block_id: coursePageId
     });
 
-    const emoji = SUBJECT_AREA_EMOJIS[subjectArea] || '📚';
-    const sectionTitle = `${emoji} ${subjectArea}`;
+    const databaseTitle = `${subjectArea} Föreläsningar`;
+    console.log(`🔍 Looking for existing database: ${databaseTitle}`);
 
-    // Look for existing subject area section
-    const existingSection = blocks.results.find(block => 
-      block.type === 'toggle' && 
-      block.toggle?.rich_text?.[0]?.text?.content?.includes(subjectArea)
+    // Look for existing database directly on the page
+    const existingDatabase = blocks.results.find(block => 
+      block.type === 'child_database'
     );
 
-    if (existingSection) {
-      console.log(`✅ Found existing section: ${sectionTitle}`);
+    if (existingDatabase) {
+      console.log(`✅ Found existing database on page`);
+      // Get the full database object to check if it's for this subject area
+      const fullDatabase = await notion.databases.retrieve({ database_id: existingDatabase.id });
       
-      // Check if the section already has a database
-      const sectionChildren = await notion.blocks.children.list({
-        block_id: existingSection.id
-      });
-      
-      const existingDatabase = sectionChildren.results.find(block => 
-        block.type === 'child_database'
-      );
-      
-      if (existingDatabase) {
-        console.log(`✅ Found existing database in section: ${sectionTitle}`);
-        // Return the database object with proper structure
-        const fullDatabase = await notion.databases.retrieve({ database_id: existingDatabase.id });
-        return { section: existingSection, database: fullDatabase };
+      // Check if this database is for the current subject area
+      const dbTitle = fullDatabase.title?.[0]?.text?.content || '';
+      if (dbTitle.includes(subjectArea)) {
+        console.log(`✅ Found existing database for ${subjectArea}: ${dbTitle}`);
+        return { database: fullDatabase };
       }
     }
 
-    // Create new section or update existing one with database
-    let section = existingSection;
-    
-    if (!section) {
-      console.log(`📝 Creating new section: ${sectionTitle}`);
-      const newSection = await notion.blocks.children.append({
-        block_id: coursePageId,
-        children: [
-          {
-            object: 'block',
-            type: 'toggle',
-            toggle: {
-              rich_text: [
-                {
-                  type: 'text',
-                  text: {
-                    content: sectionTitle
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      });
-      section = newSection.results[0];
-    }
-
-    // Create database within the section
-    console.log(`📊 Creating database for: ${sectionTitle}`);
-    console.log(`📋 Using section ID: ${section.id}`);
-    console.log(`📋 Section type: ${section.type}`);
+    // Create database directly on the course page
+    console.log(`📊 Creating database directly on page for: ${subjectArea}`);
+    console.log(`📋 Using course page ID: ${coursePageId}`);
     
     try {
       const databaseConfig = {
         parent: {
-          type: 'block_id',
-          block_id: section.id
+          type: 'page_id',
+          page_id: coursePageId
         },
         title: [
           {
@@ -255,8 +219,7 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
             }
           }
         },
-        // Enable list view by default
-        is_inline: true
+        // Database will be created directly on the page
       };
       
       console.log(`📋 Database config:`, JSON.stringify(databaseConfig, null, 2));
@@ -267,13 +230,13 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
       console.log(`📋 Database ID: ${database.id}`);
       console.log(`📋 Database URL: ${database.url}`);
       console.log(`📋 Database properties:`, Object.keys(database.properties));
-      console.log(`📋 Database is_inline: ${database.is_inline}`);
+      console.log(`📋 Database created as page child`);
 
-      console.log(`✅ Created database in section: ${sectionTitle}`);
-      return { section, database };
+      console.log(`✅ Created database directly on page: ${databaseTitle}`);
+      return { database };
       
     } catch (dbError) {
-      console.error(`❌ Database creation failed for ${sectionTitle}:`, dbError);
+      console.error(`❌ Database creation failed for ${subjectArea}:`, dbError);
       console.error(`❌ Error details:`, {
         code: dbError.code,
         status: dbError.status,
@@ -518,8 +481,8 @@ exports.handler = async (event, context) => {
         // Step 1: Get the user's specific course page
         const coursePage = await getUserCoursePage(notion, userName);
         
-        // Step 2: Find or create the subject area section with database
-        const { section: subjectSection, database: subjectDatabase } = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);
+        // Step 2: Find or create the subject area database directly on page
+        const { database: subjectDatabase } = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);
         
         // Step 3: Add or update the lecture in the database
         const result = await addLectureToDatabase(notion, subjectDatabase, lectureTitle, lectureNumber, selectedByUser, action);
