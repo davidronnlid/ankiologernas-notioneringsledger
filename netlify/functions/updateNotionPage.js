@@ -101,16 +101,16 @@ function determineSubjectAreaFromTitle(lectureTitle) {
   return 'Global hälsa';
 }
 
-// Helper function to find or create a subject area database (directly on page, no sections)
-async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
+// Helper function to find or create ONE course database (for all lectures regardless of subject area)
+async function findOrCreateCourseDatabase(notion, coursePageId, courseName) {
   try {
-    // Get all blocks from the course page to look for existing databases
+    // Get all blocks from the course page to look for existing database
     const blocks = await notion.blocks.children.list({
       block_id: coursePageId
     });
 
-    const databaseTitle = `${subjectArea} Föreläsningar`;
-    console.log(`🔍 Looking for existing database: ${databaseTitle}`);
+    const databaseTitle = `${courseName} Föreläsningar`;
+    console.log(`🔍 Looking for existing course database: ${databaseTitle}`);
 
     // Look for existing database directly on the page
     const existingDatabase = blocks.results.find(block => 
@@ -119,19 +119,19 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
 
     if (existingDatabase) {
       console.log(`✅ Found existing database on page`);
-      // Get the full database object to check if it's for this subject area
+      // Get the full database object
       const fullDatabase = await notion.databases.retrieve({ database_id: existingDatabase.id });
       
-      // Check if this database is for the current subject area
+      // Check if this database is for the current course
       const dbTitle = fullDatabase.title?.[0]?.text?.content || '';
-      if (dbTitle.includes(subjectArea)) {
-        console.log(`✅ Found existing database for ${subjectArea}: ${dbTitle}`);
+      if (dbTitle.includes(courseName) || dbTitle.includes('Föreläsningar')) {
+        console.log(`✅ Found existing course database: ${dbTitle}`);
         return { database: fullDatabase };
       }
     }
 
-    // Create database directly on the course page
-    console.log(`📊 Creating database directly on page for: ${subjectArea}`);
+    // Create ONE database for the entire course
+    console.log(`📊 Creating single course database: ${databaseTitle}`);
     console.log(`📋 Using course page ID: ${coursePageId}`);
     
     try {
@@ -144,7 +144,7 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
           {
             type: 'text',
             text: {
-              content: `${subjectArea} Föreläsningar`
+              content: `${courseName} Föreläsningar`
             }
           }
         ],
@@ -232,11 +232,11 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
       console.log(`📋 Database properties:`, Object.keys(database.properties));
       console.log(`📋 Database created as page child`);
 
-      console.log(`✅ Created database directly on page: ${databaseTitle}`);
+      console.log(`✅ Created course database: ${databaseTitle}`);
       return { database };
       
     } catch (dbError) {
-      console.error(`❌ Database creation failed for ${subjectArea}:`, dbError);
+      console.error(`❌ Course database creation failed for ${courseName}:`, dbError);
       console.error(`❌ Error details:`, {
         code: dbError.code,
         status: dbError.status,
@@ -247,7 +247,7 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
     }
     
   } catch (error) {
-    console.error(`❌ Failed to find/create subject section: ${subjectArea}`, error);
+    console.error(`❌ Failed to find/create course database: ${courseName}`, error);
     throw error;
   }
 }
@@ -481,11 +481,12 @@ exports.handler = async (event, context) => {
         // Step 1: Get the user's specific course page
         const coursePage = await getUserCoursePage(notion, userName);
         
-        // Step 2: Find or create the subject area database directly on page
-        const { database: subjectDatabase } = await findOrCreateSubjectSection(notion, coursePage.id, subjectArea);
+        // Step 2: Find or create the course database (ONE database for all lectures)
+        const courseName = coursePage.properties?.title?.title?.[0]?.text?.content || 'Klinisk medicin 4';
+        const { database: courseDatabase } = await findOrCreateCourseDatabase(notion, coursePage.id, courseName);
         
         // Step 3: Add or update the lecture in the database
-        const result = await addLectureToDatabase(notion, subjectDatabase, lectureTitle, lectureNumber, selectedByUser, action);
+        const result = await addLectureToDatabase(notion, courseDatabase, lectureTitle, lectureNumber, selectedByUser, action);
         
         if (result) {
           results.push({
