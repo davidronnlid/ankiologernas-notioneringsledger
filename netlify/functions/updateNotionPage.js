@@ -167,99 +167,121 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
 
     // Create database within the section
     console.log(`📊 Creating database for: ${sectionTitle}`);
-    const database = await notion.databases.create({
-      parent: {
-        type: 'block_id',
-        block_id: section.id
-      },
-      title: [
-        {
-          type: 'text',
-          text: {
-            content: `${subjectArea} Föreläsningar`
-          }
-        }
-      ],
-      properties: {
-        'Föreläsning': {
-          title: {}
+    console.log(`📋 Using section ID: ${section.id}`);
+    console.log(`📋 Section type: ${section.type}`);
+    
+    try {
+      const databaseConfig = {
+        parent: {
+          type: 'block_id',
+          block_id: section.id
         },
-        'Subject area': {
-          select: {
-            options: [
-              {
-                name: 'Global hälsa',
-                color: 'blue'
-              },
-              {
-                name: 'Geriatrik',
-                color: 'orange'
-              },
-              {
-                name: 'Öron-Näsa-Hals',
-                color: 'yellow'
-              },
-              {
-                name: 'Pediatrik',
-                color: 'green'
-              },
-              {
-                name: 'Oftalmologi',
-                color: 'purple'
-              },
-              {
-                name: 'Gynekologi & Obstetrik',
-                color: 'pink'
-              }
-            ]
+        title: [
+          {
+            type: 'text',
+            text: {
+              content: `${subjectArea} Föreläsningar`
+            }
+          }
+        ],
+        properties: {
+          'Föreläsning': {
+            title: {}
+          },
+          'Subject area': {
+            select: {
+              options: [
+                {
+                  name: 'Global hälsa',
+                  color: 'blue'
+                },
+                {
+                  name: 'Geriatrik',
+                  color: 'orange'
+                },
+                {
+                  name: 'Öron-Näsa-Hals',
+                  color: 'yellow'
+                },
+                {
+                  name: 'Pediatrik',
+                  color: 'green'
+                },
+                {
+                  name: 'Oftalmologi',
+                  color: 'purple'
+                },
+                {
+                  name: 'Gynekologi & Obstetrik',
+                  color: 'pink'
+                }
+              ]
+            }
+          },
+          'Person': {
+            select: {
+              options: [
+                {
+                  name: 'D',
+                  color: 'red'
+                },
+                {
+                  name: 'A',
+                  color: 'green'
+                },
+                {
+                  name: 'M',
+                  color: 'yellow'
+                }
+              ]
+            }
+          },
+          'Status': {
+            select: {
+              options: [
+                {
+                  name: 'Bör göra',
+                  color: 'default'
+                },
+                {
+                  name: 'Ej ankiz',
+                  color: 'gray'
+                },
+                {
+                  name: 'Blå ankiz',
+                  color: 'blue'
+                }
+              ]
+            }
           }
         },
-        'Person': {
-          select: {
-            options: [
-              {
-                name: 'D',
-                color: 'red'
-              },
-              {
-                name: 'A',
-                color: 'green'
-              },
-              {
-                name: 'M',
-                color: 'yellow'
-              }
-            ]
-          }
-        },
-        'Status': {
-          select: {
-            options: [
-              {
-                name: 'Bör göra',
-                color: 'default'
-              },
-              {
-                name: 'Ej ankiz',
-                color: 'gray'
-              },
-              {
-                name: 'Blå ankiz',
-                color: 'blue'
-              }
-            ]
-          }
-        }
-      },
-      // Enable list view by default
-      is_inline: true
-    });
+        // Enable list view by default
+        is_inline: true
+      };
+      
+      console.log(`📋 Database config:`, JSON.stringify(databaseConfig, null, 2));
+      
+      const database = await notion.databases.create(databaseConfig);
 
-    console.log(`🎯 Database created with ID: ${database.id}`);
-    console.log(`📄 Database properties:`, Object.keys(database.properties));
+      console.log(`🎯 Database created successfully!`);
+      console.log(`📋 Database ID: ${database.id}`);
+      console.log(`📋 Database URL: ${database.url}`);
+      console.log(`📋 Database properties:`, Object.keys(database.properties));
+      console.log(`📋 Database is_inline: ${database.is_inline}`);
 
-    console.log(`✅ Created database in section: ${sectionTitle}`);
-    return { section, database };
+      console.log(`✅ Created database in section: ${sectionTitle}`);
+      return { section, database };
+      
+    } catch (dbError) {
+      console.error(`❌ Database creation failed for ${sectionTitle}:`, dbError);
+      console.error(`❌ Error details:`, {
+        code: dbError.code,
+        status: dbError.status,
+        message: dbError.message,
+        body: dbError.body
+      });
+      throw dbError;
+    }
     
   } catch (error) {
     console.error(`❌ Failed to find/create subject section: ${subjectArea}`, error);
