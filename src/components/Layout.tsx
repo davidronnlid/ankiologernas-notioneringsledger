@@ -129,16 +129,13 @@ export default function Layout({
       setIsSyncInProgress(true);
       console.log('🔒 Starting Notion sync (locked to prevent duplicates)');
       
-      // Extract all lectures from the week data
-      const allLectures = lectureData.flatMap(week => week.lectures);
+      // Filter to active course lectures BEFORE showing progress (pass WeekData array)
+      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(lectureData);
       
-      if (allLectures.length === 0) {
+      if (filteredCount === 0) {
         console.log('📝 No lectures to sync');
         return;
       }
-
-      // Filter to active course lectures BEFORE showing progress
-      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(allLectures);
       
       if (!activeCourse) {
         console.log('⚠️ No active course found - skipping sync');

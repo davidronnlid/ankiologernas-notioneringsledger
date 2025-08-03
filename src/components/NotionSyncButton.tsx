@@ -104,7 +104,6 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
   
   // Get lectures from Redux store
   const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
-  const allLectures = lecturesData.flatMap(week => week.lectures);
 
   const isAvailable = isNotionIntegrationAvailable();
 
@@ -143,8 +142,8 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
     try {
       console.log('🔄 Starting bulk sync to Notion pages...');
       
-      // Filter to active course lectures only
-      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(allLectures);
+      // Filter to active course lectures only (pass WeekData array)
+      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(lecturesData);
       
       if (!activeCourse || filteredCount === 0) {
         throw new Error('No active course lectures found to sync');

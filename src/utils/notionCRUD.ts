@@ -261,7 +261,7 @@ const getCurrentActiveCourse = () => {
 };
 
 // Helper function to filter lectures by active course (exported for use in components)
-export const filterLecturesByActiveCourse = (lectures: any[]) => {
+export const filterLecturesByActiveCourse = (lecturesData: any[]) => {
   const targetCourse = {
     title: "Klinisk medicin 4",
     startDate: "2025-08-01",
@@ -269,23 +269,23 @@ export const filterLecturesByActiveCourse = (lectures: any[]) => {
   };
   
   console.log(`🎯 Targeting course: ${targetCourse.title}`);
-  console.log(`📊 Total lectures to filter: ${lectures.length}`);
+  console.log(`📊 Total weeks data to filter: ${lecturesData.length}`);
 
-  // Filter to ONLY include lectures that belong to "Klinisk medicin 4" course
-  const activeLectures = lectures.filter(lecture => {
-    // Only include lectures explicitly assigned to "Klinisk medicin 4"
-    const isKM4Lecture = lecture.course === "Klinisk medicin 4";
-    
-    if (isKM4Lecture) {
-      console.log(`✅ Including KM4 lecture: ${lecture.lectureNumber}. ${lecture.title} (${lecture.date || 'no date'})`);
+  // Filter weeks that belong to the target course, then flatten to get lectures
+  const activeWeeks = lecturesData.filter(week => {
+    const isKM4Week = week.course === targetCourse.title;
+    if (isKM4Week) {
+      console.log(`✅ Including week with course: ${week.course} (${week.lectures.length} lectures)`);
     } else {
-      console.log(`❌ Excluding non-KM4 lecture: ${lecture.lectureNumber}. ${lecture.title} (course: ${lecture.course || 'unassigned'})`);
+      console.log(`❌ Excluding week with course: ${week.course || 'unassigned'} (${week.lectures.length} lectures)`);
     }
-    
-    return isKM4Lecture;
+    return isKM4Week;
   });
 
-  console.log(`📊 Filtered to ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
+  // Flatten the filtered weeks to get individual lectures
+  const activeLectures = activeWeeks.flatMap(week => week.lectures);
+  
+  console.log(`📊 Filtered to ${activeLectures.length} lectures for ${targetCourse.title} (from ${lecturesData.flatMap(w => w.lectures).length} total)`);
   
   if (activeLectures.length > 0) {
     // Sort by lecture number for consistent reporting
@@ -294,13 +294,14 @@ export const filterLecturesByActiveCourse = (lectures: any[]) => {
     console.log(`📝 Sample lectures: ${sortedLectures.slice(0, 3).map(l => `${l.lectureNumber}. ${l.title.substring(0, 30)}...`).join(', ')}`);
   } else {
     console.warn(`⚠️ No lectures found for course: ${targetCourse.title}`);
+    console.log(`🔍 Available courses in data: ${[...new Set(lecturesData.map(w => w.course))].join(', ')}`);
   }
 
   return { 
     activeCourse: targetCourse, 
     activeLectures, 
     filteredCount: activeLectures.length, 
-    totalCount: lectures.length 
+    totalCount: lecturesData.flatMap(w => w.lectures).length 
   };
 };
 
