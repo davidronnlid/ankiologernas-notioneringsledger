@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           subjectArea,
           action,
           status: 'error',
-          message: error.message
+          message: error instanceof Error ? error.message : 'Unknown error'
         });
       }
     }
