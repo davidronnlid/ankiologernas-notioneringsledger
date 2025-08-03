@@ -103,22 +103,15 @@ async function findOrCreateCourseDatabase(notion: Client, coursePageId: string, 
         'Föreläsning': {
           title: {}
         },
-        'Nummer': {
-          number: {
-            format: 'number'
-          }
-        },
-        'Subject Area': {
-          select: {
-            options: SUBJECT_AREAS.map(area => ({ name: area, color: 'default' }))
-          }
-        },
-        'Tag': {
+        'Subject area': {
           select: {
             options: [
-              { name: 'Bör göra', color: 'default' },
-              { name: 'Ej ankiz', color: 'gray' },
-              { name: 'Blå ankiz', color: 'blue' }
+              { name: 'Global hälsa', color: 'blue' },
+              { name: 'Geriatrik', color: 'orange' },
+              { name: 'Öron-Näsa-Hals', color: 'yellow' },
+              { name: 'Pediatrik', color: 'green' },
+              { name: 'Oftalmologi', color: 'purple' },
+              { name: 'Gynekologi & Obstetrik', color: 'pink' }
             ]
           }
         },
@@ -131,8 +124,15 @@ async function findOrCreateCourseDatabase(notion: Client, coursePageId: string, 
             ]
           }
         },
-        'Date and Time': { rich_text: {} },
-        'URL': { url: {} }
+        'Status': {
+          select: {
+            options: [
+              { name: 'Bör göra', color: 'default' },
+              { name: 'Ej ankiz', color: 'gray' },
+              { name: 'Blå ankiz', color: 'blue' }
+            ]
+          }
+        }
       },
       // CRITICAL: This ensures the database is created INLINE within the page, not as a separate page
       is_inline: true
@@ -167,18 +167,15 @@ async function ensureDatabaseSchema(notion: Client, database: any, userName: str
     // Required properties for our lecture tracking system
     const requiredProperties: any = {
       'Föreläsning': { title: {} },
-      'Nummer': { number: { format: 'number' } },
-      'Subject Area': {
-        select: {
-          options: SUBJECT_AREAS.map(area => ({ name: area, color: 'default' }))
-        }
-      },
-      'Tag': {
+      'Subject area': {
         select: {
           options: [
-            { name: 'Bör göra', color: 'default' },
-            { name: 'Ej ankiz', color: 'gray' },
-            { name: 'Blå ankiz', color: 'blue' }
+            { name: 'Global hälsa', color: 'blue' },
+            { name: 'Geriatrik', color: 'orange' },
+            { name: 'Öron-Näsa-Hals', color: 'yellow' },
+            { name: 'Pediatrik', color: 'green' },
+            { name: 'Oftalmologi', color: 'purple' },
+            { name: 'Gynekologi & Obstetrik', color: 'pink' }
           ]
         }
       },
@@ -191,8 +188,15 @@ async function ensureDatabaseSchema(notion: Client, database: any, userName: str
           ]
         }
       },
-      'Date and Time': { rich_text: {} },
-      'URL': { url: {} }
+      'Status': {
+        select: {
+          options: [
+            { name: 'Bör göra', color: 'default' },
+            { name: 'Ej ankiz', color: 'gray' },
+            { name: 'Blå ankiz', color: 'blue' }
+          ]
+        }
+      }
     };
 
     // Check if we need to add/update any properties
@@ -302,7 +306,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
         // Get current person selection
         const currentPerson = (existingLecture as any).properties?.['Person']?.select?.name || null;
         
-        let newTag = 'Bör göra'; // Default tag
+        let newStatus = 'Bör göra'; // Default status
         let newPerson = null; // Default person (empty)
         
         if (action === 'select') {
@@ -317,20 +321,20 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
           
           // If someone was already selected and it's different, it becomes Blå ankiz
           if (currentPerson && currentPerson !== newPerson) {
-            newTag = 'Blå ankiz';
+            newStatus = 'Blå ankiz';
             newPerson = null; // Clear person when multiple users
           } else if (newPerson) {
-            newTag = 'Bör göra'; // Keep default tag when single person selected
+            newStatus = 'Bör göra'; // Keep default status when single person selected
           }
         } else if (action === 'unselect') {
           // Remove selection - back to defaults
-          newTag = 'Bör göra';
+          newStatus = 'Bör göra';
           newPerson = null;
         }
 
         const updateProperties: any = {
-          'Tag': {
-            select: newTag ? { name: newTag } : null
+          'Status': {
+            select: newStatus ? { name: newStatus } : null
           }
         };
 
@@ -349,7 +353,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
           properties: updateProperties
         });
 
-        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Tag: ${newTag}, Person: ${newPerson || 'none'}`);
+        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Status: ${newStatus}, Person: ${newPerson || 'none'}`);
         return existingLecture;
       }
       
@@ -378,34 +382,18 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
                 }
               ]
             },
-            'Nummer': {
-              number: lectureNumber
-            },
-            'Subject Area': {
+            'Subject area': {
               select: {
                 name: subjectArea
               }
             },
-            'Tag': {
+            'Status': {
               select: {
                 name: 'Bör göra'
               }
             },
             'Person': {
               select: null
-            },
-            'Date and Time': {
-              rich_text: [
-                {
-                  type: 'text',
-                  text: {
-                    content: '' // Will be filled in later if needed
-                  }
-                }
-              ]
-            },
-            'URL': {
-              url: `https://ankiologernas-notioneringsledger.netlify.app#lecture-${lectureNumber}`
             }
           }
         });

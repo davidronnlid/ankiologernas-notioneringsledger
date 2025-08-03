@@ -288,7 +288,22 @@ const determineSubjectArea = (lectureTitle: string): string | null => {
     'äggstock': 'Gynekologi & Obstetrik',
     'dysmenorré': 'Gynekologi & Obstetrik',
     'smärtlindring': 'Gynekologi & Obstetrik',
-    'gynekologisk': 'Gynekologi & Obstetrik'
+    'gynekologisk': 'Gynekologi & Obstetrik',
+    // Additional general keywords
+    'neuropatologi': 'Öron-Näsa-Hals',
+    'vårdhygien': 'Global hälsa',
+    'forskningsetik': 'Global hälsa',
+    'evidensbaserad': 'Global hälsa',
+    'biostatistik': 'Global hälsa',
+    'medicinsk humaniora': 'Global hälsa',
+    'fall och frakturer': 'Geriatrik',
+    'fraktur': 'Geriatrik',
+    'specialiserad palliativ': 'Geriatrik',
+    'existentiella behov': 'Geriatrik',
+    'nutrition': 'Geriatrik',
+    'sarkopeni': 'Geriatrik',
+    'konfusion': 'Geriatrik',
+    'akutgeriatrik': 'Geriatrik'
   };
 
   // Check for keyword matches
@@ -305,11 +320,34 @@ const determineSubjectArea = (lectureTitle: string): string | null => {
     return 'Oftalmologi'; // For "Inflammation i oftalmologiskt perspektiv"
   }
 
-  // If no match found, return null and log for manual classification
-  console.warn(`❌ NO SUBJECT AREA MATCH for: "${lectureTitle}"`);
+  // If no match found, use intelligent fallback based on context clues
+  console.warn(`⚠️ No direct keyword match for: "${lectureTitle}"`);
   console.warn(`📋 Lowercased title: "${title}"`);
-  console.warn(`🔍 Available keywords: ${Object.keys(subjectMappings).join(', ')}`);
-  return null;
+  
+  // Intelligent fallback classification
+  if (title.includes('neuro') || title.includes('neurologi')) {
+    console.log(`🧠 Fallback: Neurological content → Pediatrik for "${lectureTitle}"`);
+    return 'Pediatrik';
+  }
+  
+  if (title.includes('hygien') || title.includes('vård')) {
+    console.log(`🏥 Fallback: Care/hygiene content → Global hälsa for "${lectureTitle}"`);
+    return 'Global hälsa';
+  }
+  
+  if (title.includes('etik') || title.includes('evidens') || title.includes('statistik') || title.includes('humaniora')) {
+    console.log(`📚 Fallback: Academic/research content → Global hälsa for "${lectureTitle}"`);
+    return 'Global hälsa';
+  }
+  
+  if (title.includes('fall') || title.includes('fraktur')) {
+    console.log(`🦴 Fallback: Falls/fractures → Geriatrik for "${lectureTitle}"`);
+    return 'Geriatrik';
+  }
+  
+  // Ultimate fallback - assign to the most appropriate general category
+  console.log(`🔄 Ultimate fallback: Assigning to Global hälsa for "${lectureTitle}"`);
+  return 'Global hälsa';
 };
 
 // Helper function to get the currently active course
@@ -405,6 +443,9 @@ export const syncAllLecturesToNotionPages = async (
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   // NOTE: Lectures are already filtered by Layout.tsx - don't filter again here to avoid progress mismatch
   console.log(`🔄 Starting bulk sync of ${lectures.length} pre-filtered lectures`);
+  
+  // Log all lecture titles for debugging
+  console.log(`📋 All lectures to sync:`, lectures.map(l => `${l.lectureNumber}. ${l.title}`));
 
   if (lectures.length === 0) {
     return {
@@ -573,18 +614,19 @@ export const syncAllLecturesToNotionPages = async (
         );
       } else {
         errorCount++;
-        console.log(`❌ Failed to sync: ${lecture.title} - ${result.message}`);
+        const errorMessage = result.message || 'Unknown API error';
+        console.log(`❌ Failed to sync: ${lecture.title} - ${errorMessage}`);
         results.push({
           lecture: lecture.title,
           status: 'error',
-          reason: result.message
+          reason: errorMessage
         });
         
-        // Notify UI of failed completion
-        progressCallbacks?.onLectureComplete?.(
+        // Notify UI of error with specific message
+        progressCallbacks?.onLectureError?.(
           lecture.lectureNumber, 
           lecture.title, 
-          false, 
+          errorMessage, 
           currentProgress, 
           totalLectures
         );

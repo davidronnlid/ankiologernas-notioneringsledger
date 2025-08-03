@@ -102,17 +102,7 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
         'Föreläsning': {
           title: {}
         },
-        'Nummer': {
-          number: {
-            format: 'number'
-          }
-        },
-        'Subject Area': {
-          select: {
-            options: SUBJECT_AREAS.map(area => ({ name: area, color: 'default' }))
-          }
-        },
-        'Tag': {
+        'Status': {
           select: {
             options: [
               { name: 'Bör göra', color: 'default' },
@@ -129,9 +119,7 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
               { name: 'M', color: 'yellow' }
             ]
           }
-        },
-        'Date and Time': { rich_text: {} },
-        'URL': { url: {} }
+        }
       },
       // CRITICAL: This ensures the database is created INLINE within the page, not as a separate page
       is_inline: true
@@ -163,16 +151,10 @@ async function ensureDatabaseSchema(notion, database, userName) {
     const updates = {};
     let needsUpdate = false;
 
-    // Required properties for our lecture tracking system
+    // Required properties for our lecture tracking system - simplified to 3 columns only
     const requiredProperties = {
       'Föreläsning': { title: {} },
-      'Nummer': { number: { format: 'number' } },
-      'Subject Area': {
-        select: {
-          options: SUBJECT_AREAS.map(area => ({ name: area, color: 'default' }))
-        }
-      },
-      'Tag': {
+      'Status': {
         select: {
           options: [
             { name: 'Bör göra', color: 'default' },
@@ -189,9 +171,7 @@ async function ensureDatabaseSchema(notion, database, userName) {
             { name: 'M', color: 'yellow' }
           ]
         }
-      },
-      'Date and Time': { rich_text: {} },
-      'URL': { url: {} }
+      }
     };
 
     // Check if we need to add/update any properties
@@ -239,45 +219,45 @@ async function ensureDatabaseSchema(notion, database, userName) {
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action) {
+async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, selectedByUser, action) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
-    // STRICT duplicate detection - prevent any lecture with same number from being added twice
+    // STRICT duplicate detection - prevent any lecture with same title from being added twice
     console.log(`🔍 STRICT duplicate check for lecture: ${lectureNumber}. ${lectureTitle}`);
     console.log(`🎯 Action: ${action}`);
     
-    // Search for ANY existing lecture with the same number (bulletproof duplicate prevention)
+    // Search for ANY existing lecture with the same title (bulletproof duplicate prevention)
     const existingLectures = await notion.databases.query({
       database_id: databaseId,
       filter: {
-        property: 'Nummer',
-        number: {
-          equals: lectureNumber
+        property: 'Föreläsning',
+        title: {
+          contains: `${lectureNumber}. ${lectureTitle}`
         }
       }
     });
 
-    console.log(`📊 Found ${existingLectures.results.length} existing lectures with number ${lectureNumber}`);
+    console.log(`📊 Found ${existingLectures.results.length} existing lectures with title containing "${lectureNumber}. ${lectureTitle}"`);
 
-    // If ANY lecture exists with this number, consider it a duplicate
+    // If ANY lecture exists with this title, consider it a duplicate
     let existingLecture = null;
     if (existingLectures.results.length > 0) {
       existingLecture = existingLectures.results[0]; // Take the first one
       const existingTitle = existingLecture.properties['Föreläsning']?.title?.[0]?.plain_text || 'Unknown';
       
-      console.log(`🚫 DUPLICATE DETECTED! Lecture ${lectureNumber} already exists:`);
+      console.log(`🚫 DUPLICATE DETECTED! Lecture "${lectureTitle}" already exists:`);
       console.log(`   📝 Existing: "${existingTitle}"`);
-      console.log(`   📝 Attempted: "${lectureTitle}"`);
+      console.log(`   📝 Attempted: "${lectureNumber}. ${lectureTitle}"`);
       console.log(`   ⚠️ Will NOT create duplicate - using existing lecture`);
       
-      // Log all existing lectures with this number for debugging
+      // Log all existing lectures with this title for debugging
       existingLectures.results.forEach((lecture, index) => {
         const title = lecture.properties['Föreläsning']?.title?.[0]?.plain_text || 'Unknown';
         console.log(`   ${index + 1}. "${title}" (ID: ${lecture.id})`);
       });
     } else {
-      console.log(`✅ No duplicates found - lecture ${lectureNumber} can be created`);
+      console.log(`✅ No duplicates found - lecture "${lectureTitle}" can be created`);
     }
 
     if (existingLecture) {
@@ -301,7 +281,7 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
         // Get current person selection
         const currentPerson = existingLecture.properties['Person']?.select?.name || null;
         
-        let newTag = 'Bör göra'; // Default tag
+        let newStatus = 'Bör göra'; // Default status
         let newPerson = null; // Default person (empty)
         
         if (action === 'select') {
@@ -316,20 +296,20 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
           
           // If someone was already selected and it's different, it becomes Blå ankiz
           if (currentPerson && currentPerson !== newPerson) {
-            newTag = 'Blå ankiz';
+            newStatus = 'Blå ankiz';
             newPerson = null; // Clear person when multiple users
           } else if (newPerson) {
-            newTag = 'Bör göra'; // Keep default tag when single person selected
+            newStatus = 'Bör göra'; // Keep default status when single person selected
           }
         } else if (action === 'unselect') {
           // Remove selection - back to defaults
-          newTag = 'Bör göra';
+          newStatus = 'Bör göra';
           newPerson = null;
         }
 
         const updateProperties = {
-          'Tag': {
-            select: newTag ? { name: newTag } : null
+          'Status': {
+            select: newStatus ? { name: newStatus } : null
           }
         };
 
@@ -348,7 +328,7 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
           properties: updateProperties
         });
 
-        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Tag: ${newTag}, Person: ${newPerson || 'none'}`);
+        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Status: ${newStatus}, Person: ${newPerson || 'none'}`);
         return existingLecture;
       }
       
@@ -377,39 +357,18 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
                 }
               ]
             },
-            'Nummer': {
-              number: lectureNumber
-            },
-            'Subject Area': {
-              select: {
-                name: subjectArea
-              }
-            },
-            'Tag': {
+            'Status': {
               select: {
                 name: 'Bör göra'
               }
             },
             'Person': {
               select: null
-            },
-            'Date and Time': {
-              rich_text: [
-                {
-                  type: 'text',
-                  text: {
-                    content: '' // Will be filled in later if needed
-                  }
-                }
-              ]
-            },
-            'URL': {
-              url: `https://ankiologernas-notioneringsledger.netlify.app#lecture-${lectureNumber}`
             }
           }
         });
 
-        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle} in ${subjectArea}`);
+        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle}`);
         return newLecture;
         
       } else if (action === 'select' || action === 'unselect') {
@@ -439,7 +398,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    let { lectureTitle, lectureNumber, selectedByUser, subjectArea, action } = JSON.parse(event.body);
+    let { lectureTitle, lectureNumber, selectedByUser, action } = JSON.parse(event.body);
     
     // Handle special mapping for dronnlid -> David (consistent with frontend)
     if (selectedByUser && selectedByUser.toLowerCase().includes('dronnlid')) {
@@ -447,15 +406,15 @@ exports.handler = async (event, context) => {
       selectedByUser = 'David';
     }
     
-    console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle} (${subjectArea})`);
+    console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle}`);
     console.log(`📊 Processing for all users: ${Object.keys(NOTION_TOKENS).join(', ')}`);
 
     // Validate required fields
-    if (!lectureTitle || !lectureNumber || !selectedByUser || !subjectArea || !action) {
+    if (!lectureTitle || !lectureNumber || !selectedByUser || !action) {
       return {
         statusCode: 400,
         body: JSON.stringify({ 
-          error: 'Missing required fields: lectureTitle, lectureNumber, selectedByUser, subjectArea, action' 
+          error: 'Missing required fields: lectureTitle, lectureNumber, selectedByUser, action' 
         })
       };
     }
