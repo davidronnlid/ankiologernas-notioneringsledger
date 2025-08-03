@@ -269,27 +269,32 @@ export const filterLecturesByActiveCourse = (lectures: any[]) => {
   };
   
   console.log(`🎯 Targeting course: ${targetCourse.title}`);
+  console.log(`📊 Total lectures to filter: ${lectures.length}`);
 
-  // For Klinisk medicin 4, include ALL lectures since we're preparing for the course
-  // Filter based on course title/content rather than strict date ranges
+  // Filter to ONLY include lectures that belong to "Klinisk medicin 4" course
   const activeLectures = lectures.filter(lecture => {
-    // Include lectures that are part of "Klinisk medicin 4" course content
-    // This is more flexible than strict date filtering
-    const isKM4Lecture = lecture.course === "Klinisk medicin 4" || 
-                        !lecture.course || // Include lectures without specific course assignment
-                        lecture.title; // Include any lecture with a title (we'll sync all for now)
+    // Only include lectures explicitly assigned to "Klinisk medicin 4"
+    const isKM4Lecture = lecture.course === "Klinisk medicin 4";
     
     if (isKM4Lecture) {
-      console.log(`✅ Including lecture: ${lecture.lectureNumber}. ${lecture.title} (${lecture.date || 'no date'})`);
+      console.log(`✅ Including KM4 lecture: ${lecture.lectureNumber}. ${lecture.title} (${lecture.date || 'no date'})`);
     } else {
-      console.log(`❌ Excluding lecture: ${lecture.title} - not KM4 content`);
+      console.log(`❌ Excluding non-KM4 lecture: ${lecture.lectureNumber}. ${lecture.title} (course: ${lecture.course || 'unassigned'})`);
     }
     
     return isKM4Lecture;
   });
 
-  console.log(`📊 Including ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
-  console.log(`📋 Lecture range: ${activeLectures[0]?.lectureNumber || 'N/A'} to ${activeLectures[activeLectures.length - 1]?.lectureNumber || 'N/A'}`);
+  console.log(`📊 Filtered to ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
+  
+  if (activeLectures.length > 0) {
+    // Sort by lecture number for consistent reporting
+    const sortedLectures = activeLectures.sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
+    console.log(`📋 Lecture range: ${sortedLectures[0]?.lectureNumber || 'N/A'} to ${sortedLectures[sortedLectures.length - 1]?.lectureNumber || 'N/A'}`);
+    console.log(`📝 Sample lectures: ${sortedLectures.slice(0, 3).map(l => `${l.lectureNumber}. ${l.title.substring(0, 30)}...`).join(', ')}`);
+  } else {
+    console.warn(`⚠️ No lectures found for course: ${targetCourse.title}`);
+  }
 
   return { 
     activeCourse: targetCourse, 
