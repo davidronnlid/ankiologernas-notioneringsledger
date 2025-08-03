@@ -157,22 +157,6 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
                     content: sectionTitle
                   }
                 }
-              ],
-              children: [
-                {
-                  object: 'block',
-                  type: 'paragraph',
-                  paragraph: {
-                    rich_text: [
-                      {
-                        type: 'text',
-                        text: {
-                          content: `Föreläsningar inom ${subjectArea}`
-                        }
-                      }
-                    ]
-                  }
-                }
               ]
             }
           }
@@ -192,7 +176,7 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
         {
           type: 'text',
           text: {
-            content: `Föreläsningar inom ${subjectArea}`
+            content: `${subjectArea} Föreläsningar`
           }
         }
       ],
