@@ -963,9 +963,23 @@ export default function Index() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   
-  // Authentication check for lecture creation
+  // Map username to person (handles special cases like dronnlid -> David)
+  const mapUserNameToPerson = (fullName: string): string => {
+    const nameLower = fullName.toLowerCase();
+    
+    // Special mapping for dronnlid -> David
+    if (nameLower.includes('dronnlid')) {
+      return 'David';
+    }
+    
+    // Default: use first name
+    return fullName.split(" ")[0];
+  };
+  
+  // Authentication check for lecture creation - use mapped names
   const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
-  const isAllowedToCreateLectures = currentUser?.full_name ? allowedNames.includes(currentUser.full_name) : false;
+  const mappedUserName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : null;
+  const isAllowedToCreateLectures = mappedUserName ? ["David", "Albin", "Mattias"].includes(mappedUserName) : false;
   
   // Debug logging for development
   React.useEffect(() => {
@@ -1404,19 +1418,6 @@ export default function Index() {
       0
     );
   })();
-
-  // Map username to person (handles special cases like dronnlid -> David)
-  const mapUserNameToPerson = (fullName: string): string => {
-    const nameLower = fullName.toLowerCase();
-    
-    // Special mapping for dronnlid -> David
-    if (nameLower.includes('dronnlid')) {
-      return 'David';
-    }
-    
-    // Default: use first name
-    return fullName.split(" ")[0];
-  };
 
   // Format hours to show exact values without unnecessary decimals
   const formatHours = (hours: number): string => {
