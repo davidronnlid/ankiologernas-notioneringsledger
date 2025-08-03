@@ -498,17 +498,21 @@ exports.handler = async (event, context) => {
       try {
         const notion = new Client({ auth: token });
         
-        // Step 1: Get the user's specific course page
-        const coursePage = await getUserCoursePage(notion, userName);
+        // Step 1: Get the user's specific course page with retry logic
+        console.log(`📄 Getting course page for ${userName}...`);
+        const coursePage = await retryOperation(() => getUserCoursePage(notion, userName), 3);
         
-        // Step 2: Find or create the single database on the course page
-        const database = await findOrCreateCourseDatabase(notion, coursePage.id, userName);
+        // Step 2: Find or create the single database on the course page with retry logic
+        console.log(`🗄️ Finding/creating database for ${userName}...`);
+        const database = await retryOperation(() => findOrCreateCourseDatabase(notion, coursePage.id, userName), 3);
         
-        // Step 3: Ensure database has correct schema
-        await ensureDatabaseSchema(notion, database, userName);
+        // Step 3: Ensure database has correct schema with retry logic
+        console.log(`🔧 Ensuring database schema for ${userName}...`);
+        await retryOperation(() => ensureDatabaseSchema(notion, database, userName), 3);
         
-        // Step 4: Add or update the lecture in the database
-        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, selectedByUser, action);
+        // Step 4: Add or update the lecture in the database with retry logic
+        console.log(`📝 Adding/updating lecture for ${userName}...`);
+        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, selectedByUser, action), 3);
         
         if (result) {
           // Check if this was a duplicate skip or actual creation/update
@@ -524,6 +528,7 @@ exports.handler = async (event, context) => {
             skipped: wasSkipped ? 1 : 0,
             message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
           });
+          successfulUpdates++;
         } else {
           // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
           results.push({
@@ -533,7 +538,7 @@ exports.handler = async (event, context) => {
           });
         }
 
-        console.log(`✅ Successfully updated ${userName}'s Notion database`);
+        console.log(`✅ Successfully processed ${userName}'s Notion database`);
         
       } catch (error) {
         console.error(`❌ Failed to update ${userName}'s Notion database:`, error);
@@ -545,20 +550,42 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Calculate summary
-    const successfulUpdates = results.filter(r => r.success).length;
-    const failedUpdates = results.filter(r => !r.success).length;
+    // Calculate summary - more intelligent reporting
+    const actualSuccesses = results.filter(r => r.success).length;
+    const actualFailures = results.filter(r => !r.success && !r.skipped).length;
+    const skippedUsers = results.filter(r => r.skipped).length;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
+    
+    // Count users with proper setup (have both token and page ID)
+    const usersWithSetup = Object.keys(NOTION_TOKENS).filter(userName => 
+      NOTION_TOKENS[userName] && COURSE_PAGE_IDS[userName]
+    ).length;
+    
+    let message;
+    if (actualSuccesses === usersWithSetup && usersWithSetup > 0) {
+      message = `All ${usersWithSetup} configured Notion databases updated successfully`;
+    } else if (actualSuccesses > 0) {
+      message = `${actualSuccesses}/${usersWithSetup} configured Notion databases updated successfully`;
+    } else if (usersWithSetup === 0) {
+      message = 'No Notion databases are properly configured. Please check environment variables.';
+    } else {
+      message = 'No Notion databases could be updated';
+    }
+    
+    // Include helpful setup information in the message
+    if (skippedUsers > 0) {
+      message += ` (${skippedUsers} user(s) skipped due to missing configuration)`;
+    }
 
     const response = {
-      success: successfulUpdates > 0,
-      message: successfulUpdates === 3 ? 'All Notion databases updated successfully' : 
-               successfulUpdates > 0 ? `${successfulUpdates}/3 Notion databases updated` : 
-               'No Notion databases could be updated',
+      success: actualSuccesses > 0,
+      message,
       results,
       summary: {
-        successfulUpdates,
-        failedUpdates,
+        successfulUpdates: actualSuccesses,
+        failedUpdates: actualFailures,
+        skippedUsers,
+        usersWithSetup,
         pagesCreated
       }
     };
