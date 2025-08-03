@@ -377,7 +377,7 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
                     alert(`Config: ${JSON.stringify(configResult.config.hasTokens, null, 2)}\n\nTest Response: ${testResult.substring(0, 200)}...`);
                   } catch (error) {
                     console.error('❌ Debug failed:', error);
-                    alert(`Debug failed: ${error.message}`);
+                    alert(`Debug failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                   }
                 }}
                 color="default" 
