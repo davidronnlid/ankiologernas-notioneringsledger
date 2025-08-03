@@ -94,12 +94,15 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
         'Föreläsning': {
           title: {}
         },
-        'Status': {
+        'Subject area': {
           select: {
             options: [
-              { name: 'Bör göra', color: 'default' },
-              { name: 'Ej ankiz', color: 'gray' },
-              { name: 'Blå ankiz', color: 'blue' }
+              { name: 'Global hälsa', color: 'blue' },
+              { name: 'Geriatrik', color: 'orange' },
+              { name: 'Öron-Näsa-Hals', color: 'yellow' },
+              { name: 'Pediatrik', color: 'green' },
+              { name: 'Oftalmologi', color: 'purple' },
+              { name: 'Gynekologi & Obstetrik', color: 'pink' }
             ]
           }
         },
@@ -109,6 +112,15 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
               { name: 'D', color: 'red' },
               { name: 'A', color: 'green' },
               { name: 'M', color: 'yellow' }
+            ]
+          }
+        },
+        'Status': {
+          select: {
+            options: [
+              { name: 'Bör göra', color: 'default' },
+              { name: 'Ej ankiz', color: 'gray' },
+              { name: 'Blå ankiz', color: 'blue' }
             ]
           }
         }
@@ -349,6 +361,11 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
                 }
               ]
             },
+            'Subject area': {
+              select: {
+                name: subjectArea
+              }
+            },
             'Status': {
               select: {
                 name: 'Bör göra'
@@ -360,7 +377,7 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
           }
         });
 
-        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle}`);
+        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle} in ${subjectArea}`);
         return newLecture;
         
       } else if (action === 'select' || action === 'unselect') {
