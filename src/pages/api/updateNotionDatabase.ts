@@ -403,11 +403,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
                 }
               ]
             },
-            'Subject area': {
-              select: {
-                name: 'Global hälsa' // Default subject area for simplified database
-              }
-            },
+            // Subject area removed - simplified to 3 columns only
             'Status': {
               select: {
                 name: 'Bör göra'

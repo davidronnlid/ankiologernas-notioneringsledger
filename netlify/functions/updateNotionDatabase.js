@@ -382,11 +382,7 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
                 }
               ]
             },
-            'Subject area': {
-              select: {
-                name: subjectArea
-              }
-            },
+            // Subject area removed - simplified to 3 columns only
             'Status': {
               select: {
                 name: 'Bör göra'
