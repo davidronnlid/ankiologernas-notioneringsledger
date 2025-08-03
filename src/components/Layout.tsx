@@ -45,6 +45,9 @@ export default function Layout({
 
   // Notion sync loading state
   const { startSync, updateProgress, addMessage, setError, finishSync } = useNotionSync();
+  
+  // Sync lock to prevent multiple simultaneous syncs (which could cause duplicates)
+  const [isSyncInProgress, setIsSyncInProgress] = useState(false);
 
   // Initialize default checkbox state for lectures that don't have it
   const initializeCheckboxState = (data: WeekData[]): WeekData[] => {
@@ -116,7 +119,16 @@ export default function Layout({
 
   // Auto-sync function to sync all lectures to Notion databases when app loads
   const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
+    // Prevent multiple simultaneous syncs (which could cause duplicates)
+    if (isSyncInProgress) {
+      console.log('⚠️ Sync already in progress - skipping duplicate sync request');
+      return;
+    }
+
     try {
+      setIsSyncInProgress(true);
+      console.log('🔒 Starting Notion sync (locked to prevent duplicates)');
+      
       // Extract all lectures from the week data
       const allLectures = lectureData.flatMap(week => week.lectures);
       
@@ -195,6 +207,10 @@ export default function Layout({
       console.error('❌ Auto-sync failed:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
       finishSync();
+    } finally {
+      // Always unlock sync, regardless of success or failure
+      setIsSyncInProgress(false);
+      console.log('🔓 Notion sync unlocked');
     }
   };
 

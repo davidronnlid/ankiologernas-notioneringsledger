@@ -243,11 +243,12 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
-    // Search for existing lecture in database with more precise matching
-    console.log(`🔍 Searching for existing lecture: ${lectureNumber}. ${lectureTitle}`);
+    // STRICT duplicate detection - prevent any lecture with same number from being added twice
+    console.log(`🔍 STRICT duplicate check for lecture: ${lectureNumber}. ${lectureTitle}`);
+    console.log(`🎯 Action: ${action}`);
     
-    // First, try to find by lecture number (most reliable)
-    const numberMatches = await notion.databases.query({
+    // Search for ANY existing lecture with the same number (bulletproof duplicate prevention)
+    const existingLectures = await notion.databases.query({
       database_id: databaseId,
       filter: {
         property: 'Nummer',
@@ -257,34 +258,26 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
       }
     });
 
-    console.log(`📊 Found ${numberMatches.results.length} lectures with number ${lectureNumber}`);
+    console.log(`📊 Found ${existingLectures.results.length} existing lectures with number ${lectureNumber}`);
 
-    // If we found lectures with the same number, check if any have similar titles
+    // If ANY lecture exists with this number, consider it a duplicate
     let existingLecture = null;
-    if (numberMatches.results.length > 0) {
-      // Check for exact title match or very similar title
-      existingLecture = numberMatches.results.find(page => {
-        const pageTitle = page.properties['Föreläsning']?.title?.[0]?.plain_text || '';
-        const titleMatch = pageTitle.toLowerCase().trim() === lectureTitle.toLowerCase().trim();
-        const isVerySimilar = pageTitle.toLowerCase().includes(lectureTitle.toLowerCase().substring(0, 20)) ||
-                             lectureTitle.toLowerCase().includes(pageTitle.toLowerCase().substring(0, 20));
-        
-        console.log(`📝 Comparing: "${pageTitle}" vs "${lectureTitle}" - Match: ${titleMatch}, Similar: ${isVerySimilar}`);
-        return titleMatch || isVerySimilar;
-      });
-      
-      // If no good title match, take the first one with the same number (likely duplicate)
-      if (!existingLecture) {
-        existingLecture = numberMatches.results[0];
-        console.log(`⚠️ Using first lecture with number ${lectureNumber} (title mismatch may indicate duplicate)`);
-      }
-    }
-
-    if (existingLecture) {
+    if (existingLectures.results.length > 0) {
+      existingLecture = existingLectures.results[0]; // Take the first one
       const existingTitle = existingLecture.properties['Föreläsning']?.title?.[0]?.plain_text || 'Unknown';
-      console.log(`✅ Found existing lecture: ${lectureNumber}. ${existingTitle}`);
+      
+      console.log(`🚫 DUPLICATE DETECTED! Lecture ${lectureNumber} already exists:`);
+      console.log(`   📝 Existing: "${existingTitle}"`);
+      console.log(`   📝 Attempted: "${lectureTitle}"`);
+      console.log(`   ⚠️ Will NOT create duplicate - using existing lecture`);
+      
+      // Log all existing lectures with this number for debugging
+      existingLectures.results.forEach((lecture, index) => {
+        const title = lecture.properties['Föreläsning']?.title?.[0]?.plain_text || 'Unknown';
+        console.log(`   ${index + 1}. "${title}" (ID: ${lecture.id})`);
+      });
     } else {
-      console.log(`❌ No existing lecture found for: ${lectureNumber}. ${lectureTitle}`);
+      console.log(`✅ No duplicates found - lecture ${lectureNumber} can be created`);
     }
 
     if (existingLecture) {
@@ -292,8 +285,9 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
       console.log(`📝 Found existing lecture: ${lectureNumber}. ${lectureTitle}`);
       
       if (action === 'bulk_add') {
-        // For bulk_add, if lecture exists, just skip (no update needed)
-        console.log(`✅ Lecture already exists in database - skipping bulk add`);
+        // For bulk_add, NEVER create duplicates - always skip if lecture number exists
+        console.log(`🚫 STRICT DUPLICATE PREVENTION: Lecture ${lectureNumber} already exists in database`);
+        console.log(`✅ Skipping bulk add to prevent duplicate`);
         return existingLecture;
       }
 
