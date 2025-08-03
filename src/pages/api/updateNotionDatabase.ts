@@ -464,141 +464,132 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Handle bulk_add action - just add the lecture without user tracking
+    // For bulk_add action, keep the actual logged-in user (don't change to 'System')
+    // The logged-in user's Notion database should be updated
+    let targetUser = selectedByUser;
     if (action === 'bulk_add') {
-      selectedByUser = 'System'; // Override for bulk operations
+      console.log(`📦 Bulk sync requested by ${selectedByUser} - updating their Notion database`);
     }
 
-    const userLetter = USER_LETTERS[selectedByUser];
+    const userLetter = USER_LETTERS[targetUser];
     if (userLetter === undefined) {
       return res.status(400).json({ 
-        error: `Unknown user: ${selectedByUser}. Expected David, Albin, Mattias, or System` 
+        error: `Unknown user: ${targetUser}. Expected David, Albin, Mattias` 
       });
     }
 
-    // Process updates for users with proper Notion setup
+    // Process update ONLY for the logged-in user's Notion database
     const results = [];
     let successfulUpdates = 0;
     
-    for (const [userName, token] of Object.entries(NOTION_TOKENS)) {
-      console.log(`🔄 Processing ${userName}...`);
-      
-      if (!token) {
-        console.warn(`⚠️ No Notion token found for ${userName}, skipping...`);
-        results.push({
-          user: userName,
-          success: false,
-          error: 'No Notion token configured',
-          skipped: true
-        });
-        continue;
-      }
-
-      // Check if user has course page configured
-      const pageId = COURSE_PAGE_IDS[userName];
-      if (!pageId) {
-        console.warn(`⚠️ No course page ID found for ${userName}, skipping...`);
-        results.push({
-          user: userName,
-          success: false,
-          error: `No course page ID configured for ${userName}`,
-          skipped: true
-        });
-        continue;
-      }
-
-      try {
-        const notion = new Client({ auth: token });
-        
-        // Step 1: Get the user's specific course page with retry logic
-        console.log(`📄 Getting course page for ${userName}...`);
-        const coursePage = await retryOperation(() => getUserCoursePage(notion, userName), 3);
-        
-        // Step 2: Find or create the single database on the course page with retry logic
-        console.log(`🗄️ Finding/creating database for ${userName}...`);
-        const database = await retryOperation(() => findOrCreateCourseDatabase(notion, coursePage.id, userName), 3);
-        
-        // Step 3: Ensure database has correct schema with retry logic
-        console.log(`🔧 Ensuring database schema for ${userName}...`);
-        await retryOperation(() => ensureDatabaseSchema(notion, database, userName), 3);
-        
-        // Step 4: Add or update the lecture in the database with retry logic
-        console.log(`📝 Adding/updating lecture for ${userName}...`);
-        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, selectedByUser, action), 3);
-        
-        if (result) {
-          // Check if this was a duplicate skip or actual creation/update
-          const wasSkipped = (result as any).wasSkipped || false;
-          const wasExisting = (result as any).id && typeof (result as any).id === 'string' && 
-                            ((result as any).id.includes('existing') || (result as any).last_edited_time);
-          
-          results.push({
-            user: userName,
-            success: true,
-            pagesUpdated: 1,
-            created: action === 'bulk_add' && !wasExisting ? 1 : 0,
-            skipped: wasSkipped ? 1 : 0,
-            message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
-          });
-          successfulUpdates++;
-        } else {
-          // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
-          results.push({
-            user: userName,
-            success: false,
-            error: `Cannot ${action} lecture that doesn't exist in database. Bulk sync required first.`
-          });
-        }
-
-        console.log(`✅ Successfully processed ${userName}'s Notion database`);
-        
-      } catch (error) {
-        console.error(`❌ Failed to update ${userName}'s Notion database:`, error);
-        results.push({
-          user: userName,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+    // Only process the target user (logged-in user), not all users
+    const targetUserToken = NOTION_TOKENS[targetUser];
+    const targetUserPageId = COURSE_PAGE_IDS[targetUser];
+    
+    console.log(`🎯 Processing Notion database for ${targetUser} only`);
+    
+    if (!targetUserToken) {
+      return res.status(400).json({ 
+        error: `No Notion token configured for ${targetUser}` 
+      });
     }
 
-    // Calculate summary - more intelligent reporting
-    const actualSuccesses = results.filter(r => r.success).length;
-    const actualFailures = results.filter(r => !r.success && !(r as any).skipped).length;
-    const skippedUsers = results.filter(r => (r as any).skipped).length;
+    if (!targetUserPageId) {
+      return res.status(400).json({ 
+        error: `No course page ID configured for ${targetUser}` 
+      });
+    }
+
+    // Process single user's Notion database
+    const userName = targetUser;
+    const token = targetUserToken;
+    const pageId = targetUserPageId;
+    
+    try {
+      console.log(`🔄 Processing ${userName}'s Notion database...`);
+      
+      const notion = new Client({ auth: token });
+      
+      // Step 1: Get the user's specific course page with retry logic
+      console.log(`📄 Getting course page for ${userName}...`);
+      const coursePage = await retryOperation(() => getUserCoursePage(notion, userName), 3);
+      
+      // Step 2: Find or create the single database on the course page with retry logic
+      console.log(`🗄️ Finding/creating database for ${userName}...`);
+      const database = await retryOperation(() => findOrCreateCourseDatabase(notion, coursePage.id, userName), 3);
+      
+      // Step 3: Ensure database has correct schema with retry logic
+      console.log(`🔧 Ensuring database schema for ${userName}...`);
+      await retryOperation(() => ensureDatabaseSchema(notion, database, userName), 3);
+      
+      // Step 4: Add or update the lecture in the database with retry logic
+      console.log(`📝 Adding/updating lecture for ${userName}...`);
+      const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, targetUser, action), 3);
+      
+      if (result) {
+        // Check if this was a duplicate skip or actual creation/update
+        const wasSkipped = (result as any).wasSkipped || false;
+        const wasExisting = (result as any).id && typeof (result as any).id === 'string' && 
+                          ((result as any).id.includes('existing') || (result as any).last_edited_time);
+        
+        results.push({
+          user: userName,
+          success: true,
+          pagesUpdated: 1,
+          created: action === 'bulk_add' && !wasExisting ? 1 : 0,
+          skipped: wasSkipped ? 1 : 0,
+          message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
+        });
+        successfulUpdates = 1;
+      } else {
+        // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
+        results.push({
+          user: userName,
+          success: false,
+          error: `Cannot ${action} lecture that doesn't exist in database. Bulk sync required first.`
+        });
+      }
+
+      console.log(`✅ Successfully processed ${userName}'s Notion database`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to update ${userName}'s Notion database:`, error);
+      results.push({
+        user: userName,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+
+    // Calculate summary for single user processing
+    const success = results.length > 0 && results[0].success;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
     
-    // Count users with proper setup (have both token and page ID)
-    const usersWithSetup = Object.keys(NOTION_TOKENS).filter(userName => 
-      NOTION_TOKENS[userName] && COURSE_PAGE_IDS[userName]
-    ).length;
-    
     let message: string;
-    if (actualSuccesses === usersWithSetup && usersWithSetup > 0) {
-      message = `All ${usersWithSetup} configured Notion databases updated successfully`;
-    } else if (actualSuccesses > 0) {
-      message = `${actualSuccesses}/${usersWithSetup} configured Notion databases updated successfully`;
-    } else if (usersWithSetup === 0) {
-      message = 'No Notion databases are properly configured. Please check environment variables.';
+    if (success) {
+      const result = results[0];
+      if ((result.skipped || 0) > 0) {
+        message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
+      } else if ((result.created || 0) > 0) {
+        message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+      } else {
+        message = `${targetUser}'s Notion database updated successfully`;
+      }
+    } else if (results.length > 0) {
+      message = `Failed to update ${targetUser}'s Notion database: ${results[0].error}`;
     } else {
-      message = 'No Notion databases could be updated';
-    }
-    
-    // Include helpful setup information in the message
-    if (skippedUsers > 0) {
-      message += ` (${skippedUsers} user(s) skipped due to missing configuration)`;
+      message = `Failed to process ${targetUser}'s Notion database`;
     }
 
     const response = {
-      success: actualSuccesses > 0,
+      success,
       message,
       results,
       summary: {
-        successfulUpdates: actualSuccesses,
-        failedUpdates: actualFailures,
-        skippedUsers,
-        usersWithSetup,
-        pagesCreated
+        successfulUpdates: success ? 1 : 0,
+        failedUpdates: success ? 0 : 1,
+        pagesCreated,
+        targetUser
       }
     };
 
