@@ -230,41 +230,85 @@ const determineSubjectArea = (lectureTitle: string): string | null => {
   const subjectMappings = {
     'oftalmologi': 'Oftalmologi',
     'öga': 'Oftalmologi',
+    'ögon': 'Oftalmologi',
+    'katarakt': 'Oftalmologi',
+    'glaukom': 'Oftalmologi',
+    'retina': 'Oftalmologi',
+    'macula': 'Oftalmologi',
+    'syn': 'Oftalmologi',
     'inflammation i oftalmologiskt': 'Oftalmologi',
     'pediatrik': 'Pediatrik',
     'barn': 'Pediatrik',
+    'spädbarn': 'Pediatrik',
+    'vaccination': 'Pediatrik',
+    'tillväxt': 'Pediatrik',
+    'utveckling': 'Pediatrik',
+    'allergi': 'Pediatrik',
+    'allergologin': 'Pediatrik',
+    'allergologi': 'Pediatrik',
+    'akutpediatrik': 'Pediatrik',
+    'barnnefrologi': 'Pediatrik',
+    'barnneurologi': 'Pediatrik',
+    'barnreumatologi': 'Pediatrik',
+    'barnkirurgi': 'Pediatrik',
+    'infektionspediatrik': 'Pediatrik',
+    'barnendokrinologi': 'Pediatrik',
+    'skelning': 'Pediatrik',
+    'barnoftalmologi': 'Pediatrik',
     'geriatrik': 'Geriatrik',
     'äldre': 'Geriatrik',
+    'demens': 'Geriatrik',
+    'alzheimer': 'Geriatrik',
     'global hälsa': 'Global hälsa',
     'global': 'Global hälsa',
     'hälsa': 'Global hälsa',
     'equity': 'Global hälsa',
     'health': 'Global hälsa',
     'globala': 'Global hälsa',
+    'migrant': 'Global hälsa',
+    'maternal': 'Global hälsa',
     'öron': 'Öron-Näsa-Hals',
     'näsa': 'Öron-Näsa-Hals',
     'hals': 'Öron-Näsa-Hals',
     'ont': 'Öron-Näsa-Hals',
+    'ent': 'Öron-Näsa-Hals',
+    'sinusit': 'Öron-Näsa-Hals',
+    'otit': 'Öron-Näsa-Hals',
+    'tonsill': 'Öron-Näsa-Hals',
+    'larynx': 'Öron-Näsa-Hals',
+    'farynx': 'Öron-Näsa-Hals',
     'gynekologi': 'Gynekologi & Obstetrik',
     'obstetrik': 'Gynekologi & Obstetrik',
     'förlossning': 'Gynekologi & Obstetrik',
-    'kvinna': 'Gynekologi & Obstetrik'
+    'kvinna': 'Gynekologi & Obstetrik',
+    'gravid': 'Gynekologi & Obstetrik',
+    'menstruation': 'Gynekologi & Obstetrik',
+    'klimakterium': 'Gynekologi & Obstetrik',
+    'livmoder': 'Gynekologi & Obstetrik',
+    'äggstock': 'Gynekologi & Obstetrik',
+    'dysmenorré': 'Gynekologi & Obstetrik',
+    'smärtlindring': 'Gynekologi & Obstetrik',
+    'gynekologisk': 'Gynekologi & Obstetrik'
   };
 
   // Check for keyword matches
   for (const [keyword, subjectArea] of Object.entries(subjectMappings)) {
     if (title.includes(keyword)) {
+      console.log(`✅ Subject area match found: "${keyword}" → ${subjectArea} for "${lectureTitle}"`);
       return subjectArea;
     }
   }
 
   // Default fallback - try to extract from common patterns
   if (title.includes('inflammation') && title.includes('perspektiv')) {
+    console.log(`✅ Pattern match: inflammation + perspektiv → Oftalmologi for "${lectureTitle}"`);
     return 'Oftalmologi'; // For "Inflammation i oftalmologiskt perspektiv"
   }
 
   // If no match found, return null and log for manual classification
-  console.warn(`⚠️ Could not determine subject area for: "${lectureTitle}"`);
+  console.warn(`❌ NO SUBJECT AREA MATCH for: "${lectureTitle}"`);
+  console.warn(`📋 Lowercased title: "${title}"`);
+  console.warn(`🔍 Available keywords: ${Object.keys(subjectMappings).join(', ')}`);
   return null;
 };
 
@@ -407,7 +451,14 @@ export const syncAllLecturesToNotionPages = async (
     const totalLectures = activeLectures.length;
     
     try {
-      console.log(`🔄 Processing lecture: ${lecture.lectureNumber}. ${lecture.title}`);
+      console.log(`🔄 Processing lecture ${currentProgress}/${totalLectures}: ${lecture.lectureNumber}. ${lecture.title}`);
+      console.log(`📊 Lecture details:`, {
+        number: lecture.lectureNumber,
+        title: lecture.title,
+        date: lecture.date,
+        hasTitle: !!lecture.title,
+        titleLength: lecture.title?.length || 0
+      });
       
       // Notify UI that we're starting this lecture
       progressCallbacks?.onLectureStart?.(
@@ -421,10 +472,12 @@ export const syncAllLecturesToNotionPages = async (
       const subjectArea = determineSubjectArea(lecture.title);
       
       if (!subjectArea) {
-        console.warn(`⚠️ Skipping lecture without subject area: ${lecture.title}`);
+        console.warn(`⚠️ SKIPPING lecture ${lecture.lectureNumber} without subject area: "${lecture.title}"`);
+        console.warn(`📋 Title analysis: "${lecture.title.toLowerCase()}"`);
         skipCount++;
         results.push({
           lecture: lecture.title,
+          lectureNumber: lecture.lectureNumber,
           status: 'skipped',
           reason: 'Could not determine subject area'
         });
