@@ -3,7 +3,14 @@
 export const logNotionEnvironmentVariables = (userName: string): void => {
   console.log(`🔍 Debugging Notion environment variables for ${userName}:`);
   
-  const tokenKey = `NOTION_TOKEN_${userName.toUpperCase()}`;
+  // Apply the same mapping logic as getNotionEnvVars (dronnlid -> David)
+  let mappedUserName = userName;
+  if (userName.toLowerCase().includes('dronnlid')) {
+    mappedUserName = 'David';
+    console.log(`🔄 Mapping dronnlid to David for environment variable lookup`);
+  }
+  
+  const tokenKey = `NOTION_TOKEN_${mappedUserName.toUpperCase()}`;
   const token = process.env[tokenKey];
   
   console.log(`- ${tokenKey}: ${token ? '✅ Set' : '❌ Missing'}`);
@@ -11,7 +18,7 @@ export const logNotionEnvironmentVariables = (userName: string): void => {
   const subjectAreas = ['GLOBAL_HALSA', 'GERIATRIK', 'PEDIATRIK', 'ORON_NASA_HALS', 'GYNEKOLOGI_OBSTETRIK', 'OFTALMOLOGI'];
   
   subjectAreas.forEach(area => {
-    const dbKey = `NOTION_DATABASE_${userName.toUpperCase()}_${area}`;
+    const dbKey = `NOTION_DATABASE_${mappedUserName.toUpperCase()}_${area}`;
     const dbId = process.env[dbKey];
     console.log(`- ${dbKey}: ${dbId ? '✅ Set' : '❌ Missing'}`);
   });
@@ -20,6 +27,13 @@ export const logNotionEnvironmentVariables = (userName: string): void => {
 export const testNotionConnection = async (userName: string, subjectArea: string): Promise<boolean> => {
   try {
     console.log(`🧪 Testing Notion connection for ${userName} - ${subjectArea}`);
+    
+    // Apply the same mapping logic as getNotionEnvVars (dronnlid -> David)
+    let mappedUserName = userName;
+    if (userName.toLowerCase().includes('dronnlid')) {
+      mappedUserName = 'David';
+      console.log(`🔄 Mapping dronnlid to David for Notion connection test`);
+    }
     
     // Use appropriate endpoint based on environment
     const endpoint = process.env.NODE_ENV === 'development' 
@@ -44,7 +58,7 @@ export const testNotionConnection = async (userName: string, subjectArea: string
       body: JSON.stringify({
         operation: 'read_status',
         lectureData: testLecture,
-        userAction: { user: userName, action: 'modify' }
+        userAction: { user: mappedUserName, action: 'modify' }
       })
     });
 

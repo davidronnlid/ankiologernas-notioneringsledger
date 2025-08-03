@@ -188,6 +188,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
 }) => {
   const classes = useStyles();
   const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");

@@ -125,7 +125,7 @@ const NotionSetupManager: React.FC<NotionSetupManagerProps> = ({
     if (!userName) return;
 
     try {
-      const response = await fetch('/api/notion-setup-check', {
+      const response = await fetch('/api/notion-setup-check-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userName })
