@@ -314,6 +314,12 @@ const useStyles = makeStyles((muiTheme: Theme) =>
         boxShadow: "0 15px 35px rgba(76, 175, 80, 0.25)",
         transform: "translateY(-2px)",
       },
+      "&.lecture-highlight": {
+        borderColor: "#ffeb3b",
+        boxShadow: "0 0 20px rgba(255, 235, 59, 0.6)",
+        background: "linear-gradient(135deg, rgba(44, 44, 44, 0.95) 0%, rgba(77, 77, 26, 0.95) 100%)",
+        animation: "$highlightPulse 2s ease-in-out 2",
+      },
     },
     // Compact add button positioned between lecture cards
     compactAddButton: {
@@ -521,6 +527,20 @@ const useStyles = makeStyles((muiTheme: Theme) =>
       },
       "100%": {
         boxShadow: "0 0 0 0 rgba(33, 150, 243, 0)",
+      },
+    },
+    "@keyframes highlightPulse": {
+      "0%": {
+        boxShadow: "0 0 20px rgba(255, 235, 59, 0.6)",
+        borderColor: "#ffeb3b",
+      },
+      "50%": {
+        boxShadow: "0 0 40px rgba(255, 235, 59, 0.9)",
+        borderColor: "#fff176",
+      },
+      "100%": {
+        boxShadow: "0 0 20px rgba(255, 235, 59, 0.6)",
+        borderColor: "#ffeb3b",
       },
     },
     // Celebration Animation Styles
@@ -1081,6 +1101,41 @@ export default function Index() {
       return [...acc, ...week.lectures];
     }, []);
   }, [km4Weeks]);
+
+  // Handle URL hash navigation to specific lectures
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#lecture-')) {
+        const lectureNumber = parseInt(hash.replace('#lecture-', ''));
+        if (!isNaN(lectureNumber)) {
+          // Find the lecture element and scroll to it
+          const lectureElement = document.querySelector(`[data-lecture-number="${lectureNumber}"]`);
+          if (lectureElement) {
+            lectureElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+            // Add a subtle highlight effect
+            lectureElement.classList.add('lecture-highlight');
+            setTimeout(() => {
+              lectureElement.classList.remove('lecture-highlight');
+            }, 3000);
+          }
+        }
+      }
+    };
+
+    // Handle initial load
+    handleHashChange();
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [allLectures]);
 
   // Calculate user statistics with weekly breakdown - made reactive with useMemo
   const userStats = useMemo(() => {
@@ -1998,6 +2053,7 @@ export default function Index() {
                         elevation={0}
                         onClick={() => handleCardClick(lecture)}
                         data-lecture-id={lecture.id}
+                        data-lecture-number={lecture.lectureNumber}
                         style={{
                           cursor: "pointer",
                           opacity: isUpdating === lecture.id ? 0.7 : 1,

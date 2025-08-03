@@ -388,7 +388,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
               ]
             },
             'URL': {
-              url: `https://ankiologernas-notioneringsledger.netlify.app`
+              url: `https://ankiologernas-notioneringsledger.netlify.app#lecture-${lectureNumber}`
             }
           }
         });
