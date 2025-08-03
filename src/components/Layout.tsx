@@ -150,15 +150,33 @@ export default function Layout({
 
       // Test endpoint availability first
       const endpoint = process.env.NODE_ENV === 'development'
-        ? '/api/updateNotionDatabase'
-        : '/.netlify/functions/updateNotionDatabase';
+        ? '/api/updateNotionPage'
+        : '/.netlify/functions/updateNotionPage';
         
       addMessage(`🎯 Using endpoint: ${endpoint}`);
 
       // Sync FILTERED lectures to Notion databases using bulk_add action
       addMessage(`🔄 Starting bulk sync to Notion databases for ${activeCourse.title}...`);
       addMessage(`🔍 Processing lectures ${sortedLectures[0]?.lectureNumber} through ${sortedLectures[sortedLectures.length - 1]?.lectureNumber}`);
-      const result = await syncAllLecturesToNotionPages(sortedLectures);
+      
+      // Create progress callbacks for real-time UI updates
+      const progressCallbacks = {
+        onLectureStart: (lectureNumber: number, title: string, current: number, total: number) => {
+          updateProgress(current, `🔄 ${current}/${total}: Syncing ${lectureNumber}. ${title.substring(0, 50)}...`);
+        },
+        onLectureComplete: (lectureNumber: number, title: string, success: boolean, current: number, total: number) => {
+          const emoji = success ? '✅' : '❌';
+          const status = success ? 'synced' : 'failed';
+          addMessage(`${emoji} ${current}/${total}: ${lectureNumber}. ${title.substring(0, 50)} - ${status}`);
+          updateProgress(current);
+        },
+        onLectureError: (lectureNumber: number, title: string, error: string, current: number, total: number) => {
+          addMessage(`❌ ${current}/${total}: ${lectureNumber}. ${title.substring(0, 50)} - Error: ${error}`);
+          updateProgress(current);
+        }
+      };
+      
+      const result = await syncAllLecturesToNotionPages(sortedLectures, progressCallbacks);
       
       if (result.success) {
         addMessage(`✅ Auto-sync completed successfully: ${result.message}`);

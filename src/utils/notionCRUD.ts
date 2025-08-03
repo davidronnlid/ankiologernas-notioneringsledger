@@ -352,7 +352,12 @@ export const filterLecturesByActiveCourse = (lectures: any[]) => {
 
 // Bulk sync function to ensure ALL lectures from active course exist in Notion pages
 export const syncAllLecturesToNotionPages = async (
-  lectures: any[]
+  lectures: any[],
+  progressCallbacks?: {
+    onLectureStart?: (lectureNumber: number, title: string, current: number, total: number) => void;
+    onLectureComplete?: (lectureNumber: number, title: string, success: boolean, current: number, total: number) => void;
+    onLectureError?: (lectureNumber: number, title: string, error: string, current: number, total: number) => void;
+  }
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   // Get the currently active course FIRST
   const activeCourse = getCurrentActiveCourse();
@@ -396,9 +401,21 @@ export const syncAllLecturesToNotionPages = async (
   let skipCount = 0;
   let errorCount = 0;
 
-  for (const lecture of activeLectures) {
+  for (let i = 0; i < activeLectures.length; i++) {
+    const lecture = activeLectures[i];
+    const currentProgress = i + 1;
+    const totalLectures = activeLectures.length;
+    
     try {
       console.log(`🔄 Processing lecture: ${lecture.lectureNumber}. ${lecture.title}`);
+      
+      // Notify UI that we're starting this lecture
+      progressCallbacks?.onLectureStart?.(
+        lecture.lectureNumber, 
+        lecture.title, 
+        currentProgress, 
+        totalLectures
+      );
       
       // Determine subject area for the lecture
       const subjectArea = determineSubjectArea(lecture.title);
@@ -411,6 +428,15 @@ export const syncAllLecturesToNotionPages = async (
           status: 'skipped',
           reason: 'Could not determine subject area'
         });
+        
+        // Notify UI of completion (failed)
+        progressCallbacks?.onLectureComplete?.(
+          lecture.lectureNumber, 
+          lecture.title, 
+          false, 
+          currentProgress, 
+          totalLectures
+        );
         continue;
       }
 
@@ -460,6 +486,15 @@ export const syncAllLecturesToNotionPages = async (
           status: 'success',
           subjectArea: subjectArea
         });
+        
+        // Notify UI of successful completion
+        progressCallbacks?.onLectureComplete?.(
+          lecture.lectureNumber, 
+          lecture.title, 
+          true, 
+          currentProgress, 
+          totalLectures
+        );
       } else {
         errorCount++;
         console.log(`❌ Failed to sync: ${lecture.title} - ${result.message}`);
@@ -468,6 +503,15 @@ export const syncAllLecturesToNotionPages = async (
           status: 'error',
           reason: result.message
         });
+        
+        // Notify UI of failed completion
+        progressCallbacks?.onLectureComplete?.(
+          lecture.lectureNumber, 
+          lecture.title, 
+          false, 
+          currentProgress, 
+          totalLectures
+        );
       }
 
     } catch (error) {
@@ -479,6 +523,15 @@ export const syncAllLecturesToNotionPages = async (
         status: 'error',
         reason: errorMessage
       });
+      
+      // Notify UI of error
+      progressCallbacks?.onLectureError?.(
+        lecture.lectureNumber, 
+        lecture.title, 
+        errorMessage, 
+        currentProgress, 
+        totalLectures
+      );
     }
 
     // Small delay between requests to be gentle on the API
