@@ -283,15 +283,16 @@ export default function Header() {
     letterSpacing: '0.025em',
     padding: '12px 24px',
     borderRadius: '16px',
-    background: 'rgba(48, 46, 50, 0.95)',
+    background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
     color: '#ffffff',
     textTransform: 'none' as const,
     backdropFilter: 'blur(10px)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
     '&:hover': {
-      background: 'rgba(48, 46, 50, 0.95)',
+      background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
       transform: 'translateY(-2px)',
-      boxShadow: '0 8px 25px rgba(11, 114, 185, 0.4)'
+      boxShadow: '0 8px 25px rgba(33, 150, 243, 0.5)'
     }
   };
 

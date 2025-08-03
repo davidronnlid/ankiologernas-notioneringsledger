@@ -265,7 +265,7 @@ async function ensureDatabaseSchema(notion: Client, database: any, userName: str
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, selectedByUser: string, action: string) {
+async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, subjectArea: string, selectedByUser: string, action: string) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
@@ -403,7 +403,11 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
                 }
               ]
             },
-            // Subject area removed - simplified to 3 columns only
+            'Subject area': {
+              select: {
+                name: subjectArea || 'Global hälsa' // Use provided subject area or default
+              }
+            },
             'Status': {
               select: {
                 name: 'Bör göra'
@@ -442,7 +446,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    let { lectureTitle, lectureNumber, selectedByUser, action } = req.body;
+    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action } = req.body;
     
     // Handle special mapping for full names to short names
     if (selectedByUser) {
@@ -526,9 +530,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`🔧 Ensuring database schema for ${userName}...`);
       await retryOperation(() => ensureDatabaseSchema(notion, database, userName), 3);
       
-      // Step 4: Add or update the lecture in the database with retry logic
-      console.log(`📝 Adding/updating lecture for ${userName}...`);
-      const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, targetUser, action), 3);
+              // Step 4: Add or update the lecture in the database with retry logic
+        console.log(`📝 Adding/updating lecture for ${userName}...`);
+        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action), 3);
       
       if (result) {
         // Check if this was a duplicate skip or actual creation/update

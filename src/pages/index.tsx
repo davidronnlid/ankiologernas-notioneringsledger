@@ -978,6 +978,17 @@ export default function Index() {
     console.log("- weeksData length:", weeksData?.length || 0);
   }, [isAuthenticated, currentUser, weeksData, isAllowedToCreateLectures]);
   
+  // Authentication status indicator
+  const authStatusMessage = () => {
+    if (!isAuthenticated) {
+      return "Du måste logga in för att lägga till, redigera eller ta bort föreläsningar.";
+    }
+    if (!isAllowedToCreateLectures) {
+      return "Endast David, Albin och Mattias kan lägga till, redigera eller ta bort föreläsningar.";
+    }
+    return `Inloggad som ${currentUser?.full_name} - Du kan lägga till, redigera och ta bort föreläsningar.`;
+  };
+  
   // State for duplicate removal notification
   const [showDuplicateNotification, setShowDuplicateNotification] = useState(false);
   const [removedDuplicates, setRemovedDuplicates] = useState<string[]>([]);
@@ -1895,6 +1906,22 @@ export default function Index() {
             >
               {getDisplayCourseTitle(courseTitle)}
             </Typography>
+            
+            {/* Authentication Status Message */}
+            <Typography
+              variant="body2"
+              style={{
+                color: isAllowedToCreateLectures ? "#4caf50" : "#ff9800",
+                marginBottom: "16px",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                backgroundColor: isAllowedToCreateLectures ? "rgba(76, 175, 80, 0.1)" : "rgba(255, 152, 0, 0.1)",
+                border: `1px solid ${isAllowedToCreateLectures ? "rgba(76, 175, 80, 0.3)" : "rgba(255, 152, 0, 0.3)"}`,
+                display: "inline-block",
+              }}
+            >
+              {authStatusMessage()}
+            </Typography>
           </div>
 
 
@@ -2316,6 +2343,51 @@ export default function Index() {
                         }}>
                           +
                         </div>
+                      </div>
+                    </Grid>
+              )}
+
+              {/* Login prompt card for unauthenticated users */}
+              {!isAllowedToCreateLectures && (
+                    <Grid item xs={12} sm={6} md={4}>
+                      <div 
+                        style={{
+                          height: "200px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "12px",
+                          background: "rgba(255, 152, 0, 0.1)",
+                          border: "2px dashed rgba(255, 152, 0, 0.5)",
+                          padding: "16px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          background: "rgba(255, 152, 0, 0.9)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          fontSize: "20px",
+                          marginBottom: "12px"
+                        }}>
+                          🔒
+                        </div>
+                        <Typography 
+                          variant="body2" 
+                          style={{ 
+                            color: "rgba(255, 255, 255, 0.8)",
+                            fontSize: "0.9rem",
+                            lineHeight: "1.4"
+                          }}
+                        >
+                          Logga in för att lägga till, redigera eller ta bort föreläsningar
+                        </Typography>
                       </div>
                     </Grid>
               )}

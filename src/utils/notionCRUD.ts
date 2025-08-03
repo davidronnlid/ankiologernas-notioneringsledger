@@ -383,6 +383,7 @@ export const syncAllLecturesToNotionPages = async (
       const requestBody = {
         lectureTitle: lecture.title,
         lectureNumber: lecture.lectureNumber,
+        subjectArea: lecture.subjectArea, // Add subject area to the request
         selectedByUser: selectedByUser, // Use actual logged-in user
         action: 'bulk_add' // New action type for bulk adding
       };

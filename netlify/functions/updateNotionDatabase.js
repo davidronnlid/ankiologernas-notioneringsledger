@@ -176,9 +176,21 @@ async function ensureDatabaseSchema(notion, database, userName) {
     const updates = {};
     let needsUpdate = false;
 
-    // Required properties for our lecture tracking system - simplified to 3 columns only
+    // Required properties for our lecture tracking system - 4 columns including subject area
     const requiredProperties = {
       'Föreläsning': { title: {} },
+      'Subject area': {
+        select: {
+          options: [
+            { name: 'Global hälsa', color: 'purple' },
+            { name: 'Geriatrik', color: 'blue' },
+            { name: 'Pediatrik', color: 'green' },
+            { name: 'Öron-Näsa-Hals', color: 'orange' },
+            { name: 'Gynekologi & Obstetrik', color: 'pink' },
+            { name: 'Oftalmologi', color: 'yellow' }
+          ]
+        }
+      },
       'Status': {
         select: {
           options: [
@@ -244,7 +256,7 @@ async function ensureDatabaseSchema(notion, database, userName) {
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, selectedByUser, action) {
+async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
@@ -382,7 +394,11 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
                 }
               ]
             },
-            // Subject area removed - simplified to 3 columns only
+            'Subject area': {
+              select: {
+                name: subjectArea || 'Global hälsa' // Use provided subject area or default
+              }
+            },
             'Status': {
               select: {
                 name: 'Bör göra'
@@ -424,7 +440,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    let { lectureTitle, lectureNumber, selectedByUser, action } = JSON.parse(event.body);
+    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action } = JSON.parse(event.body);
     
     // Handle special mapping for full names to short names
     if (selectedByUser) {
@@ -520,9 +536,9 @@ exports.handler = async (event, context) => {
       console.log(`🔧 Ensuring database schema for ${userName}...`);
       await retryOperation(() => ensureDatabaseSchema(notion, database, userName), 3);
       
-      // Step 4: Add or update the lecture in the database with retry logic
-      console.log(`📝 Adding/updating lecture for ${userName}...`);
-      const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, targetUser, action), 3);
+              // Step 4: Add or update the lecture in the database with retry logic
+        console.log(`📝 Adding/updating lecture for ${userName}...`);
+        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action), 3);
       
       if (result) {
         // Check if this was a duplicate skip or actual creation/update
