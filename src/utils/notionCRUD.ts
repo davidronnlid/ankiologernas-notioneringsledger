@@ -268,22 +268,93 @@ const determineSubjectArea = (lectureTitle: string): string | null => {
   return null;
 };
 
-// Bulk sync function to ensure ALL lectures exist in Notion pages
+// Helper function to get the currently active course
+const getCurrentActiveCourse = () => {
+  const currentDate = new Date();
+  const coursePeriods = [
+    {
+      title: "Medicinsk Mikrobiologi",
+      startDate: "2023-11-10",
+      endDate: "2024-01-05",
+    },
+    {
+      title: "Klinisk medicin 1",
+      startDate: "2024-01-06",
+      endDate: "2024-06-15",
+    },
+    {
+      title: "Klinisk medicin 2",
+      startDate: "2024-07-01",
+      endDate: "2025-01-20",
+    },
+    {
+      title: "Klinisk medicin 3",
+      startDate: "2025-01-26",
+      endDate: "2025-07-20",
+    },
+    {
+      title: "Klinisk medicin 4",
+      startDate: "2025-08-01",
+      endDate: "2026-01-17",
+    },
+  ];
+
+  const activeCourse = coursePeriods.find(course => {
+    const startDate = new Date(course.startDate);
+    const endDate = new Date(course.endDate);
+    return currentDate >= startDate && currentDate <= endDate;
+  });
+
+  return activeCourse || null;
+};
+
+// Bulk sync function to ensure ALL lectures from active course exist in Notion pages
 export const syncAllLecturesToNotionPages = async (
   lectures: any[]
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   console.log(`🔄 Starting bulk sync of ${lectures.length} lectures to Notion pages`);
 
-  // Filter to only include lectures from Klinisk medicin 4 course
-  const km4Lectures = lectures.filter(lecture => {
-    // Check if lecture has a course property or if it's part of KM4
-    // For now, we'll sync all lectures as they should be from the active course
-    // You can add more specific filtering here if needed
-    return true; // All lectures in the app should be from KM4
+  // Get the currently active course
+  const activeCourse = getCurrentActiveCourse();
+  console.log(`📚 Active course: ${activeCourse ? activeCourse.title : 'None found'}`);
+
+  if (!activeCourse) {
+    console.warn('⚠️ No active course found for current date');
+    return {
+      success: false,
+      message: 'No active course found for current date',
+      results: []
+    };
+  }
+
+  // Filter to only include lectures from the active course
+  const activeLectures = lectures.filter(lecture => {
+    if (!lecture.date) {
+      console.log(`⚠️ Lecture "${lecture.title}" has no date, skipping`);
+      return false;
+    }
+
+    const lectureDate = new Date(lecture.date);
+    const courseStartDate = new Date(activeCourse.startDate);
+    const courseEndDate = new Date(activeCourse.endDate);
+    
+    const isInActiveCourse = lectureDate >= courseStartDate && lectureDate <= courseEndDate;
+    
+    if (!isInActiveCourse) {
+      console.log(`⚠️ Lecture "${lecture.title}" (${lecture.date}) is not in active course ${activeCourse.title}, skipping`);
+    }
+    
+    return isInActiveCourse;
   });
 
-  if (km4Lectures.length !== lectures.length) {
-    console.log(`📚 Filtered to ${km4Lectures.length} Klinisk medicin 4 lectures from ${lectures.length} total`);
+  console.log(`📚 Filtered to ${activeLectures.length} lectures from active course "${activeCourse.title}" (from ${lectures.length} total)`);
+
+  if (activeLectures.length === 0) {
+    return {
+      success: true,
+      message: `No lectures found for active course "${activeCourse.title}"`,
+      results: []
+    };
   }
 
   const results: any[] = [];
@@ -291,7 +362,7 @@ export const syncAllLecturesToNotionPages = async (
   let skipCount = 0;
   let errorCount = 0;
 
-  for (const lecture of km4Lectures) {
+  for (const lecture of activeLectures) {
     try {
       console.log(`🔄 Processing lecture: ${lecture.lectureNumber}. ${lecture.title}`);
       
@@ -380,7 +451,7 @@ export const syncAllLecturesToNotionPages = async (
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
-  const message = `Bulk sync completed: ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${km4Lectures.length} total lectures processed)`;
+  const message = `Bulk sync completed for active course "${activeCourse.title}": ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${activeLectures.length} total lectures processed)`;
   console.log(`📊 ${message}`);
 
   return {
