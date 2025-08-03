@@ -448,10 +448,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let { lectureTitle, lectureNumber, selectedByUser, action } = req.body;
     
-    // Handle special mapping for dronnlid -> David (consistent with frontend)
-    if (selectedByUser && selectedByUser.toLowerCase().includes('dronnlid')) {
-      console.log(`🔄 Mapping dronnlid to David for backend processing`);
-      selectedByUser = 'David';
+    // Handle special mapping for full names to short names
+    if (selectedByUser) {
+      if (selectedByUser.toLowerCase().includes('dronnlid') || selectedByUser.includes('David Rönnlid')) {
+        console.log(`🔄 Mapping ${selectedByUser} to David for backend processing`);
+        selectedByUser = 'David';
+      } else if (selectedByUser.includes('Albin Lindberg')) {
+        console.log(`🔄 Mapping ${selectedByUser} to Albin for backend processing`);
+        selectedByUser = 'Albin';
+      } else if (selectedByUser.includes('Mattias Österdahl')) {
+        console.log(`🔄 Mapping ${selectedByUser} to Mattias for backend processing`);
+        selectedByUser = 'Mattias';
+      }
     }
     
     console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle}`);

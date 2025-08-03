@@ -366,10 +366,24 @@ export const syncAllLecturesToNotionPages = async (
       
       console.log(`📡 Calling ${endpoint} for bulk_add action`);
       
+      // Get current user from Redux store
+      let currentUser = null;
+      try {
+        // Import store dynamically to avoid SSR issues
+        const { store } = await import('../store/store');
+        const state = store.getState();
+        currentUser = state.auth.user;
+      } catch (error) {
+        console.warn('Could not get current user from store:', error);
+      }
+      
+      // Use current user's name, fallback to 'David' for development
+      const selectedByUser = currentUser?.full_name || 'David Rönnlid';
+      
       const requestBody = {
         lectureTitle: lecture.title,
         lectureNumber: lecture.lectureNumber,
-        selectedByUser: 'System', // Use 'System' to indicate bulk sync
+        selectedByUser: selectedByUser, // Use actual logged-in user
         action: 'bulk_add' // New action type for bulk adding
       };
       

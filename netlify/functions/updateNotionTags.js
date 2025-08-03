@@ -7,11 +7,11 @@ const NOTION_TOKENS = {
   'Mattias': process.env.NOTION_TOKEN_MATTIAS
 };
 
-// Database IDs for each user's lecture database
-const DATABASE_IDS = {
-  'David': process.env.NOTION_DATABASE_DAVID,
-  'Albin': process.env.NOTION_DATABASE_ALBIN,
-  'Mattias': process.env.NOTION_DATABASE_MATTIAS
+// Course page IDs for each user (these contain the databases)
+const COURSE_PAGE_IDS = {
+  'David': process.env.NOTION_COURSE_PAGE_DAVID,
+  'Albin': process.env.NOTION_COURSE_PAGE_ALBIN,
+  'Mattias': process.env.NOTION_COURSE_PAGE_MATTIAS
 };
 
 // User name to letter mapping
@@ -20,6 +20,93 @@ const USER_LETTERS = {
   'Albin': 'A', 
   'Mattias': 'M'
 };
+
+// Helper function to find or create database within a course page
+async function findOrCreateDatabase(notion, coursePageId, userName) {
+  try {
+    // Get all blocks from the course page
+    const blocks = await notion.blocks.children.list({
+      block_id: coursePageId
+    });
+
+    // Look for existing database
+    const existingDatabase = blocks.results.find(block => 
+      block.type === 'child_database'
+    );
+
+    if (existingDatabase) {
+      console.log(`✅ Found existing database in ${userName}'s course page`);
+      return existingDatabase.id;
+    }
+
+    // Create new INLINE database on the page
+    console.log(`📊 Creating new INLINE database in ${userName}'s course page`);
+    const database = await notion.databases.create({
+      parent: {
+        type: 'page_id',
+        page_id: coursePageId
+      },
+      title: [
+        {
+          type: 'text',
+          text: {
+            content: 'Klinisk medicin 4 - Föreläsningar'
+          }
+        }
+      ],
+      properties: {
+        'Name': {
+          title: {}
+        },
+        'Föreläsning': {
+          rich_text: {}
+        },
+        'Vems': {
+          rich_text: {}
+        },
+        'Subject area': {
+          select: {
+            options: [
+              { name: 'Global hälsa', color: 'blue' },
+              { name: 'Geriatrik', color: 'orange' },
+              { name: 'Öron-Näsa-Hals', color: 'yellow' },
+              { name: 'Pediatrik', color: 'green' },
+              { name: 'Oftalmologi', color: 'purple' },
+              { name: 'Gynekologi & Obstetrik', color: 'pink' }
+            ]
+          }
+        },
+        'Person': {
+          select: {
+            options: [
+              { name: 'D', color: 'red' },
+              { name: 'A', color: 'green' },
+              { name: 'M', color: 'yellow' }
+            ]
+          }
+        },
+        'Status': {
+          select: {
+            options: [
+              { name: 'Bör göra', color: 'default' },
+              { name: 'Ej ankiz', color: 'gray' },
+              { name: 'Blå ankiz', color: 'blue' }
+            ]
+          }
+        }
+      },
+      // CRITICAL: This ensures the database is created INLINE within the page
+      is_inline: true
+    });
+
+    console.log(`✅ Created new database in ${userName}'s course page with ID: ${database.id}`);
+    return database.id;
+    
+  } catch (error) {
+    console.error(`❌ Failed to find/create database in ${userName}'s course page:`, error);
+    throw error;
+  }
+}
 
 // Helper function to create a new lecture page
 async function createLecturePage(notion, databaseId, lectureTitle, lectureNumber, selectedByUser, action) {
@@ -106,7 +193,7 @@ exports.handler = async (event, context) => {
     const updateResults = [];
     
     for (const [userName, token] of Object.entries(NOTION_TOKENS)) {
-      if (!token || !DATABASE_IDS[userName]) {
+      if (!token || !COURSE_PAGE_IDS[userName]) {
         console.warn(`⚠️ Missing Notion config for ${userName}`);
         updateResults.push({
           user: userName,
@@ -118,7 +205,10 @@ exports.handler = async (event, context) => {
 
       try {
         const notion = new Client({ auth: token });
-        const databaseId = DATABASE_IDS[userName];
+        const coursePageId = COURSE_PAGE_IDS[userName];
+
+        // Find or create the database within the course page
+        const databaseId = await findOrCreateDatabase(notion, coursePageId, userName);
 
         // Search for the lecture in this user's database
         const response = await notion.databases.query({
