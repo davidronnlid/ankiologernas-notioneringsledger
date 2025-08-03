@@ -176,13 +176,7 @@ export const triggerNotionSync = async (
         return;
       }
 
-      // Determine subject area from lecture title or use a default
-      const subjectArea = determineSubjectArea(lectureData.title);
-      
-      if (!subjectArea) {
-        console.warn(`❌ Could not determine subject area for lecture: ${lectureData.title}`);
-        return;
-      }
+      // Subject area logic removed - simplified database with only 3 columns
 
       // Use the database endpoint
       const endpoint = process.env.NODE_ENV === 'development' 
@@ -198,7 +192,6 @@ export const triggerNotionSync = async (
           lectureTitle: lectureData.title,
           lectureNumber: lectureData.lectureNumber,
           selectedByUser: user,
-          subjectArea: subjectArea,
           action: action === 'lecture_selected' ? 'select' : 'unselect'
         })
       });
@@ -483,32 +476,8 @@ export const syncAllLecturesToNotionPages = async (
         totalLectures
       );
       
-      // Determine subject area for the lecture
-      const subjectArea = determineSubjectArea(lecture.title);
-      
-      if (!subjectArea) {
-        console.warn(`⚠️ SKIPPING lecture ${lecture.lectureNumber} without subject area: "${lecture.title}"`);
-        console.warn(`📋 Title analysis: "${lecture.title.toLowerCase()}"`);
-        skipCount++;
-        results.push({
-          lecture: lecture.title,
-          lectureNumber: lecture.lectureNumber,
-          status: 'skipped',
-          reason: 'Could not determine subject area'
-        });
-        
-        // Notify UI of completion (failed)
-        progressCallbacks?.onLectureComplete?.(
-          lecture.lectureNumber, 
-          lecture.title, 
-          false, 
-          currentProgress, 
-          totalLectures
-        );
-        continue;
-      }
-
-      console.log(`📂 Subject area determined: ${subjectArea} for lecture: ${lecture.title}`);
+      // Subject area logic removed - simplified database with only 3 columns
+      console.log(`📂 Processing lecture: ${lecture.title}`);
 
       // Use the database endpoint to add the lecture
       const endpoint = process.env.NODE_ENV === 'development' 

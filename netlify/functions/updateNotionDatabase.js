@@ -22,15 +22,7 @@ const USER_LETTERS = {
   'System': '' // For bulk operations, no user letter needed
 };
 
-// Subject areas for Klinisk medicin 4
-const SUBJECT_AREAS = [
-  'Global hälsa',
-  'Geriatrik', 
-  'Pediatrik',
-  'Öron-Näsa-Hals',
-  'Gynekologi & Obstetrik',
-  'Oftalmologi'
-];
+// Subject areas removed - no longer needed for simplified 3-column database
 
 // Helper function to get the specific course page for a user
 async function getUserCoursePage(notion, userName) {
@@ -461,7 +453,7 @@ exports.handler = async (event, context) => {
         await ensureDatabaseSchema(notion, database, userName);
         
         // Step 4: Add or update the lecture in the database
-        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, selectedByUser, action);
+        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, selectedByUser, action);
         
         if (result) {
           // Check if this was a duplicate skip or actual creation/update
