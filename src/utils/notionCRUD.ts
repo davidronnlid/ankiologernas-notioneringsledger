@@ -280,21 +280,21 @@ const getCurrentActiveCourse = () => {
     {
       title: "Klinisk medicin 1",
       startDate: "2024-01-06",
-      endDate: "2024-03-31",
+      endDate: "2024-06-15",
     },
     {
       title: "Klinisk medicin 2",
-      startDate: "2024-04-01",
-      endDate: "2024-08-31",
+      startDate: "2024-07-01",
+      endDate: "2025-01-20",
     },
     {
       title: "Klinisk medicin 3",
-      startDate: "2024-09-01",
-      endDate: "2024-12-31",
+      startDate: "2025-01-26",
+      endDate: "2025-07-20",
     },
     {
       title: "Klinisk medicin 4",
-      startDate: "2025-01-01",
+      startDate: "2025-08-01",
       endDate: "2026-01-17",
     },
   ];
@@ -313,27 +313,41 @@ const getCurrentActiveCourse = () => {
 
 // Helper function to filter lectures by active course (exported for use in components)
 export const filterLecturesByActiveCourse = (lectures: any[]) => {
-  const activeCourse = getCurrentActiveCourse();
+  // For now, manually set Klinisk medicin 4 as the target course since that's what the user is working with
+  const targetCourse = {
+    title: "Klinisk medicin 4",
+    startDate: "2025-08-01",
+    endDate: "2026-01-17",
+  };
   
-  if (!activeCourse) {
-    console.warn('⚠️ No active course found for current date');
-    return { activeCourse: null, activeLectures: [], filteredCount: 0, totalCount: lectures.length };
-  }
+  console.log(`🎯 Targeting course: ${targetCourse.title}`);
 
+  // Filter lectures that belong to the target course by date range
   const activeLectures = lectures.filter(lecture => {
     if (!lecture.date) {
       return false;
     }
 
     const lectureDate = new Date(lecture.date);
-    const courseStartDate = new Date(activeCourse.startDate);
-    const courseEndDate = new Date(activeCourse.endDate);
+    const courseStartDate = new Date(targetCourse.startDate);
+    const courseEndDate = new Date(targetCourse.endDate);
     
-    return lectureDate >= courseStartDate && lectureDate <= courseEndDate;
+    // Check if lecture falls within the target course period
+    const isInTargetCourse = lectureDate >= courseStartDate && lectureDate <= courseEndDate;
+    
+    if (isInTargetCourse) {
+      console.log(`✅ Including lecture: ${lecture.title} (${lecture.date})`);
+    } else {
+      console.log(`❌ Excluding lecture: ${lecture.title} (${lecture.date}) - outside course period`);
+    }
+    
+    return isInTargetCourse;
   });
 
+  console.log(`📊 Filtered ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
+
   return { 
-    activeCourse, 
+    activeCourse: targetCourse, 
     activeLectures, 
     filteredCount: activeLectures.length, 
     totalCount: lectures.length 
