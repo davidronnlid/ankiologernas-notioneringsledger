@@ -138,13 +138,13 @@ export const isNotionIntegrationAvailable = (): boolean => {
     process.env.NOTION_TOKEN_MATTIAS
   );
   
-  const hasDatabases = !!(
-    process.env.NOTION_DATABASE_DAVID ||
-    process.env.NOTION_DATABASE_ALBIN ||
-    process.env.NOTION_DATABASE_MATTIAS
+  const hasPages = !!(
+    process.env.NOTION_COURSE_PAGE_DAVID ||
+    process.env.NOTION_COURSE_PAGE_ALBIN ||
+    process.env.NOTION_COURSE_PAGE_MATTIAS
   );
   
-  return hasTokens && hasDatabases;
+  return hasTokens && hasPages;
 };
 
 // Auto-sync triggers based on user actions - now using page-based system
@@ -153,19 +153,19 @@ export const triggerNotionSync = async (
   lectureData: any,
   user?: string
 ) => {
-  // Check if we have the necessary environment variables for database-based sync
-  const hasDatabaseConfig = !!(
-    process.env.NOTION_DATABASE_DAVID ||
-    process.env.NOTION_DATABASE_ALBIN ||
-    process.env.NOTION_DATABASE_MATTIAS
+  // Check if we have the necessary environment variables for page-based sync
+  const hasPageConfig = !!(
+    process.env.NOTION_COURSE_PAGE_DAVID ||
+    process.env.NOTION_COURSE_PAGE_ALBIN ||
+    process.env.NOTION_COURSE_PAGE_MATTIAS
   );
 
-  if (!hasDatabaseConfig) {
-    console.log('🔄 Notion database-based integration not configured, skipping sync');
+  if (!hasPageConfig) {
+    console.log('🔄 Notion page-based integration not configured, skipping sync');
     return;
   }
 
-  console.log(`🔄 Triggering Notion database sync for action: ${action}`);
+  console.log(`🔄 Triggering Notion page sync for action: ${action}`);
 
   try {
     // For the new page-based system, we only need to handle select/unselect actions

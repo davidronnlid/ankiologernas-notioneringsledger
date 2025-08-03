@@ -1,12 +1,14 @@
-# Notion Database Integration Setup
+# Notion Page + Database Integration Setup
 
 ## 🏗️ **Architecture Overview**
 
-The Notion integration now uses a **simplified single-database approach** per user instead of separate databases for each subject area or complex page hierarchies.
+The Notion integration uses a **page-based approach with a single embedded database** per user - giving you the best of both worlds: simplicity and customizability.
 
 ### **Structure**:
-- **One database per user** for all "Klinisk medicin 4" lectures
+- **One "Klinisk medicin 4" page per user** (customizable with other content)
+- **One database embedded in that page** for all lectures
 - **Subject Area column** to categorize lectures by medical specialty  
+- **Users can add other content** around the database on their page
 - **Automatic schema management** ensures databases have correct properties
 
 ## 📊 **Database Schema**
@@ -33,30 +35,33 @@ NOTION_TOKEN_DAVID=secret_xyz...
 NOTION_TOKEN_ALBIN=secret_abc...
 NOTION_TOKEN_MATTIAS=secret_def...
 
-# Database IDs (one per user - single database for all subjects)
-NOTION_DATABASE_DAVID=database_id_xyz...
-NOTION_DATABASE_ALBIN=database_id_abc...
-NOTION_DATABASE_MATTIAS=database_id_def...
+# Course Page IDs (one per user - will contain the database)
+NOTION_COURSE_PAGE_DAVID=page_id_xyz...
+NOTION_COURSE_PAGE_ALBIN=page_id_abc...
+NOTION_COURSE_PAGE_MATTIAS=page_id_def...
 ```
 
-### **How to Get Database IDs**:
+### **How to Set Up**:
 
-1. **Create Database**: Create a new database in Notion (can be empty initially)
-2. **Get Database ID**: From the database URL: `notion.so/workspace/DATABASE_ID?v=view_id`
-3. **Share with Integration**: Make sure your Notion integration has access to the database
+1. **Create Page**: Create a new page in Notion titled "Klinisk medicin 4" (or any name you prefer)
+2. **Get Page ID**: From the page URL: `notion.so/workspace/PAGE_ID`
+3. **Share with Integration**: Make sure your Notion integration has access to the page
+4. **Database Auto-Creation**: The system will automatically create the database on the page when first accessed
 
-## 🚀 **Migration Benefits**
+## 🚀 **System Benefits**
 
-### **From Page-Based System**:
-✅ **Simpler**: One database instead of multiple toggle sections  
-✅ **Faster**: Direct database operations instead of page navigation  
-✅ **Cleaner**: Single view of all lectures with filtering by subject  
-✅ **Maintainable**: Automatic schema updates  
+### **Perfect Balance**:
+✅ **Customizable Pages**: Users can add notes, links, and other content around the database  
+✅ **Simple Database**: One unified view of all lectures with subject area filtering  
+✅ **Auto-Management**: System automatically creates and maintains the database schema  
+✅ **Fast Operations**: Direct database operations for lecture tracking  
+✅ **Clean Interface**: Single view of all lectures with easy subject filtering  
+✅ **Flexible Views**: Users can create custom Notion views (by subject, completion status, etc.)
 
-### **From Subject-Specific Databases**:
-✅ **Unified**: All lectures in one place per user  
-✅ **Flexible**: Easy filtering and views by subject area  
-✅ **Consistent**: Same structure across all users  
+### **Best of Both Worlds**:
+- **Page Flexibility**: Like having a customizable workspace
+- **Database Simplicity**: Like having a clean spreadsheet view
+- **Auto-Setup**: No manual database creation needed  
 
 ## 🔄 **How It Works**
 

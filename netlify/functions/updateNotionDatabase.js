@@ -7,11 +7,11 @@ const NOTION_TOKENS = {
   'Mattias': process.env.NOTION_TOKEN_MATTIAS
 };
 
-// Single database ID per user (one database for all subjects)
-const NOTION_DATABASES = {
-  'David': process.env.NOTION_DATABASE_DAVID,
-  'Albin': process.env.NOTION_DATABASE_ALBIN,
-  'Mattias': process.env.NOTION_DATABASE_MATTIAS
+// Main course page IDs for each user (these will contain the single database)
+const COURSE_PAGE_IDS = {
+  'David': process.env.NOTION_COURSE_PAGE_DAVID,
+  'Albin': process.env.NOTION_COURSE_PAGE_ALBIN,
+  'Mattias': process.env.NOTION_COURSE_PAGE_MATTIAS
 };
 
 // User name to letter mapping for tracking
@@ -32,12 +32,124 @@ const SUBJECT_AREAS = [
   'Oftalmologi'
 ];
 
-// Helper function to get or create database with proper schema
-async function ensureDatabaseSchema(notion, databaseId, userName) {
+// Helper function to get the specific course page for a user
+async function getUserCoursePage(notion, userName) {
   try {
-    // Get current database properties
-    const database = await notion.databases.retrieve({ database_id: databaseId });
-    console.log(`📊 Checking database schema for ${userName}: ${databaseId}`);
+    const pageId = COURSE_PAGE_IDS[userName];
+    
+    if (!pageId) {
+      throw new Error(`No course page ID configured for ${userName}. Please set NOTION_COURSE_PAGE_${userName.toUpperCase()} environment variable.`);
+    }
+
+    // Get the specific page by ID
+    console.log(`🎯 Getting course page for ${userName}: ${pageId}`);
+    const page = await notion.pages.retrieve({ page_id: pageId });
+    
+    console.log(`✅ Found course page for ${userName}`);
+    return page;
+    
+  } catch (error) {
+    // If page doesn't exist or no access, provide helpful error
+    if (error.code === 'object_not_found') {
+      throw new Error(`Course page not found for ${userName}. Please check:
+        1. Page ID in NOTION_COURSE_PAGE_${userName.toUpperCase()} is correct
+        2. Integration has access to the page
+        3. Page exists in ${userName}'s Notion workspace`);
+    }
+    
+    console.error(`❌ Failed to get course page for ${userName}:`, error);
+    throw error;
+  }
+}
+
+// Helper function to find or create a single database on the course page
+async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
+  try {
+    // Get all blocks from the course page
+    const blocks = await notion.blocks.children.list({
+      block_id: coursePageId
+    });
+
+    // Look for existing database
+    const existingDatabase = blocks.results.find(block => 
+      block.type === 'child_database'
+    );
+
+    if (existingDatabase) {
+      console.log(`✅ Found existing database on ${userName}'s course page`);
+      // Return the database object with proper structure
+      const fullDatabase = await notion.databases.retrieve({ database_id: existingDatabase.id });
+      return fullDatabase;
+    }
+
+    // Create new database on the page
+    console.log(`📊 Creating new database on ${userName}'s course page`);
+    const database = await notion.databases.create({
+      parent: {
+        type: 'page_id',
+        page_id: coursePageId
+      },
+      title: [
+        {
+          type: 'text',
+          text: {
+            content: 'Klinisk medicin 4 - Föreläsningar'
+          }
+        }
+      ],
+      properties: {
+        'Föreläsning': {
+          title: {}
+        },
+        'Nummer': {
+          number: {
+            format: 'number'
+          }
+        },
+        'Subject Area': {
+          select: {
+            options: SUBJECT_AREAS.map(area => ({ name: area, color: 'default' }))
+          }
+        },
+        'Tag': {
+          select: {
+            options: [
+              { name: 'Bör göra', color: 'default' },
+              { name: 'Ej ankiz', color: 'gray' },
+              { name: 'Blå ankiz', color: 'blue' }
+            ]
+          }
+        },
+        'Person': {
+          select: {
+            options: [
+              { name: 'D', color: 'red' },
+              { name: 'A', color: 'green' },
+              { name: 'M', color: 'yellow' }
+            ]
+          }
+        },
+        'Date and Time': { rich_text: {} },
+        'URL': { url: {} }
+      },
+      // Enable list view by default
+      is_inline: true
+    });
+
+    console.log(`🎯 Database created with ID: ${database.id}`);
+    console.log(`✅ Created database on ${userName}'s course page`);
+    return database;
+    
+  } catch (error) {
+    console.error(`❌ Failed to find/create database on ${userName}'s course page:`, error);
+    throw error;
+  }
+}
+
+// Helper function to ensure database schema is up to date
+async function ensureDatabaseSchema(notion, database, userName) {
+  try {
+    console.log(`📊 Checking database schema for ${userName}: ${database.id}`);
     
     const currentProperties = database.properties;
     const updates = {};
@@ -102,7 +214,7 @@ async function ensureDatabaseSchema(notion, databaseId, userName) {
     // Apply updates if needed
     if (needsUpdate) {
       await notion.databases.update({
-        database_id: databaseId,
+        database_id: database.id,
         properties: updates
       });
       console.log(`✅ Updated database schema for ${userName}`);
@@ -360,25 +472,20 @@ exports.handler = async (event, context) => {
         continue;
       }
 
-      const databaseId = NOTION_DATABASES[userName];
-      if (!databaseId) {
-        console.warn(`⚠️ No Notion database ID found for ${userName}, skipping...`);
-        results.push({
-          user: userName,
-          success: false,
-          error: 'No Notion database configured'
-        });
-        continue;
-      }
-
       try {
         const notion = new Client({ auth: token });
         
-        // Step 1: Ensure database has correct schema
-        await ensureDatabaseSchema(notion, databaseId, userName);
+        // Step 1: Get the user's specific course page
+        const coursePage = await getUserCoursePage(notion, userName);
         
-        // Step 2: Add or update the lecture in the database
-        const result = await addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action);
+        // Step 2: Find or create the single database on the course page
+        const database = await findOrCreateCourseDatabase(notion, coursePage.id, userName);
+        
+        // Step 3: Ensure database has correct schema
+        await ensureDatabaseSchema(notion, database, userName);
+        
+        // Step 4: Add or update the lecture in the database
+        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, selectedByUser, action);
         
         if (result) {
           results.push({
