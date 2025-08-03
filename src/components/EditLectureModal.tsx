@@ -174,6 +174,7 @@ interface EditLectureModalProps {
     time: string;
     subjectArea: SubjectArea;
     duration: number;
+    userFullName: string;
   }) => void;
   isLoading?: boolean;
 }
@@ -300,6 +301,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
         time: timeString,
         subjectArea: subjectArea as SubjectArea,
         duration,
+        userFullName: currentUser?.full_name || "",
       });
     }
   };

@@ -19,7 +19,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, title, date, time, subjectArea, duration } = req.body;
+    const { id, title, date, time, subjectArea, duration, userFullName } = req.body;
+
+    // Authentication check for lecture editing
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    if (!userFullName || !allowedNames.includes(userFullName)) {
+      return res.status(403).json({ 
+        error: 'Unauthorized',
+        message: 'Only authorized users (David, Albin, or Mattias) can edit lectures'
+      });
+    }
 
     if (!id || !title || !date || !time || !subjectArea) {
       return res.status(400).json({ error: 'Missing required fields' });

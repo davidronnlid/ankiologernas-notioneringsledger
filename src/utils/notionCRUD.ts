@@ -236,6 +236,10 @@ const determineSubjectArea = (lectureTitle: string): string | null => {
     'geriatrik': 'Geriatrik',
     'äldre': 'Geriatrik',
     'global hälsa': 'Global hälsa',
+    'global': 'Global hälsa',
+    'hälsa': 'Global hälsa',
+    'equity': 'Global hälsa',
+    'health': 'Global hälsa',
     'globala': 'Global hälsa',
     'öron': 'Öron-Näsa-Hals',
     'näsa': 'Öron-Näsa-Hals',
@@ -269,6 +273,18 @@ export const syncAllLecturesToNotionPages = async (
   lectures: any[]
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   console.log(`🔄 Starting bulk sync of ${lectures.length} lectures to Notion pages`);
+  console.log('🔧 Environment debug:', {
+    NODE_ENV: process.env.NODE_ENV,
+    hasPageConfig: !!(
+      process.env.NOTION_COURSE_PAGE_DAVID ||
+      process.env.NOTION_COURSE_PAGE_ALBIN ||
+      process.env.NOTION_COURSE_PAGE_MATTIAS ||
+      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID ||
+      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_ALBIN ||
+      process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_MATTIAS
+    ),
+    availableEnvVars: Object.keys(process.env).filter(key => key.includes('NOTION')).slice(0, 5)
+  });
 
   // Filter to only include lectures from Klinisk medicin 4 course
   const km4Lectures = lectures.filter(lecture => {
@@ -291,19 +307,27 @@ export const syncAllLecturesToNotionPages = async (
   const hasPageConfig = !!(
     process.env.NOTION_COURSE_PAGE_DAVID ||
     process.env.NOTION_COURSE_PAGE_ALBIN ||
-    process.env.NOTION_COURSE_PAGE_MATTIAS
+    process.env.NOTION_COURSE_PAGE_MATTIAS ||
+    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID ||
+    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_ALBIN ||
+    process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_MATTIAS
   );
 
+  console.log(`🏗️ Page configuration check: ${hasPageConfig ? 'CONFIGURED' : 'MISSING'}`);
+
   if (!hasPageConfig) {
+    console.error('❌ Missing Notion page configuration');
     return {
       success: false,
-      message: 'Notion page-based integration not configured',
+      message: 'Notion page-based integration not configured - missing NOTION_COURSE_PAGE_* environment variables',
       results: []
     };
   }
 
   for (const lecture of km4Lectures) {
     try {
+      console.log(`🔄 Processing lecture: ${lecture.lectureNumber}. ${lecture.title}`);
+      
       // Determine subject area for the lecture
       const subjectArea = determineSubjectArea(lecture.title);
       
@@ -318,33 +342,47 @@ export const syncAllLecturesToNotionPages = async (
         continue;
       }
 
+      console.log(`📂 Subject area determined: ${subjectArea} for lecture: ${lecture.title}`);
+
       // Use the new updateNotionPage endpoint to add the lecture
       const endpoint = process.env.NODE_ENV === 'development' 
         ? '/api/updateNotionPage'
         : '/.netlify/functions/updateNotionPage';
+      
+      console.log(`📡 Calling ${endpoint} for bulk_add action`);
+      
+      const requestBody = {
+        lectureTitle: lecture.title,
+        lectureNumber: lecture.lectureNumber,
+        selectedByUser: 'System', // Use 'System' to indicate bulk sync
+        subjectArea: subjectArea,
+        action: 'bulk_add' // New action type for bulk adding
+      };
+      
+      console.log(`📤 Request body:`, requestBody);
       
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          lectureTitle: lecture.title,
-          lectureNumber: lecture.lectureNumber,
-          selectedByUser: 'System', // Use 'System' to indicate bulk sync
-          subjectArea: subjectArea,
-          action: 'bulk_add' // New action type for bulk adding
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log(`📥 Response status: ${response.status}`);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ HTTP error ${response.status}: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
+      console.log(`📊 Response result:`, result);
       
       if (result.success) {
         successCount++;
+        console.log(`✅ Successfully synced: ${lecture.title}`);
         results.push({
           lecture: lecture.title,
           status: 'success',
@@ -352,6 +390,7 @@ export const syncAllLecturesToNotionPages = async (
         });
       } else {
         errorCount++;
+        console.log(`❌ Failed to sync: ${lecture.title} - ${result.message}`);
         results.push({
           lecture: lecture.title,
           status: 'error',
@@ -361,16 +400,17 @@ export const syncAllLecturesToNotionPages = async (
 
     } catch (error) {
       errorCount++;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Exception while syncing lecture ${lecture.title}:`, errorMessage);
       results.push({
         lecture: lecture.title,
         status: 'error',
-        reason: error instanceof Error ? error.message : 'Unknown error'
+        reason: errorMessage
       });
-      console.error(`❌ Failed to sync lecture ${lecture.title}:`, error);
     }
 
     // Small delay between requests to be gentle on the API
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 
   const message = `Bulk sync completed: ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${km4Lectures.length} total lectures processed)`;

@@ -29,7 +29,20 @@ exports.handler = async (event, context) => {
   const client = new MongoClient(uri);
 
   try {
-    const { lectureId, action } = JSON.parse(event.body);
+    const { lectureId, action, userFullName } = JSON.parse(event.body);
+
+    // Authentication check for lecture deletion
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    if (!userFullName || !allowedNames.includes(userFullName)) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: "Unauthorized",
+          message: "Only authorized users (David, Albin, or Mattias) can delete lectures"
+        })
+      };
+    }
 
     if (!lectureId || action !== 'deleteLecture') {
       return {

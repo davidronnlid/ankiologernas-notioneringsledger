@@ -98,6 +98,12 @@ export default function Layout({
     try {
       if (lecturesData.length === 0) {
         fetchDataAndDispatch();
+      } else {
+        // If data already exists, also trigger auto-sync to ensure Notion is up to date
+        console.log('📊 Data already exists, triggering auto-sync to ensure Notion is up to date');
+        setTimeout(() => {
+          triggerAutoNotionSync(lecturesData);
+        }, 2000);
       }
     } catch (error) {
       console.error('❌ Layout data loading error:', error);
@@ -107,13 +113,12 @@ export default function Layout({
   // Auto-sync function to sync all lectures to Notion databases when app loads
   const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
     try {
-      // Only auto-sync in production to avoid unnecessary API calls during development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Skipping auto-sync in development mode');
-        return;
-      }
-
-      console.log('🚀 Auto-syncing lectures to Notion databases...');
+      console.log('🚀 Starting auto-sync of lectures to Notion databases...');
+      console.log('🔍 Environment check:', {
+        NODE_ENV: process.env.NODE_ENV,
+        hasNotionTokens: !!(process.env.NOTION_TOKEN_DAVID || process.env.NEXT_PUBLIC_NOTION_TOKEN_DAVID),
+        hasPageIds: !!(process.env.NOTION_COURSE_PAGE_DAVID || process.env.NEXT_PUBLIC_NOTION_COURSE_PAGE_DAVID)
+      });
       
       // Extract all lectures from the week data
       const allLectures = lectureData.flatMap(week => week.lectures);
@@ -123,13 +128,29 @@ export default function Layout({
         return;
       }
 
-      // Sync all lectures to Notion databases
+      console.log(`📊 Found ${allLectures.length} lectures to sync to Notion`);
+      console.log('📋 Sample lectures:', allLectures.slice(0, 3).map(l => ({ 
+        title: l.title, 
+        number: l.lectureNumber,
+        week: l.week
+      })));
+
+      // Test endpoint availability first
+      const endpoint = process.env.NODE_ENV === 'development'
+        ? '/api/updateNotionPage'
+        : '/.netlify/functions/updateNotionPage';
+        
+      console.log(`🎯 Testing endpoint: ${endpoint}`);
+
+      // Sync all lectures to Notion databases using bulk_add action
       const result = await syncAllLecturesToNotionPages(allLectures);
       
       if (result.success) {
-        console.log(`✅ Auto-sync completed: ${result.message}`);
+        console.log(`✅ Auto-sync completed successfully: ${result.message}`);
+        console.log(`📊 Results summary:`, result.results?.slice(0, 5));
       } else {
         console.log(`⚠️ Auto-sync had issues: ${result.message}`);
+        console.log(`📊 Error details:`, result.results?.slice(0, 5));
       }
     } catch (error) {
       console.error('❌ Auto-sync failed:', error);
@@ -213,8 +234,11 @@ export default function Layout({
           dispatch(setLectures(dataWithCheckboxStates));
           console.log("✅ Layout: Data dispatched to Redux!");
           
-          // Auto-sync all lectures to Notion databases
-          triggerAutoNotionSync(dataWithCheckboxStates);
+          // Auto-sync all lectures to Notion databases after a small delay to ensure state is set
+          setTimeout(() => {
+            console.log("🎯 Triggering auto-sync to Notion databases...");
+            triggerAutoNotionSync(dataWithCheckboxStates);
+          }, 1000);
         } else {
           console.log("❌ Layout: No processed data to dispatch");
         }

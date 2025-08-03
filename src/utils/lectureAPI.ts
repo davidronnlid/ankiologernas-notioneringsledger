@@ -135,6 +135,7 @@ export interface EditLectureData {
   time: string;
   subjectArea: SubjectArea;
   duration: number;
+  userFullName: string;
 }
 
 /**

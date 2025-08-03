@@ -951,9 +951,11 @@ export default function Index() {
     console.log("🔍 Index Debug Info:");
     console.log("- isAuthenticated:", isAuthenticated);
     console.log("- currentUser:", currentUser);
+    console.log("- currentUser.full_name:", currentUser?.full_name);
+    console.log("- isAllowedToCreateLectures:", isAllowedToCreateLectures);
+    console.log("- allowedNames:", allowedNames);
     console.log("- weeksData length:", weeksData?.length || 0);
-    console.log("- weeksData:", weeksData);
-  }, [isAuthenticated, currentUser, weeksData]);
+  }, [isAuthenticated, currentUser, weeksData, isAllowedToCreateLectures]);
   
   // State for duplicate removal notification
   const [showDuplicateNotification, setShowDuplicateNotification] = useState(false);
@@ -1368,11 +1370,22 @@ export default function Index() {
   };
 
   const handleEditLecture = (lecture: Lecture) => {
+    // Check authentication first
+    if (!isAllowedToCreateLectures) {
+      alert("Du måste vara inloggad som David, Albin eller Mattias för att redigera föreläsningar.");
+      return;
+    }
     setEditingLecture(lecture);
     setShowEditLectureModal(true);
   };
 
   const handleDeleteLecture = async (lecture: Lecture) => {
+    // Check authentication first
+    if (!isAllowedToCreateLectures) {
+      alert("Du måste vara inloggad som David, Albin eller Mattias för att ta bort föreläsningar.");
+      return;
+    }
+    
     // Show confirmation dialog
     const confirmed = window.confirm(
       `Är du säker på att du vill ta bort föreläsningen "${lecture.title}"?\n\nDenna åtgärd kan inte ångras.`
@@ -1408,7 +1421,8 @@ export default function Index() {
         },
         body: JSON.stringify({ 
           lectureId: lecture.id,
-          action: "deleteLecture"
+          action: "deleteLecture",
+          userFullName: currentUser?.full_name || ""
         }),
       });
 
@@ -1993,62 +2007,65 @@ export default function Index() {
                         }}
                       >
 
-                        {/* Delete Button */}
+                        {/* Delete Button - only for authorized users */}
+                        {isAllowedToCreateLectures && (
                         <div 
                           style={{
                             position: "absolute",
-                            top: "12px",
-                            right: isSelected ? "82px" : "44px", // Further right than edit button
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "50%",
-                            background: isUpdating === `deleting-${lecture.id}` 
-                              ? "rgba(244, 67, 54, 0.3)" 
-                              : "rgba(244, 67, 54, 0.1)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: isUpdating === `deleting-${lecture.id}` ? "not-allowed" : "pointer",
-                            transition: "all 0.3s ease",
-                            zIndex: 20,
-                            opacity: isUpdating === `deleting-${lecture.id}` ? 1 : 0.7,
-                            pointerEvents: isUpdating === `deleting-${lecture.id}` ? "none" : "auto",
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isUpdating !== `deleting-${lecture.id}`) {
-                              handleDeleteLecture(lecture);
-                            }
-                          }}
-                          onMouseEnter={(e) => {
-                            if (isUpdating !== `deleting-${lecture.id}`) {
-                              e.currentTarget.style.background = "rgba(244, 67, 54, 0.2)";
-                              e.currentTarget.style.opacity = "1";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (isUpdating !== `deleting-${lecture.id}`) {
-                              e.currentTarget.style.background = "rgba(244, 67, 54, 0.1)";
-                              e.currentTarget.style.opacity = "0.7";
-                            }
-                          }}
-                          title={isUpdating === `deleting-${lecture.id}` ? "Tar bort..." : "Ta bort föreläsning"}
-                        >
-                          {isUpdating === `deleting-${lecture.id}` ? (
-                            <CircularProgress size={14} style={{ color: "#f44336" }} />
-                          ) : (
-                            <DeleteIcon style={{ fontSize: "14px", color: "#f44336" }} />
-                          )}
-                        </div>
+                              top: "12px",
+                              right: isSelected ? "82px" : "44px", // Further right than edit button
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "50%",
+                              background: isUpdating === `deleting-${lecture.id}` 
+                                ? "rgba(244, 67, 54, 0.3)" 
+                                : "rgba(244, 67, 54, 0.1)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: isUpdating === `deleting-${lecture.id}` ? "not-allowed" : "pointer",
+                              transition: "all 0.3s ease",
+                              zIndex: 20,
+                              opacity: isUpdating === `deleting-${lecture.id}` ? 1 : 0.7,
+                              pointerEvents: isUpdating === `deleting-${lecture.id}` ? "none" : "auto",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isUpdating !== `deleting-${lecture.id}`) {
+                                handleDeleteLecture(lecture);
+                              }
+                            }}
+                            onMouseEnter={(e) => {
+                              if (isUpdating !== `deleting-${lecture.id}`) {
+                                e.currentTarget.style.background = "rgba(244, 67, 54, 0.2)";
+                                e.currentTarget.style.opacity = "1";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (isUpdating !== `deleting-${lecture.id}`) {
+                                e.currentTarget.style.background = "rgba(244, 67, 54, 0.1)";
+                                e.currentTarget.style.opacity = "0.7";
+                              }
+                            }}
+                            title={isUpdating === `deleting-${lecture.id}` ? "Tar bort..." : "Ta bort föreläsning"}
+                          >
+                            {isUpdating === `deleting-${lecture.id}` ? (
+                              <CircularProgress size={14} style={{ color: "#f44336" }} />
+                            ) : (
+                              <DeleteIcon style={{ fontSize: "14px", color: "#f44336" }} />
+                            )}
+                          </div>
+                        )}
 
-                        {/* Edit Button */}
-                        <div 
-                          style={{
-                            position: "absolute",
-                            top: "12px",
-                            right: isSelected ? "50px" : "12px", // Next to checkmark if selected, or in corner if not
-                            width: "28px",
-                            height: "28px",
+                        {/* Edit Button - only for authorized users */}
+                        {isAllowedToCreateLectures && (
+                          <div 
+                            style={{
+                              position: "absolute",
+                              top: "12px",
+                              right: isSelected ? "50px" : "12px", // Next to checkmark if selected, or in corner if not
+                              width: "28px",
+                              height: "28px",
                             borderRadius: "50%",
                             background: "rgba(255, 255, 255, 0.1)",
                             display: "flex",
@@ -2075,6 +2092,7 @@ export default function Index() {
                         >
                           <EditIcon style={{ fontSize: "14px", color: "white" }} />
                         </div>
+                        )}
 
                         {/* Completion Badge */}
                         {isSelected && (
@@ -2171,49 +2189,49 @@ export default function Index() {
                   </Fragment>
                 ));
           })}
-              
+                    
               {/* Add lecture button as last card - only for authenticated users */}
               {isAllowedToCreateLectures && (
-                <Grid item xs={12} sm={6} md={4}>
-                  <div 
+                    <Grid item xs={12} sm={6} md={4}>
+                      <div 
                     onClick={() => handleGapClick()}
-                    style={{
-                      height: "200px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      borderRadius: "12px",
-                      background: "rgba(76, 175, 80, 0.1)",
-                      border: "2px dashed rgba(76, 175, 80, 0.5)",
-                      transition: "all 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(76, 175, 80, 0.2)";
-                      e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.8)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(76, 175, 80, 0.1)";
-                      e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.5)";
-                    }}
+                        style={{
+                          height: "200px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          borderRadius: "12px",
+                          background: "rgba(76, 175, 80, 0.1)",
+                          border: "2px dashed rgba(76, 175, 80, 0.5)",
+                          transition: "all 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(76, 175, 80, 0.2)";
+                          e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.8)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(76, 175, 80, 0.1)";
+                          e.currentTarget.style.borderColor = "rgba(76, 175, 80, 0.5)";
+                        }}
                     title="Lägg till ny föreläsning"
-                  >
-                    <div style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      background: "rgba(76, 175, 80, 0.9)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "white",
-                      fontSize: "24px",
-                      fontWeight: "bold"
-                    }}>
-                      +
-                    </div>
-                  </div>
-                </Grid>
+                      >
+                        <div style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          background: "rgba(76, 175, 80, 0.9)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          fontSize: "24px",
+                          fontWeight: "bold"
+                        }}>
+                          +
+                        </div>
+                      </div>
+                    </Grid>
               )}
             </Grid>
           </div>
@@ -2261,43 +2279,6 @@ export default function Index() {
                 }
               }}
             />
-
-            {/* Notion Setup Status Indicator */}
-            {!notionSetupStatus.isLoading && (
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => setShowNotionSetup(true)}
-                style={{
-                  borderColor: notionSetupStatus.isSetup ? '#4caf50' : (notionSetupStatus.needsReconfiguration ? '#ff5722' : '#ff9800'),
-                  color: notionSetupStatus.isSetup ? '#4caf50' : (notionSetupStatus.needsReconfiguration ? '#ff5722' : '#ff9800'),
-                  fontWeight: 'bold'
-                }}
-                startIcon={notionSetupStatus.isSetup ? <div>✅</div> : (notionSetupStatus.needsReconfiguration ? <div>🔄</div> : <div>⚙️</div>)}
-              >
-                {notionSetupStatus.isSetup 
-                  ? `Notion (${notionSetupStatus.userName})` 
-                  : notionSetupStatus.needsReconfiguration
-                    ? 'Uppdatera Notion'
-                    : 'Konfigurera Notion'}
-              </Button>
-            )}
-            
-            {/* Manual setup trigger for advanced users */}
-            <NotionSetupManager autoPrompt={false}>
-              <Button
-                variant="outlined"
-                size="large"
-                style={{
-                  borderColor: '#666',
-                  color: '#bbb',
-                  fontWeight: 'bold'
-                }}
-                startIcon={<div>⚙️</div>}
-              >
-                Notion Setup
-              </Button>
-            </NotionSetupManager>
           </div>
 
         {/* User Statistics Section */}

@@ -93,7 +93,9 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
       
       if (existingDatabase) {
         console.log(`✅ Found existing database in section: ${sectionTitle}`);
-        return { section: existingSection, database: existingDatabase };
+        // Return the database object with proper structure
+        const fullDatabase = await notion.databases.retrieve({ database_id: existingDatabase.id });
+        return { section: existingSection, database: fullDatabase };
       }
     }
 
@@ -164,7 +166,7 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
             format: 'number'
           }
         },
-        'Status': {
+        'Tag': {
           select: {
             options: [
               {
@@ -178,6 +180,16 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
               {
                 name: 'Blå ankiz',
                 color: 'blue'
+              }
+            ]
+          }
+        },
+        'Person': {
+          select: {
+            options: [
+              {
+                name: 'D',
+                color: 'red'
               },
               {
                 name: 'A',
@@ -186,34 +198,17 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
               {
                 name: 'M',
                 color: 'yellow'
-              },
-              {
-                name: 'D',
-                color: 'red'
-              }
-            ]
-          }
-        },
-        'Vald av': {
-          multi_select: {
-            options: [
-              {
-                name: 'David',
-                color: 'red'
-              },
-              {
-                name: 'Albin',
-                color: 'green'
-              },
-              {
-                name: 'Mattias',
-                color: 'yellow'
               }
             ]
           }
         }
-      }
+      },
+      // Enable list view by default
+      is_inline: true
     });
+
+    console.log(`🎯 Database created with ID: ${database.id}`);
+    console.log(`📄 Database properties:`, Object.keys(database.properties));
 
     console.log(`✅ Created database in section: ${sectionTitle}`);
     return { section, database };
@@ -231,6 +226,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
     const databaseId = database.id;
     
     // Search for existing lecture in database with exact matching
+    console.log(`🔍 Searching for existing lecture: ${lectureNumber}. ${lectureTitle}`);
     const existingPages = await notion.databases.query({
       database_id: databaseId,
       filter: {
@@ -241,14 +237,23 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
       }
     });
 
+    console.log(`📊 Found ${existingPages.results.length} potential matches`);
+
     // Find exact match by lecture number and title to prevent duplicates
     const lectureIdentifier = `${lectureNumber}. ${lectureTitle}`;
     const existingLecture = existingPages.results.find(page => {
       const pageTitle = page.properties?.Föreläsning?.title?.[0]?.text?.content || '';
+      const pageNumber = page.properties?.Nummer?.number;
+      console.log(`🔍 Checking page: "${pageTitle}" (number: ${pageNumber})`);
       return pageTitle === lectureIdentifier || 
-             pageTitle.includes(lectureTitle) && 
-             page.properties?.Nummer?.number === lectureNumber;
+             (pageTitle.includes(lectureTitle) && pageNumber === lectureNumber);
     });
+
+    if (existingLecture) {
+      console.log(`✅ Found existing lecture: ${lectureIdentifier}`);
+    } else {
+      console.log(`❌ No existing lecture found for: ${lectureIdentifier}`);
+    }
 
     if (existingLecture) {
       // Lecture already exists in database
@@ -264,54 +269,57 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
       if (action === 'select' || action === 'unselect') {
         console.log(`🔄 Updating user selection for existing lecture: ${selectedByUser} ${action}`);
         
-        // Get current "Vald av" selections
-        const currentSelections = existingLecture.properties['Vald av']?.multi_select || [];
-        let updatedSelections = [...currentSelections];
+        // Get current person selection
+        const currentPerson = existingLecture.properties['Person']?.select?.name || null;
+        
+        let newTag = 'Bör göra'; // Default tag
+        let newPerson = null; // Default person (empty)
         
         if (action === 'select') {
-          // Add user if not already selected
-          if (!updatedSelections.find(sel => sel.name === selectedByUser)) {
-            updatedSelections.push({ name: selectedByUser });
-          } else {
-            console.log(`📝 User ${selectedByUser} already selected this lecture`);
-            return existingLecture;
+          // Set person based on user
+          if (selectedByUser === 'David') {
+            newPerson = 'D';
+          } else if (selectedByUser === 'Albin') {
+            newPerson = 'A';
+          } else if (selectedByUser === 'Mattias') {
+            newPerson = 'M';
+          }
+          
+          // If someone was already selected and it's different, it becomes Blå ankiz
+          if (currentPerson && currentPerson !== newPerson) {
+            newTag = 'Blå ankiz';
+            newPerson = null; // Clear person when multiple users
+          } else if (newPerson) {
+            newTag = 'Bör göra'; // Keep default tag when single person selected
           }
         } else if (action === 'unselect') {
-          // Remove user from selections
-          const initialLength = updatedSelections.length;
-          updatedSelections = updatedSelections.filter(sel => sel.name !== selectedByUser);
-          if (updatedSelections.length === initialLength) {
-            console.log(`📝 User ${selectedByUser} was not selected for this lecture`);
-            return existingLecture;
-          }
+          // Remove selection - back to defaults
+          newTag = 'Bör göra';
+          newPerson = null;
         }
 
-        // Determine status based on selections
-        let status = 'Bör göra'; // Default status when no users selected
-        if (updatedSelections.length > 0) {
-          if (updatedSelections.length === 1) {
-            const user = updatedSelections[0].name;
-            status = user === 'David' ? 'D' : user === 'Albin' ? 'A' : 'M';
-          } else {
-            status = 'Blå ankiz'; // Multiple users selected
+        const updateProperties = {
+          'Tag': {
+            select: newTag ? { name: newTag } : null
           }
+        };
+
+        if (newPerson) {
+          updateProperties['Person'] = {
+            select: { name: newPerson }
+          };
+        } else {
+          updateProperties['Person'] = {
+            select: null
+          };
         }
 
         await notion.pages.update({
           page_id: existingLecture.id,
-          properties: {
-            'Vald av': {
-              multi_select: updatedSelections
-            },
-            'Status': {
-              select: {
-                name: status
-              }
-            }
-          }
+          properties: updateProperties
         });
 
-        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action}`);
+        console.log(`✅ Updated user selection: ${lectureNumber}. ${lectureTitle} - ${selectedByUser} ${action} -> Tag: ${newTag}, Person: ${newPerson || 'none'}`);
         return existingLecture;
       }
       
@@ -325,7 +333,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
         // Only bulk_add action should create new lectures
         console.log(`📝 Creating new lecture: ${lectureNumber}. ${lectureTitle}`);
         
-        const newLecture = await notion.pages.create({
+                const newLecture = await notion.pages.create({
           parent: {
             database_id: databaseId
           },
@@ -343,13 +351,13 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
             'Nummer': {
               number: lectureNumber
             },
-                      'Status': {
-            select: {
-              name: 'Bör göra'
-            }
-          },
-            'Vald av': {
-              multi_select: []
+            'Tag': {
+              select: {
+                name: 'Bör göra'
+              }
+            },
+            'Person': {
+              select: null
             }
           }
         });
@@ -393,6 +401,7 @@ exports.handler = async (event, context) => {
     }
     
     console.log(`🎯 Notion page update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle} (${subjectArea})`);
+    console.log(`📊 Processing for all users: ${Object.keys(NOTION_TOKENS).join(', ')}`);
 
     // Validate required fields
     if (!lectureTitle || !lectureNumber || !selectedByUser || !subjectArea || !action) {

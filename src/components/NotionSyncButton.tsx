@@ -246,13 +246,16 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
                   📄 Synka till Notion-sidor (Rekommenderas)
                 </Typography>
                 <Typography variant="body2" style={{ marginBottom: 8 }}>
-                  • Lägger till ALLA föreläsningar i Notion-sidor
+                  • Lägger till ALLA föreläsningar i Notion-databaser
                 </Typography>
                 <Typography variant="body2" style={{ marginBottom: 8 }}>
-                  • Organiserar per ämnesområde (Oftalmologi, Pediatrik, etc.)
+                  • Organiserar per ämnesområde (Global hälsa, Oftalmologi, etc.)
                 </Typography>
                 <Typography variant="body2" style={{ marginBottom: 8 }}>
-                  • Skapar formaterade listor som i Oftalmologi-exemplet
+                  • Skapar databaser med listvy och kolumner: Föreläsning, Tag, Person
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: 8 }}>
+                  • Default tag: "Bör göra", Person: D/A/M när vald
                 </Typography>
                 <Typography variant="body2">
                   • Fungerar för alla användare: David, Albin och Mattias
@@ -342,8 +345,47 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
                 onClick={handleSync} 
                 color="default" 
                 variant="outlined"
+                style={{ marginRight: 8 }}
               >
                 🗄️ Gammal synk
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    console.log('🔍 Testing Notion configuration...');
+                    const configResponse = await fetch('/api/debug-notion-config');
+                    const configResult = await configResponse.json();
+                    console.log('📊 Notion Config Debug:', configResult);
+                    
+                    // Test a simple API call
+                    console.log('🧪 Testing updateNotionPage endpoint...');
+                    const testResponse = await fetch('/api/updateNotionPage', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        lectureTitle: 'Test Lecture',
+                        lectureNumber: 99,
+                        selectedByUser: 'System',
+                        subjectArea: 'Global hälsa',
+                        action: 'bulk_add'
+                      })
+                    });
+                    
+                    const testResult = await testResponse.text();
+                    console.log('🧪 Test response:', testResult);
+                    
+                    alert(`Config: ${JSON.stringify(configResult.config.hasTokens, null, 2)}\n\nTest Response: ${testResult.substring(0, 200)}...`);
+                  } catch (error) {
+                    console.error('❌ Debug failed:', error);
+                    alert(`Debug failed: ${error.message}`);
+                  }
+                }}
+                color="default" 
+                variant="text"
+                size="small"
+                style={{ fontSize: '0.8rem' }}
+              >
+                🔍 Debug
               </Button>
             </>
           )}

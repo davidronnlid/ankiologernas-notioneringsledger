@@ -420,9 +420,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         console.log("🗑️ DELETE request received");
         console.log("🗑️ Request body:", req.body);
         const deleteBody = req.body;
-        const { lectureId, action } = deleteBody;
+        const { lectureId, action, userFullName } = deleteBody;
         
         if (action === "deleteLecture" && lectureId) {
+          // Authentication check for lecture deletion
+          const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+          if (!userFullName || !allowedNames.includes(userFullName)) {
+            return res.status(403).json({ 
+              error: 'Unauthorized',
+              message: 'Only authorized users (David, Albin, or Mattias) can delete lectures'
+            });
+          }
           console.log("🗑️ Deleting lecture:", lectureId);
           
           // Load current deleted lectures list

@@ -29,7 +29,20 @@ exports.handler = async (event, context) => {
   const client = new MongoClient(uri);
 
   try {
-    const { id, title, date, time, subjectArea, duration } = JSON.parse(event.body);
+    const { id, title, date, time, subjectArea, duration, userFullName } = JSON.parse(event.body);
+
+    // Authentication check for lecture editing
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    if (!userFullName || !allowedNames.includes(userFullName)) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: "Unauthorized",
+          message: "Only authorized users (David, Albin, or Mattias) can edit lectures"
+        })
+      };
+    }
 
     if (!id || !title || !date || !time || !subjectArea) {
       return {
