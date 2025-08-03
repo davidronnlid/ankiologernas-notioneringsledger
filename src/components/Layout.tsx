@@ -132,7 +132,7 @@ export default function Layout({
       console.log('📋 Sample lectures:', allLectures.slice(0, 3).map(l => ({ 
         title: l.title, 
         number: l.lectureNumber,
-        week: l.week
+        date: l.date
       })));
 
       // Test endpoint availability first
