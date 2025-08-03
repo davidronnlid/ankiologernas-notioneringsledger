@@ -184,10 +184,10 @@ export const triggerNotionSync = async (
         return;
       }
 
-      // Use the new updateNotionDatabase endpoint
+      // Use the new updateNotionPage endpoint
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionDatabase'
-        : '/.netlify/functions/updateNotionDatabase';
+        ? '/api/updateNotionPage'
+        : '/.netlify/functions/updateNotionPage';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -308,13 +308,40 @@ const getCurrentActiveCourse = () => {
   return activeCourse || null;
 };
 
+// Helper function to filter lectures by active course (exported for use in components)
+export const filterLecturesByActiveCourse = (lectures: any[]) => {
+  const activeCourse = getCurrentActiveCourse();
+  
+  if (!activeCourse) {
+    console.warn('⚠️ No active course found for current date');
+    return { activeCourse: null, activeLectures: [], filteredCount: 0, totalCount: lectures.length };
+  }
+
+  const activeLectures = lectures.filter(lecture => {
+    if (!lecture.date) {
+      return false;
+    }
+
+    const lectureDate = new Date(lecture.date);
+    const courseStartDate = new Date(activeCourse.startDate);
+    const courseEndDate = new Date(activeCourse.endDate);
+    
+    return lectureDate >= courseStartDate && lectureDate <= courseEndDate;
+  });
+
+  return { 
+    activeCourse, 
+    activeLectures, 
+    filteredCount: activeLectures.length, 
+    totalCount: lectures.length 
+  };
+};
+
 // Bulk sync function to ensure ALL lectures from active course exist in Notion pages
 export const syncAllLecturesToNotionPages = async (
   lectures: any[]
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
-  console.log(`🔄 Starting bulk sync of ${lectures.length} lectures to Notion pages`);
-
-  // Get the currently active course
+  // Get the currently active course FIRST
   const activeCourse = getCurrentActiveCourse();
   console.log(`📚 Active course: ${activeCourse ? activeCourse.title : 'None found'}`);
 
@@ -327,10 +354,9 @@ export const syncAllLecturesToNotionPages = async (
     };
   }
 
-  // Filter to only include lectures from the active course
+  // Filter to only include lectures from the active course BEFORE starting sync
   const activeLectures = lectures.filter(lecture => {
     if (!lecture.date) {
-      console.log(`⚠️ Lecture "${lecture.title}" has no date, skipping`);
       return false;
     }
 
@@ -339,15 +365,10 @@ export const syncAllLecturesToNotionPages = async (
     const courseEndDate = new Date(activeCourse.endDate);
     
     const isInActiveCourse = lectureDate >= courseStartDate && lectureDate <= courseEndDate;
-    
-    if (!isInActiveCourse) {
-      console.log(`⚠️ Lecture "${lecture.title}" (${lecture.date}) is not in active course ${activeCourse.title}, skipping`);
-    }
-    
     return isInActiveCourse;
   });
 
-  console.log(`📚 Filtered to ${activeLectures.length} lectures from active course "${activeCourse.title}" (from ${lectures.length} total)`);
+  console.log(`🔄 Starting bulk sync of ${activeLectures.length} lectures from active course "${activeCourse.title}" (filtered from ${lectures.length} total)`);
 
   if (activeLectures.length === 0) {
     return {
@@ -382,10 +403,10 @@ export const syncAllLecturesToNotionPages = async (
 
       console.log(`📂 Subject area determined: ${subjectArea} for lecture: ${lecture.title}`);
 
-      // Use the new updateNotionDatabase endpoint to add the lecture
+      // Use the new updateNotionPage endpoint to add the lecture
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionDatabase'
-        : '/.netlify/functions/updateNotionDatabase';
+        ? '/api/updateNotionPage'
+        : '/.netlify/functions/updateNotionPage';
       
       console.log(`📡 Calling ${endpoint} for bulk_add action`);
       

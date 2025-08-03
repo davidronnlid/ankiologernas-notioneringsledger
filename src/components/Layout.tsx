@@ -19,7 +19,7 @@ import { dataSyncManager } from "utils/dataSync";
 import { CheckboxState } from "types/lecture";
 import { WeekData } from "types";
 import { initializeDevelopmentUser } from "../store/slices/authReducer";
-import { syncAllLecturesToNotionPages } from "utils/notionCRUD";
+import { syncAllLecturesToNotionPages, filterLecturesByActiveCourse } from "utils/notionCRUD";
 import { useNotionSync } from "../contexts/NotionSyncContext";
 
 export default function Layout({
@@ -125,21 +125,35 @@ export default function Layout({
         return;
       }
 
-      // Start loading with progress tracking
-      startSync('Bulk sync to Notion', allLectures.length);
-      addMessage(`📊 Found ${allLectures.length} lectures to sync`);
-      addMessage(`📋 Sample: ${allLectures.slice(0, 3).map(l => l.title).join(', ')}...`);
+      // Filter to active course lectures BEFORE showing progress
+      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(allLectures);
+      
+      if (!activeCourse) {
+        console.log('⚠️ No active course found - skipping sync');
+        return;
+      }
+
+      if (filteredCount === 0) {
+        console.log(`📝 No lectures found for active course "${activeCourse.title}"`);
+        return;
+      }
+
+      // Start loading with progress tracking for FILTERED lectures only
+      startSync(`Bulk sync to Notion (${activeCourse.title})`, filteredCount);
+      addMessage(`📚 Active course: ${activeCourse.title}`);
+      addMessage(`📊 Found ${filteredCount} lectures to sync (filtered from ${totalCount} total)`);
+      addMessage(`📋 Sample: ${activeLectures.slice(0, 3).map(l => l.title).join(', ')}...`);
 
       // Test endpoint availability first
       const endpoint = process.env.NODE_ENV === 'development'
-        ? '/api/updateNotionDatabase'
-        : '/.netlify/functions/updateNotionDatabase';
+        ? '/api/updateNotionPage'
+        : '/.netlify/functions/updateNotionPage';
         
       addMessage(`🎯 Using endpoint: ${endpoint}`);
 
-      // Sync all lectures to Notion databases using bulk_add action
-      addMessage('🔄 Starting bulk sync to Notion databases...');
-      const result = await syncAllLecturesToNotionPages(allLectures);
+      // Sync FILTERED lectures to Notion databases using bulk_add action
+      addMessage(`🔄 Starting bulk sync to Notion databases for ${activeCourse.title}...`);
+      const result = await syncAllLecturesToNotionPages(activeLectures);
       
       if (result.success) {
         addMessage(`✅ Auto-sync completed successfully: ${result.message}`);
