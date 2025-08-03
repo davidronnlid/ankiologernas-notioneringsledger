@@ -9,11 +9,7 @@ directory = "netlify/functions"
 [build.environment]
   NETLIFY_IDENTITY = "enabled"
 
-# Netlify Identity configuration
-[[redirects]]
-  from = "/.netlify/identity/*"
-  to = "/.netlify/identity/:splat"
-  status = 200
+# Netlify Identity configuration is handled automatically
 
 # Enable Identity service
 [template.environment]
