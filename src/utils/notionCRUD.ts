@@ -490,7 +490,6 @@ export const syncAllLecturesToNotionPages = async (
         lectureTitle: lecture.title,
         lectureNumber: lecture.lectureNumber,
         selectedByUser: 'System', // Use 'System' to indicate bulk sync
-        subjectArea: subjectArea,
         action: 'bulk_add' // New action type for bulk adding
       };
       
@@ -552,8 +551,7 @@ export const syncAllLecturesToNotionPages = async (
         console.log(`✅ Successfully synced: ${lecture.title}`);
         results.push({
           lecture: lecture.title,
-          status: 'success',
-          subjectArea: subjectArea
+          status: 'success'
         });
         
         // Notify UI of successful completion
