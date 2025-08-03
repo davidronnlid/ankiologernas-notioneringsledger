@@ -184,10 +184,10 @@ export const triggerNotionSync = async (
         return;
       }
 
-      // Use the new updateNotionPage endpoint
+      // Use the database endpoint
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionPage'
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
       
       const response = await fetch(endpoint, {
         method: 'POST',

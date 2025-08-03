@@ -22,7 +22,8 @@ import {
   syncWithNotion, 
   readLecturesFromNotion, 
   isNotionIntegrationAvailable,
-  syncAllLecturesToNotionPages
+  syncAllLecturesToNotionPages,
+  filterLecturesByActiveCourse
 } from 'utils/notionCRUD';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store/types';
@@ -142,8 +143,20 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
     try {
       console.log('🔄 Starting bulk sync to Notion pages...');
       
-      // Perform bulk sync to add all lectures to Notion pages
-      const results = await syncAllLecturesToNotionPages(allLectures);
+      // Filter to active course lectures only
+      const { activeCourse, activeLectures, filteredCount, totalCount } = filterLecturesByActiveCourse(allLectures);
+      
+      if (!activeCourse || filteredCount === 0) {
+        throw new Error('No active course lectures found to sync');
+      }
+      
+      console.log(`📚 Syncing ${filteredCount} lectures from active course: ${activeCourse.title} (filtered from ${totalCount} total)`);
+      
+      // Sort lectures by number for consistent processing
+      const sortedLectures = activeLectures.sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
+      
+      // Perform bulk sync to add ONLY active course lectures to Notion pages
+      const results = await syncAllLecturesToNotionPages(sortedLectures);
       
       setSyncResults({
         success: results.success,
