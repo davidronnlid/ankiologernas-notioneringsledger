@@ -83,8 +83,9 @@ async function findOrCreateCourseDatabase(notion: Client, coursePageId: string, 
       return fullDatabase;
     }
 
-    // Create new database on the page
-    console.log(`📊 Creating new database on ${userName}'s course page`);
+    // Create new INLINE database on the page (not a separate page database)
+    console.log(`📊 Creating new INLINE database on ${userName}'s course page`);
+    console.log(`🔧 Database will be embedded directly in page, not as separate page`);
     const database = await notion.databases.create({
       parent: {
         type: 'page_id',
@@ -133,9 +134,16 @@ async function findOrCreateCourseDatabase(notion: Client, coursePageId: string, 
         'Date and Time': { rich_text: {} },
         'URL': { url: {} }
       },
-      // Enable list view by default
+      // CRITICAL: This ensures the database is created INLINE within the page, not as a separate page
       is_inline: true
     });
+
+    // Verify the database was created as inline
+    if ((database as any).is_inline) {
+      console.log(`✅ Database successfully created as INLINE database within the page`);
+    } else {
+      console.warn(`⚠️ Database was created as page database instead of inline - this may need manual conversion`);
+    }
 
     console.log(`🎯 Database created with ID: ${database.id}`);
     console.log(`✅ Created database on ${userName}'s course page`);

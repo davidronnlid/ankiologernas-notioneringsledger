@@ -46,7 +46,12 @@ NOTION_COURSE_PAGE_MATTIAS=page_id_def...
 1. **Create Page**: Create a new page in Notion titled "Klinisk medicin 4" (or any name you prefer)
 2. **Get Page ID**: From the page URL: `notion.so/workspace/PAGE_ID`
 3. **Share with Integration**: Make sure your Notion integration has access to the page
-4. **Database Auto-Creation**: The system will automatically create the database on the page when first accessed
+4. **Database Auto-Creation**: The system will automatically create an **INLINE database** embedded within the page when first accessed
+
+### **Important**: 
+- The database will be created as an **inline database** embedded directly in your page
+- This allows you to add other content (notes, links, etc.) above and below the database
+- If you see a "Turn into inline database" option, the database is already properly configured
 
 ## 🚀 **System Benefits**
 
