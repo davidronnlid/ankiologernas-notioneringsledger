@@ -1,5 +1,26 @@
 const { Client } = require('@notionhq/client');
 
+// Retry function for handling transient failures
+async function retryOperation(operation, maxRetries = 3, delayMs = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.log(`❌ Attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      if (attempt === maxRetries) {
+        console.error(`💥 All ${maxRetries} attempts failed for operation`);
+        throw error;
+      }
+      
+      // Exponential backoff: wait longer between retries
+      const waitTime = delayMs * Math.pow(2, attempt - 1);
+      console.log(`⏱️ Waiting ${waitTime}ms before retry ${attempt + 1}...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+}
+
 // Notion API tokens for each user (store in environment variables)
 const NOTION_TOKENS = {
   'David': process.env.NOTION_TOKEN_DAVID,
@@ -443,16 +464,33 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Process updates for all users (each user has their own database)
+    // Process updates for users with proper Notion setup
     const results = [];
+    let successfulUpdates = 0;
     
     for (const [userName, token] of Object.entries(NOTION_TOKENS)) {
+      console.log(`🔄 Processing ${userName}...`);
+      
       if (!token) {
         console.warn(`⚠️ No Notion token found for ${userName}, skipping...`);
         results.push({
           user: userName,
           success: false,
-          error: 'No Notion token configured'
+          error: 'No Notion token configured',
+          skipped: true
+        });
+        continue;
+      }
+
+      // Check if user has course page configured
+      const pageId = COURSE_PAGE_IDS[userName];
+      if (!pageId) {
+        console.warn(`⚠️ No course page ID found for ${userName}, skipping...`);
+        results.push({
+          user: userName,
+          success: false,
+          error: `No course page ID configured for ${userName}`,
+          skipped: true
         });
         continue;
       }
