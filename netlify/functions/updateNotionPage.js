@@ -419,11 +419,11 @@ exports.handler = async (event, context) => {
     }
 
     const userLetter = USER_LETTERS[selectedByUser];
-    if (!userLetter) {
+    if (userLetter === undefined) {
       return {
         statusCode: 400,
         body: JSON.stringify({ 
-          error: `Unknown user: ${selectedByUser}. Expected David, Albin, or Mattias` 
+          error: `Unknown user: ${selectedByUser}. Expected David, Albin, Mattias, or System` 
         })
       };
     }
