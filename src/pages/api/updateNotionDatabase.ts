@@ -244,7 +244,7 @@ async function ensureDatabaseSchema(notion: Client, database: any, userName: str
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, subjectArea: string, selectedByUser: string, action: string) {
+async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, selectedByUser: string, action: string) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
@@ -384,7 +384,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
             },
             'Subject area': {
               select: {
-                name: subjectArea
+                name: 'Global hälsa' // Default subject area for simplified database
               }
             },
             'Status': {
@@ -398,7 +398,7 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
           }
         });
 
-        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle} in ${subjectArea}`);
+        console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle}`);
         return newLecture;
         
       } else if (action === 'select' || action === 'unselect') {
@@ -425,7 +425,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    let { lectureTitle, lectureNumber, selectedByUser, subjectArea, action } = req.body;
+    let { lectureTitle, lectureNumber, selectedByUser, action } = req.body;
     
     // Handle special mapping for dronnlid -> David (consistent with frontend)
     if (selectedByUser && selectedByUser.toLowerCase().includes('dronnlid')) {
@@ -433,13 +433,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       selectedByUser = 'David';
     }
     
-    console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle} (${subjectArea})`);
+    console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle}`);
     console.log(`📊 Processing for all users: ${Object.keys(NOTION_TOKENS).join(', ')}`);
 
     // Validate required fields
-    if (!lectureTitle || !lectureNumber || !selectedByUser || !subjectArea || !action) {
+    if (!lectureTitle || !lectureNumber || !selectedByUser || !action) {
       return res.status(400).json({ 
-        error: 'Missing required fields: lectureTitle, lectureNumber, selectedByUser, subjectArea, action' 
+        error: 'Missing required fields: lectureTitle, lectureNumber, selectedByUser, action' 
       });
     }
 
@@ -482,7 +482,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await ensureDatabaseSchema(notion, database, userName);
         
         // Step 4: Add or update the lecture in the database
-        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, selectedByUser, action);
+        const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, selectedByUser, action);
         
         if (result) {
           // Check if this was a duplicate skip or actual creation/update
