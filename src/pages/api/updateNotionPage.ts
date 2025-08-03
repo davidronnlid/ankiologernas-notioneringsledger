@@ -4,15 +4,18 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@notionhq/client';
 
+// Define the valid user names
+type UserName = 'David' | 'Albin' | 'Mattias';
+
 // Notion API tokens for each user (from environment variables)
-const NOTION_TOKENS = {
+const NOTION_TOKENS: Record<UserName, string | undefined> = {
   'David': process.env.NOTION_TOKEN_DAVID,
   'Albin': process.env.NOTION_TOKEN_ALBIN, 
   'Mattias': process.env.NOTION_TOKEN_MATTIAS
 };
 
 // Main course page IDs for each user
-const COURSE_PAGE_IDS = {
+const COURSE_PAGE_IDS: Record<UserName, string | undefined> = {
   'David': process.env.NOTION_COURSE_PAGE_DAVID,
   'Albin': process.env.NOTION_COURSE_PAGE_ALBIN,
   'Mattias': process.env.NOTION_COURSE_PAGE_MATTIAS
@@ -49,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // For development, process all configured users
     const results = [];
-    const configuredUsers = Object.keys(NOTION_TOKENS).filter(user => 
+    const configuredUsers = (Object.keys(NOTION_TOKENS) as UserName[]).filter((user: UserName) => 
       NOTION_TOKENS[user] && COURSE_PAGE_IDS[user]
     );
 
@@ -57,12 +60,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     for (const userName of configuredUsers) {
       try {
-        const notion = new Client({ auth: NOTION_TOKENS[userName] });
+        const notion = new Client({ auth: NOTION_TOKENS[userName]! });
         
         console.log(`📊 Testing Notion API for ${userName}...`);
         
         // Simple test - try to get the course page
-        const pageId = COURSE_PAGE_IDS[userName];
+        const pageId = COURSE_PAGE_IDS[userName]!;
         const page = await notion.pages.retrieve({ page_id: pageId });
         
         console.log(`✅ Successfully connected to Notion for ${userName}`);
