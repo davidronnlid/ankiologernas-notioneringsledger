@@ -264,18 +264,19 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
     console.log(`🔍 STRICT duplicate check for lecture: ${lectureNumber}. ${lectureTitle}`);
     console.log(`🎯 Action: ${action}`);
     
-    // Search for ANY existing lecture with the same title (bulletproof duplicate prevention)
+    // EXACT duplicate detection - prevent any lecture with exact same title from being added twice
+    const exactTitle = `${lectureNumber}. ${lectureTitle}`;
     const existingLectures = await notion.databases.query({
       database_id: databaseId,
       filter: {
         property: 'Föreläsning',
         title: {
-          contains: `${lectureNumber}. ${lectureTitle}`
+          equals: exactTitle
         }
       }
     });
 
-    console.log(`📊 Found ${existingLectures.results.length} existing lectures with title containing "${lectureNumber}. ${lectureTitle}"`);
+    console.log(`📊 Found ${existingLectures.results.length} existing lectures with exact title "${exactTitle}"`);
 
     // If ANY lecture exists with this title, consider it a duplicate
     let existingLecture = null;

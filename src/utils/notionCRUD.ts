@@ -306,6 +306,9 @@ export const filterLecturesByActiveCourse = (lecturesData: any[]) => {
 };
 
 // Bulk sync function to ensure ALL lectures from active course exist in Notion pages
+// Track ongoing requests to prevent duplicates
+const ongoingRequests = new Set<string>();
+
 export const syncAllLecturesToNotionPages = async (
   lectures: any[],
   progressCallbacks?: {
@@ -387,6 +390,25 @@ export const syncAllLecturesToNotionPages = async (
         selectedByUser: selectedByUser, // Use actual logged-in user
         action: 'bulk_add' // New action type for bulk adding
       };
+      
+      // Create unique request key for deduplication
+      const requestKey = `${lecture.lectureNumber}-${lecture.title}-${selectedByUser}`;
+      
+      // Check if this request is already in progress
+      if (ongoingRequests.has(requestKey)) {
+        console.log(`⚠️ Request already in progress for lecture ${lecture.lectureNumber}: ${lecture.title} - skipping duplicate`);
+        progressCallbacks?.onLectureComplete?.(
+          lecture.lectureNumber, 
+          lecture.title, 
+          false, 
+          currentProgress, 
+          totalLectures
+        );
+        continue; // Skip to next lecture
+      }
+      
+      // Add to ongoing requests
+      ongoingRequests.add(requestKey);
       
       console.log(`📤 Request body:`, requestBody);
       
@@ -476,23 +498,25 @@ export const syncAllLecturesToNotionPages = async (
         );
       } else {
         errorCount++;
-        const errorMessage = result.message || 'Unknown API error';
-        console.log(`❌ Failed to sync: ${lecture.title} - ${errorMessage}`);
+        console.error(`❌ Failed to sync lecture: ${lecture.title}`, result);
         results.push({
           lecture: lecture.title,
           status: 'error',
-          reason: errorMessage
+          error: result.message || 'Unknown error'
         });
         
-        // Notify UI of error with specific message
+        // Notify UI of error
         progressCallbacks?.onLectureError?.(
           lecture.lectureNumber, 
           lecture.title, 
-          errorMessage, 
+          result.message || 'Unknown error', 
           currentProgress, 
           totalLectures
         );
       }
+      
+      // Remove from ongoing requests (regardless of success/failure)
+      ongoingRequests.delete(requestKey);
 
     } catch (error) {
       errorCount++;
