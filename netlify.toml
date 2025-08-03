@@ -7,6 +7,7 @@ directory = "netlify/functions"
 
 # Enable Netlify Identity
 [build.environment]
+  NODE_VERSION = "18"
   NETLIFY_IDENTITY = "enabled"
 
 # Netlify Identity configuration is handled automatically
