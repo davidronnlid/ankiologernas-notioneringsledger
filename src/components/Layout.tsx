@@ -138,22 +138,27 @@ export default function Layout({
         return;
       }
 
+      // Sort lectures by number for consistent processing
+      const sortedLectures = activeLectures.sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
+
       // Start loading with progress tracking for FILTERED lectures only
       startSync(`Bulk sync to Notion (${activeCourse.title})`, filteredCount);
       addMessage(`📚 Active course: ${activeCourse.title}`);
       addMessage(`📊 Found ${filteredCount} lectures to sync (filtered from ${totalCount} total)`);
-      addMessage(`📋 Sample: ${activeLectures.slice(0, 3).map(l => l.title).join(', ')}...`);
+      addMessage(`📋 Lecture range: ${sortedLectures[0]?.lectureNumber || 'N/A'} to ${sortedLectures[sortedLectures.length - 1]?.lectureNumber || 'N/A'}`);
+      addMessage(`📝 Sample titles: ${sortedLectures.slice(0, 3).map(l => `${l.lectureNumber}. ${l.title.substring(0, 30)}...`).join(', ')}`);
 
       // Test endpoint availability first
       const endpoint = process.env.NODE_ENV === 'development'
-        ? '/api/updateNotionPage'
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
         
       addMessage(`🎯 Using endpoint: ${endpoint}`);
 
       // Sync FILTERED lectures to Notion databases using bulk_add action
       addMessage(`🔄 Starting bulk sync to Notion databases for ${activeCourse.title}...`);
-      const result = await syncAllLecturesToNotionPages(activeLectures);
+      addMessage(`🔍 Processing lectures ${sortedLectures[0]?.lectureNumber} through ${sortedLectures[sortedLectures.length - 1]?.lectureNumber}`);
+      const result = await syncAllLecturesToNotionPages(sortedLectures);
       
       if (result.success) {
         addMessage(`✅ Auto-sync completed successfully: ${result.message}`);

@@ -313,7 +313,6 @@ const getCurrentActiveCourse = () => {
 
 // Helper function to filter lectures by active course (exported for use in components)
 export const filterLecturesByActiveCourse = (lectures: any[]) => {
-  // For now, manually set Klinisk medicin 4 as the target course since that's what the user is working with
   const targetCourse = {
     title: "Klinisk medicin 4",
     startDate: "2025-08-01",
@@ -322,29 +321,26 @@ export const filterLecturesByActiveCourse = (lectures: any[]) => {
   
   console.log(`🎯 Targeting course: ${targetCourse.title}`);
 
-  // Filter lectures that belong to the target course by date range
+  // For Klinisk medicin 4, include ALL lectures since we're preparing for the course
+  // Filter based on course title/content rather than strict date ranges
   const activeLectures = lectures.filter(lecture => {
-    if (!lecture.date) {
-      return false;
-    }
-
-    const lectureDate = new Date(lecture.date);
-    const courseStartDate = new Date(targetCourse.startDate);
-    const courseEndDate = new Date(targetCourse.endDate);
+    // Include lectures that are part of "Klinisk medicin 4" course content
+    // This is more flexible than strict date filtering
+    const isKM4Lecture = lecture.course === "Klinisk medicin 4" || 
+                        !lecture.course || // Include lectures without specific course assignment
+                        lecture.title; // Include any lecture with a title (we'll sync all for now)
     
-    // Check if lecture falls within the target course period
-    const isInTargetCourse = lectureDate >= courseStartDate && lectureDate <= courseEndDate;
-    
-    if (isInTargetCourse) {
-      console.log(`✅ Including lecture: ${lecture.title} (${lecture.date})`);
+    if (isKM4Lecture) {
+      console.log(`✅ Including lecture: ${lecture.lectureNumber}. ${lecture.title} (${lecture.date || 'no date'})`);
     } else {
-      console.log(`❌ Excluding lecture: ${lecture.title} (${lecture.date}) - outside course period`);
+      console.log(`❌ Excluding lecture: ${lecture.title} - not KM4 content`);
     }
     
-    return isInTargetCourse;
+    return isKM4Lecture;
   });
 
-  console.log(`📊 Filtered ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
+  console.log(`📊 Including ${activeLectures.length} lectures for ${targetCourse.title} (from ${lectures.length} total)`);
+  console.log(`📋 Lecture range: ${activeLectures[0]?.lectureNumber || 'N/A'} to ${activeLectures[activeLectures.length - 1]?.lectureNumber || 'N/A'}`);
 
   return { 
     activeCourse: targetCourse, 

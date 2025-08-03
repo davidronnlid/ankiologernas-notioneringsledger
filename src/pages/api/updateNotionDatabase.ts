@@ -236,34 +236,46 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
-    // Search for existing lecture in database with exact matching
+    // Search for existing lecture in database with more precise matching
     console.log(`🔍 Searching for existing lecture: ${lectureNumber}. ${lectureTitle}`);
-    const existingPages = await notion.databases.query({
+    
+    // First, try to find by lecture number (most reliable)
+    const numberMatches = await notion.databases.query({
       database_id: databaseId,
       filter: {
-        and: [
-          {
-            property: 'Föreläsning',
-            title: {
-              contains: lectureTitle
-            }
-          },
-          {
-            property: 'Nummer',
-            number: {
-              equals: lectureNumber
-            }
-          }
-        ]
+        property: 'Nummer',
+        number: {
+          equals: lectureNumber
+        }
       }
     });
 
-    console.log(`📊 Found ${existingPages.results.length} potential matches`);
+    console.log(`📊 Found ${numberMatches.results.length} lectures with number ${lectureNumber}`);
 
-    const existingLecture = existingPages.results[0]; // Take first exact match
+    // If we found lectures with the same number, check if any have similar titles
+    let existingLecture = null;
+    if (numberMatches.results.length > 0) {
+      // Check for exact title match or very similar title
+      existingLecture = numberMatches.results.find((page: any) => {
+        const pageTitle = (page as any).properties?.['Föreläsning']?.title?.[0]?.plain_text || '';
+        const titleMatch = pageTitle.toLowerCase().trim() === lectureTitle.toLowerCase().trim();
+        const isVerySimilar = pageTitle.toLowerCase().includes(lectureTitle.toLowerCase().substring(0, 20)) ||
+                             lectureTitle.toLowerCase().includes(pageTitle.toLowerCase().substring(0, 20));
+        
+        console.log(`📝 Comparing: "${pageTitle}" vs "${lectureTitle}" - Match: ${titleMatch}, Similar: ${isVerySimilar}`);
+        return titleMatch || isVerySimilar;
+      });
+      
+      // If no good title match, take the first one with the same number (likely duplicate)
+      if (!existingLecture) {
+        existingLecture = numberMatches.results[0];
+        console.log(`⚠️ Using first lecture with number ${lectureNumber} (title mismatch may indicate duplicate)`);
+      }
+    }
 
     if (existingLecture) {
-      console.log(`✅ Found existing lecture: ${lectureNumber}. ${lectureTitle}`);
+      const existingTitle = (existingLecture as any).properties?.['Föreläsning']?.title?.[0]?.plain_text || 'Unknown';
+      console.log(`✅ Found existing lecture: ${lectureNumber}. ${existingTitle}`);
     } else {
       console.log(`❌ No existing lecture found for: ${lectureNumber}. ${lectureTitle}`);
     }
