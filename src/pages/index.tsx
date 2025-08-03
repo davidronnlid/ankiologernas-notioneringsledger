@@ -45,6 +45,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Lecture from "types/lecture";
 import { RootState } from "store/types";
 import { useSelector, useDispatch } from "react-redux";
@@ -1450,6 +1451,36 @@ export default function Index() {
     setShowEditLectureModal(true);
   };
 
+  const handleCopyLectureTitle = async (lecture: Lecture) => {
+    try {
+      const textToCopy = `${lecture.lectureNumber}. ${lecture.title}`;
+      await navigator.clipboard.writeText(textToCopy);
+      
+      // Show success message
+      console.log(`📋 Copied lecture title: ${textToCopy}`);
+      
+      // Optional: Show a brief visual feedback
+      const originalText = document.title;
+      document.title = `✓ Kopierade: ${textToCopy}`;
+      setTimeout(() => {
+        document.title = originalText;
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Failed to copy lecture title:', error);
+      
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = `${lecture.lectureNumber}. ${lecture.title}`;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      console.log(`📋 Copied lecture title (fallback): ${lecture.lectureNumber}. ${lecture.title}`);
+    }
+  };
+
   const handleDeleteLecture = async (lecture: Lecture) => {
     // Check authentication first
     if (!isAllowedToCreateLectures) {
@@ -1907,22 +1938,6 @@ export default function Index() {
             >
               {getDisplayCourseTitle(courseTitle)}
             </Typography>
-            
-            {/* Authentication Status Message */}
-            <Typography
-              variant="body2"
-              style={{
-                color: isAllowedToCreateLectures ? "#4caf50" : "#ff9800",
-                marginBottom: "16px",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                backgroundColor: isAllowedToCreateLectures ? "rgba(76, 175, 80, 0.1)" : "rgba(255, 152, 0, 0.1)",
-                border: `1px solid ${isAllowedToCreateLectures ? "rgba(76, 175, 80, 0.3)" : "rgba(255, 152, 0, 0.3)"}`,
-                display: "inline-block",
-              }}
-            >
-              {authStatusMessage()}
-            </Typography>
           </div>
 
 
@@ -2207,6 +2222,36 @@ export default function Index() {
                           <EditIcon style={{ fontSize: "14px", color: "white" }} />
                         </div>
                         )}
+
+                        {/* Copy Button - always show */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: muiTheme.spacing(1),
+                            right: isAllowedToCreateLectures ? muiTheme.spacing(4) : muiTheme.spacing(1),
+                            zIndex: 20,
+                            opacity: 0.7,
+                            cursor: "pointer",
+                            padding: muiTheme.spacing(0.5),
+                            borderRadius: "4px",
+                            transition: "all 0.3s ease",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyLectureTitle(lecture);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                            e.currentTarget.style.opacity = "1";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                            e.currentTarget.style.opacity = "0.7";
+                          }}
+                          title="Kopiera föreläsningsnamn"
+                        >
+                          <ContentCopyIcon style={{ fontSize: "14px", color: "white" }} />
+                        </div>
 
                         {/* Completion Badge */}
                         {isSelected && (
