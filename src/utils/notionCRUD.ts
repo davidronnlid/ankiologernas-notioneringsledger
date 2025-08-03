@@ -403,39 +403,13 @@ export const syncAllLecturesToNotionPages = async (
     onLectureError?: (lectureNumber: number, title: string, error: string, current: number, total: number) => void;
   }
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
-  // Get the currently active course FIRST
-  const activeCourse = getCurrentActiveCourse();
-  console.log(`📚 Active course: ${activeCourse ? activeCourse.title : 'None found'}`);
+  // NOTE: Lectures are already filtered by Layout.tsx - don't filter again here to avoid progress mismatch
+  console.log(`🔄 Starting bulk sync of ${lectures.length} pre-filtered lectures`);
 
-  if (!activeCourse) {
-    console.warn('⚠️ No active course found for current date');
-    return {
-      success: false,
-      message: 'No active course found for current date',
-      results: []
-    };
-  }
-
-  // Filter to only include lectures from the active course BEFORE starting sync
-  const activeLectures = lectures.filter(lecture => {
-    if (!lecture.date) {
-      return false;
-    }
-
-    const lectureDate = new Date(lecture.date);
-    const courseStartDate = new Date(activeCourse.startDate);
-    const courseEndDate = new Date(activeCourse.endDate);
-    
-    const isInActiveCourse = lectureDate >= courseStartDate && lectureDate <= courseEndDate;
-    return isInActiveCourse;
-  });
-
-  console.log(`🔄 Starting bulk sync of ${activeLectures.length} lectures from active course "${activeCourse.title}" (filtered from ${lectures.length} total)`);
-
-  if (activeLectures.length === 0) {
+  if (lectures.length === 0) {
     return {
       success: true,
-      message: `No lectures found for active course "${activeCourse.title}"`,
+      message: `No lectures to sync`,
       results: []
     };
   }
@@ -445,10 +419,10 @@ export const syncAllLecturesToNotionPages = async (
   let skipCount = 0;
   let errorCount = 0;
 
-  for (let i = 0; i < activeLectures.length; i++) {
-    const lecture = activeLectures[i];
+  for (let i = 0; i < lectures.length; i++) {
+    const lecture = lectures[i];
     const currentProgress = i + 1;
-    const totalLectures = activeLectures.length;
+    const totalLectures = lectures.length;
     
     try {
       console.log(`🔄 Processing lecture ${currentProgress}/${totalLectures}: ${lecture.lectureNumber}. ${lecture.title}`);
@@ -591,7 +565,7 @@ export const syncAllLecturesToNotionPages = async (
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
-  const message = `Bulk sync completed for active course "${activeCourse.title}": ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${activeLectures.length} total lectures processed)`;
+  const message = `Bulk sync completed: ${successCount} successful, ${skipCount} skipped, ${errorCount} errors (${lectures.length} total lectures processed)`;
   console.log(`📊 ${message}`);
 
   return {
