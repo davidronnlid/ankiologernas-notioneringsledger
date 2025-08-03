@@ -469,10 +469,10 @@ export const syncAllLecturesToNotionPages = async (
 
       console.log(`📂 Subject area determined: ${subjectArea} for lecture: ${lecture.title}`);
 
-      // Use the new updateNotionPage endpoint to add the lecture
+      // Use the database endpoint to add the lecture
       const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/updateNotionPage'
-        : '/.netlify/functions/updateNotionPage';
+        ? '/api/updateNotionDatabase'
+        : '/.netlify/functions/updateNotionDatabase';
       
       console.log(`📡 Calling ${endpoint} for bulk_add action`);
       
@@ -486,20 +486,52 @@ export const syncAllLecturesToNotionPages = async (
       
       console.log(`📤 Request body:`, requestBody);
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
+      // Add retry logic for failed requests
+      let response: Response | undefined;
+      let attempt = 0;
+      const maxRetries = 3;
+      
+      while (attempt < maxRetries) {
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+          });
 
-      console.log(`📥 Response status: ${response.status}`);
+          console.log(`📥 Response status: ${response.status} (attempt ${attempt + 1})`);
+          
+          if (response.ok) {
+            break; // Success, exit retry loop
+          } else {
+            const errorText = await response.text();
+            console.error(`❌ HTTP error ${response.status} (attempt ${attempt + 1}): ${errorText}`);
+            
+            if (attempt === maxRetries - 1) {
+              throw new Error(`HTTP error after ${maxRetries} attempts! status: ${response.status} - ${errorText}`);
+            }
+            
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          }
+        } catch (fetchError) {
+          console.error(`❌ Fetch error (attempt ${attempt + 1}):`, fetchError);
+          
+          if (attempt === maxRetries - 1) {
+            throw fetchError;
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+        
+        attempt++;
+      }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ HTTP error ${response.status}: ${errorText}`);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      if (!response) {
+        throw new Error('Failed to get response after all retry attempts');
       }
 
       const result = await response.json();
@@ -515,6 +547,23 @@ export const syncAllLecturesToNotionPages = async (
         });
         
         // Notify UI of successful completion
+        progressCallbacks?.onLectureComplete?.(
+          lecture.lectureNumber, 
+          lecture.title, 
+          true, 
+          currentProgress, 
+          totalLectures
+        );
+      } else if (result.message && (result.message.includes('already exists') || result.message.includes('DUPLICATE'))) {
+        skipCount++;
+        console.log(`⚠️ Lecture already exists (duplicate prevented): ${lecture.title}`);
+        results.push({
+          lecture: lecture.title,
+          status: 'skipped',
+          reason: 'Duplicate prevented'
+        });
+        
+        // Notify UI of successful completion (skipped duplicates = success)
         progressCallbacks?.onLectureComplete?.(
           lecture.lectureNumber, 
           lecture.title, 

@@ -288,6 +288,9 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
         // For bulk_add, NEVER create duplicates - always skip if lecture number exists
         console.log(`🚫 STRICT DUPLICATE PREVENTION: Lecture ${lectureNumber} already exists in database`);
         console.log(`✅ Skipping bulk add to prevent duplicate`);
+        
+        // Mark the lecture as skipped for proper response handling
+        existingLecture.wasSkipped = true;
         return existingLecture;
       }
 
@@ -502,11 +505,18 @@ exports.handler = async (event, context) => {
         const result = await addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, selectedByUser, action);
         
         if (result) {
+          // Check if this was a duplicate skip or actual creation/update
+          const wasSkipped = result.wasSkipped || false;
+          const wasExisting = result.id && typeof result.id === 'string' && 
+                            (result.id.includes('existing') || result.last_edited_time);
+          
           results.push({
             user: userName,
             success: true,
             pagesUpdated: 1,
-            created: action === 'bulk_add' && !result.id.startsWith('existing') ? 1 : 0
+            created: action === 'bulk_add' && !wasExisting ? 1 : 0,
+            skipped: wasSkipped ? 1 : 0,
+            message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
           });
         } else {
           // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
