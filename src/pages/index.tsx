@@ -81,6 +81,7 @@ import { dataSyncManager } from "utils/dataSync";
 import { DatabaseNotifications } from "utils/notificationSystem";
 import { removeDuplicateLectures } from "utils/removeDuplicateLectures";
 import { useNotionSetup } from "../hooks/useNotionSetup";
+import { useNotionSync } from "../contexts/NotionSyncContext";
 import {
   isWithinInterval,
   parseISO,
@@ -997,6 +998,9 @@ export default function Index() {
   // Check Notion setup status
   const notionSetupStatus = useNotionSetup(currentUser);
   
+  // Notion sync loading state
+  const { startSync, addMessage, finishSync, setError } = useNotionSync();
+  
   // Toggle weekly details for a specific person
   const toggleWeeklyDetails = (person: string) => {
     setExpandedWeeklyDetails(prev => ({
@@ -1589,23 +1593,31 @@ export default function Index() {
         // Trigger Notion subject sync for the new lecture
         if (currentUser) {
           try {
-            console.log(`🔄 Starting Notion sync for new lecture: ${lectureData.title} (${lectureData.subjectArea})`);
+            // Start loading for new lecture sync
+            startSync('Add new lecture to Notion', 1);
+            addMessage(`🔄 Starting Notion sync for new lecture: ${lectureData.title}`);
+            addMessage(`📚 Subject: ${lectureData.subjectArea}`);
             
             // Debug user and environment
             const userName = currentUser.full_name || currentUser.email || 'Unknown';
-            console.log(`👤 User: ${userName}, Environment: ${process.env.NODE_ENV}`);
+            addMessage(`👤 User: ${userName} | Environment: ${process.env.NODE_ENV}`);
             
             // Test Notion connection for this specific subject area
+            addMessage('🔍 Testing Notion connection...');
             const connectionTest = await testNotionConnection(userName, lectureData.subjectArea);
             if (!connectionTest) {
-              console.error(`❌ Notion connection test failed for ${userName} - ${lectureData.subjectArea}`);
+              setError(`Notion connection test failed for ${userName} - ${lectureData.subjectArea}`);
+              finishSync();
               return;
             }
+            addMessage('✅ Notion connection test passed');
             
             // Wait a moment for the database to be updated and then get the lecture ID
+            addMessage('⏳ Waiting for database update...');
             setTimeout(async () => {
               try {
                 // Trigger a data refresh to get the latest data with the new lecture
+                addMessage('🔄 Refreshing data...');
                 await dataSyncManager.forceRefresh();
                 
                 // Find the newly created lecture to get its ID and properties
@@ -1620,16 +1632,20 @@ export default function Index() {
                   subjectArea: lectureData.subjectArea,
                 };
                 
-                console.log(`📤 Sending lecture data to Notion:`, newLectureForNotion);
+                addMessage(`📤 Sending lecture data to Notion...`);
                 await updateLectureUrl(newLectureForNotion, 'lecture_created', currentUser);
-                console.log(`✅ Notion sync completed for new lecture: ${lectureData.title} (${lectureData.subjectArea})`);
+                addMessage(`✅ Notion sync completed for: ${lectureData.title}`);
+                finishSync('🎉 New lecture added to Notion successfully!');
               } catch (notionError) {
                 console.error('❌ Notion sync failed for new lecture:', notionError);
-                console.error('Error details:', notionError);
+                setError(notionError instanceof Error ? notionError.message : 'Unknown error');
+                finishSync();
               }
             }, 2000);
           } catch (syncError) {
             console.error('❌ Error setting up Notion sync:', syncError);
+            setError(syncError instanceof Error ? syncError.message : 'Setup error');
+            finishSync();
           }
         }
         
@@ -1687,20 +1703,29 @@ export default function Index() {
       // Update Notion databases for all users
       if (isNotionIntegrationEnabled()) {
         try {
+          // Start loading for individual lecture sync
+          const action = newState ? 'select' : 'unselect';
+          startSync(`${action} lecture`, 1);
+          addMessage(`🔄 ${action === 'select' ? 'Selecting' : 'Unselecting'} "${lecture.title}" in Notion...`);
+          addMessage(`👤 User: ${userName} | Subject: ${lecture.subjectArea || 'Global hälsa'}`);
+          
           const notionResponse = await updateNotionLectureTags(
             lecture.title,
             lecture.lectureNumber,
             userName,
             lecture.subjectArea || 'Global hälsa', // Default if no subject area
-            newState ? 'select' : 'unselect'
+            action
           );
           
-          // Log the result (optional: show user notification)
+          // Log the result and show in loading dialog
           const notificationMessage = getNotionUpdateNotification(notionResponse);
-          console.log(`📝 Notion integration: ${notificationMessage}`);
+          addMessage(`📝 ${notificationMessage}`);
           
-          // Optionally dispatch an in-app notification about Notion update
           if (notionResponse.success && notionResponse.summary.successfulUpdates > 0) {
+            addMessage(`✅ Successfully updated ${notionResponse.summary.successfulUpdates} Notion database(s)`);
+            finishSync('🎉 Notion updated successfully!');
+            
+            // Optionally dispatch an in-app notification about Notion update
             dispatch(addNotification({
               id: `notion-${Date.now()}`,
               type: "lecture_notified" as const,
@@ -1713,9 +1738,14 @@ export default function Index() {
               timestamp: Date.now(),
               read: false,
             }));
+          } else {
+            setError('No databases were updated');
+            finishSync();
           }
         } catch (notionError) {
           console.error("❌ Notion integration error:", notionError);
+          setError(notionError instanceof Error ? notionError.message : 'Unknown error');
+          finishSync();
         }
       } else {
         console.log("ℹ️ Notion integration disabled or not configured");

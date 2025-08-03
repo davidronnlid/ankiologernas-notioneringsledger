@@ -20,6 +20,7 @@ import { CheckboxState } from "types/lecture";
 import { WeekData } from "types";
 import { initializeDevelopmentUser } from "../store/slices/authReducer";
 import { syncAllLecturesToNotionPages } from "utils/notionCRUD";
+import { useNotionSync } from "../contexts/NotionSyncContext";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -41,6 +42,9 @@ export default function Layout({
   const lecturesData = useSelector(
     (state: RootState) => state.lectures.lectures
   );
+
+  // Notion sync loading state
+  const { startSync, updateProgress, addMessage, setError, finishSync } = useNotionSync();
 
   // Initialize default checkbox state for lectures that don't have it
   const initializeCheckboxState = (data: WeekData[]): WeekData[] => {
@@ -113,8 +117,6 @@ export default function Layout({
   // Auto-sync function to sync all lectures to Notion databases when app loads
   const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
     try {
-      console.log('🚀 Starting auto-sync of lectures to Notion databases...');
-      
       // Extract all lectures from the week data
       const allLectures = lectureData.flatMap(week => week.lectures);
       
@@ -123,33 +125,39 @@ export default function Layout({
         return;
       }
 
-      console.log(`📊 Found ${allLectures.length} lectures to sync to Notion`);
-      console.log('📋 Sample lectures:', allLectures.slice(0, 3).map(l => ({ 
-        title: l.title, 
-        number: l.lectureNumber,
-        date: l.date
-      })));
+      // Start loading with progress tracking
+      startSync('Bulk sync to Notion', allLectures.length);
+      addMessage(`📊 Found ${allLectures.length} lectures to sync`);
+      addMessage(`📋 Sample: ${allLectures.slice(0, 3).map(l => l.title).join(', ')}...`);
 
       // Test endpoint availability first
       const endpoint = process.env.NODE_ENV === 'development'
         ? '/api/updateNotionDatabase'
         : '/.netlify/functions/updateNotionDatabase';
         
-      console.log(`🎯 Using endpoint: ${endpoint}`);
+      addMessage(`🎯 Using endpoint: ${endpoint}`);
 
       // Sync all lectures to Notion databases using bulk_add action
+      addMessage('🔄 Starting bulk sync to Notion databases...');
       const result = await syncAllLecturesToNotionPages(allLectures);
       
       if (result.success) {
-        console.log(`✅ Auto-sync completed successfully: ${result.message}`);
-        console.log(`📊 Results summary:`, result.results?.slice(0, 5));
+        addMessage(`✅ Auto-sync completed successfully: ${result.message}`);
+        if (result.results && result.results.length > 0) {
+          addMessage(`📊 Processed ${result.results.length} operations`);
+          const successCount = result.results.filter(r => r.success).length;
+          addMessage(`✅ ${successCount} successful, ${result.results.length - successCount} failed`);
+        }
+        finishSync('🎉 Notion sync completed successfully!');
       } else {
-        console.log(`⚠️ Auto-sync had issues: ${result.message}`);
-        console.log(`📊 Error details:`, result.results?.slice(0, 5));
+        setError(result.message || 'Sync failed');
+        addMessage(`⚠️ Auto-sync had issues: ${result.message}`);
+        finishSync();
       }
     } catch (error) {
       console.error('❌ Auto-sync failed:', error);
-      // Don't throw - we don't want to break the app if Notion sync fails
+      setError(error instanceof Error ? error.message : 'Unknown error');
+      finishSync();
     }
   };
 

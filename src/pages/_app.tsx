@@ -8,8 +8,10 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "../store/store";
 import { Provider } from "react-redux";
 import { ThemeProvider } from "../contexts/ThemeContext";
+import { NotionSyncProvider } from "../contexts/NotionSyncContext";
 import { CircularProgress } from "@material-ui/core";
 import ErrorBoundary from "../components/ErrorBoundary";
+import NotionSyncLoader from "../components/NotionSyncLoader";
 
 // Component that provides dynamic theme - moved inside ThemeProvider
 const DynamicThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -54,9 +56,12 @@ function MyApp(props: AppProps) {
           >
             <ThemeProvider>
               <DynamicThemeProvider>
-                <ErrorBoundary>
-                  <Component {...pageProps} />
-                </ErrorBoundary>
+                <NotionSyncProvider>
+                  <ErrorBoundary>
+                    <Component {...pageProps} />
+                  </ErrorBoundary>
+                  <NotionSyncLoader />
+                </NotionSyncProvider>
               </DynamicThemeProvider>
             </ThemeProvider>
           </PersistGate>
