@@ -168,8 +168,12 @@ async function findOrCreateSubjectSection(notion, coursePageId, subjectArea) {
           select: {
             options: [
               {
-                name: 'Ej ankiz',
+                name: 'Bör göra',
                 color: 'default'
+              },
+              {
+                name: 'Ej ankiz',
+                color: 'gray'
               },
               {
                 name: 'Blå ankiz',
@@ -283,7 +287,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
         }
 
         // Determine status based on selections
-        let status = 'Ej ankiz';
+        let status = 'Bör göra'; // Default status when no users selected
         if (updatedSelections.length > 0) {
           if (updatedSelections.length === 1) {
             const user = updatedSelections[0].name;
@@ -339,11 +343,11 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
             'Nummer': {
               number: lectureNumber
             },
-            'Status': {
-              select: {
-                name: 'Ej ankiz'
-              }
-            },
+                      'Status': {
+            select: {
+              name: 'Bör göra'
+            }
+          },
             'Vald av': {
               multi_select: []
             }
