@@ -21,6 +21,7 @@ import { WeekData } from "types";
 import { initializeDevelopmentUser } from "../store/slices/authReducer";
 import { syncAllLecturesToNotionPages, filterLecturesByActiveCourse } from "utils/notionCRUD";
 import { useNotionSync } from "../contexts/NotionSyncContext";
+import { syncLectureNumbersWithNotion, shouldSyncLectureNumbers } from "utils/lectureNumberSync";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -48,6 +49,9 @@ export default function Layout({
   
   // Sync lock to prevent multiple simultaneous syncs (which could cause duplicates)
   const [isSyncInProgress, setIsSyncInProgress] = useState(false);
+  
+  // Lecture number sync state
+  const [lastLectureNumberSync, setLastLectureNumberSync] = useState<number | null>(null);
 
   // Initialize default checkbox state for lectures that don't have it
   const initializeCheckboxState = (data: WeekData[]): WeekData[] => {
@@ -211,6 +215,44 @@ export default function Layout({
     }
   };
 
+  const triggerLectureNumberSync = async (lectureData: WeekData[]) => {
+    try {
+      // Check if we should sync lecture numbers
+      if (!shouldSyncLectureNumbers(lastLectureNumberSync)) {
+        console.log('⏰ Lecture number sync skipped - last sync was recent');
+        return;
+      }
+
+      console.log('🔢 Starting lecture number sync...');
+
+      // Get current user from Redux state
+      const currentUser = useSelector((state: RootState) => state.auth.user);
+      
+      if (!currentUser) {
+        console.log('⚠️ No current user found, skipping lecture number sync');
+        return;
+      }
+
+      console.log('👤 Current user for lecture number sync:', currentUser);
+
+      // Sync lecture numbers
+      const result = await syncLectureNumbersWithNotion(lectureData, currentUser);
+      
+      if (result.success) {
+        console.log('✅ Lecture number sync completed successfully');
+        setLastLectureNumberSync(Date.now());
+        
+        if (result.updatedCount && result.updatedCount > 0) {
+          console.log(`📊 Updated ${result.updatedCount} lecture numbers in Notion`);
+        }
+      } else {
+        console.log('⚠️ Lecture number sync had issues:', result.message);
+      }
+    } catch (error) {
+      console.error('❌ Lecture number sync failed:', error);
+    }
+  };
+
   const fetchDataAndDispatch = async () => {
     const apiUrl =
       process.env.NODE_ENV === "development"
@@ -292,6 +334,12 @@ export default function Layout({
             console.log("🎯 Triggering auto-sync to Notion databases...");
             triggerAutoNotionSync(dataWithCheckboxStates);
           }, 1000);
+          
+          // Sync lecture numbers with Notion database
+          setTimeout(() => {
+            console.log("🔢 Triggering lecture number sync...");
+            triggerLectureNumberSync(dataWithCheckboxStates);
+          }, 2000);
         } else {
           console.log("❌ Layout: No processed data to dispatch");
         }

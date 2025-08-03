@@ -46,6 +46,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Check for existing lecture with same title in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Checking for existing lecture with title:', title.trim());
+      
+      // Import the function to check existing lectures
+      const { loadAddedLectures } = await import('./CRUDFLData');
+      const existingLectures = loadAddedLectures();
+      
+      const existingLecture = existingLectures.find((lecture: any) => 
+        lecture.title === title.trim() && lecture.course === course
+      );
+
+      if (existingLecture) {
+        console.log('⚠️ Lecture with same title already exists:', existingLecture.title);
+        
+        // Check if subject area and person assignments are the same
+        const hasSameSubjectArea = existingLecture.subjectArea === (req.body.subjectArea || null);
+        const hasSamePersonAssignments = JSON.stringify(existingLecture.checkboxState) === JSON.stringify({
+          Mattias: { confirm: false, unwish: false },
+          Albin: { confirm: false, unwish: false },
+          David: { confirm: false, unwish: false },
+        });
+
+        if (hasSameSubjectArea && hasSamePersonAssignments) {
+          console.log('✅ Lecture exists with same subject area and person assignments - skipping');
+          return res.status(200).json({
+            success: true,
+            message: 'Lecture already exists with same configuration - no changes needed',
+            lecture: existingLecture,
+            skipped: true,
+            development: true
+          });
+        } else {
+          console.log('⚠️ Lecture exists but with different configuration - proceeding with new lecture');
+        }
+      }
+    }
+
     // Create new lecture object
     const newLecture = {
       id: `lecture-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

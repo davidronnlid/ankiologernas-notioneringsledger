@@ -15,6 +15,7 @@ interface AddLectureResponse {
   lecture: Lecture;
   insertedId?: string;
   development?: boolean;
+  skipped?: boolean;
 }
 
 /**

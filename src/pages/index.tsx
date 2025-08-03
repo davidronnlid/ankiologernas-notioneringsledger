@@ -1623,6 +1623,13 @@ export default function Index() {
       const response = await addLecture(apiData);
       
       if (response.success) {
+        // Check if lecture was skipped (already exists with same config)
+        if (response.skipped) {
+          console.log(`⚠️ Lecture "${lectureData.title}" already exists with same configuration - skipping`);
+          setShowAddLectureModal(false);
+          DatabaseNotifications.lectureSkipped(lectureData.title);
+          return;
+        }
         // Use DataSyncManager to refresh the UI with the new lecture
         await dataSyncManager.forceRefresh();
         

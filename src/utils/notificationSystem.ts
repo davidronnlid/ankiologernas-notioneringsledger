@@ -164,6 +164,13 @@ export const DatabaseNotifications = {
       { duration: 4000 }
     ),
 
+  lectureSkipped: (title: string) =>
+    notificationManager.info(
+      'Föreläsning redan finns',
+      `"${title}" finns redan med samma konfiguration - inga ändringar behövs`,
+      { duration: 4000 }
+    ),
+
   lectureAddError: (error: string) =>
     notificationManager.error(
       'Fel vid tillägg av föreläsning',

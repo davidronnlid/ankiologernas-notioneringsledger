@@ -62,6 +62,41 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Check for existing lecture with same title
+    console.log("🔍 Checking for existing lecture with title:", title.trim());
+    const existingLecture = await collection.findOne({ 
+      title: title.trim(),
+      course: course 
+    });
+
+    if (existingLecture) {
+      console.log("⚠️ Lecture with same title already exists:", existingLecture.title);
+      
+      // Check if subject area and person assignments are the same
+      const hasSameSubjectArea = existingLecture.subjectArea === (JSON.parse(event.body).subjectArea || null);
+      const hasSamePersonAssignments = JSON.stringify(existingLecture.checkboxState) === JSON.stringify({
+        Mattias: { confirm: false, unwish: false },
+        Albin: { confirm: false, unwish: false },
+        David: { confirm: false, unwish: false },
+      });
+
+      if (hasSameSubjectArea && hasSamePersonAssignments) {
+        console.log("✅ Lecture exists with same subject area and person assignments - skipping");
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: "Lecture already exists with same configuration - no changes needed",
+            lecture: existingLecture,
+            skipped: true
+          }),
+        };
+      } else {
+        console.log("⚠️ Lecture exists but with different configuration - proceeding with new lecture");
+      }
+    }
+
     // Create new lecture object
     const newLecture = {
       id: `lecture-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
