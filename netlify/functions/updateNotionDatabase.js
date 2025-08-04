@@ -663,22 +663,33 @@ exports.handler = async (event, context) => {
         console.log(`📝 Adding/updating lecture for ${userName}...`);
         const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action, checkboxStates), 3);
       
-      if (result) {
-        // Check if this was a duplicate skip or actual creation/update
-        const wasSkipped = result.wasSkipped || false;
-        const wasExisting = result.id && typeof result.id === 'string' && 
-                          (result.id.includes('existing') || result.last_edited_time);
-        
-        results.push({
-          user: userName,
-          success: true,
-          pagesUpdated: 1,
-          created: action === 'bulk_add' && !wasExisting ? 1 : 0,
-          skipped: wasSkipped ? 1 : 0,
-          message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
-        });
-        successfulUpdates = 1;
-      } else {
+              if (result) {
+          // Check if this was a duplicate skip, update, or actual creation
+          const wasSkipped = result.wasSkipped || false;
+          const wasUpdated = result.wasUpdated || false;
+          const wasExisting = result.id && typeof result.id === 'string' && 
+                            (result.id.includes('existing') || result.last_edited_time);
+          
+          let message = 'Success';
+          if (wasSkipped) {
+            message = `Lecture ${lectureNumber} already up to date - no changes needed`;
+          } else if (wasUpdated) {
+            message = `Lecture ${lectureNumber} updated with current app state`;
+          } else if (action === 'bulk_add') {
+            message = `Lecture ${lectureNumber} created successfully`;
+          }
+          
+          results.push({
+            user: userName,
+            success: true,
+            pagesUpdated: wasUpdated ? 1 : 0,
+            created: action === 'bulk_add' && !wasExisting ? 1 : 0,
+            updated: wasUpdated ? 1 : 0,
+            skipped: wasSkipped ? 1 : 0,
+            message: message
+          });
+          successfulUpdates = 1;
+        } else {
         // This can happen when user tries to select/unselect a lecture that doesn't exist in the database
         results.push({
           user: userName,
@@ -731,6 +742,8 @@ exports.handler = async (event, context) => {
     const failedResults = results.filter(r => !r.success);
     const success = successfulResults.length > 0;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
+    const pagesUpdated = results.reduce((sum, r) => sum + (r.updated || 0), 0);
+    const pagesSkipped = results.reduce((sum, r) => sum + (r.skipped || 0), 0);
     
     let message;
     if (shouldUpdateAllUsers) {
@@ -746,7 +759,17 @@ exports.handler = async (event, context) => {
       // Message for single user (bulk_add and other actions)
       if (success) {
         const result = results[0];
-        if ((result.skipped || 0) > 0) {
+        if (action === 'bulk_sync_with_checkboxes') {
+          if (pagesUpdated > 0 && pagesSkipped > 0) {
+            message = `${targetUser}'s Notion database synced successfully (${pagesUpdated} updated, ${pagesSkipped} already up to date)`;
+          } else if (pagesUpdated > 0) {
+            message = `${targetUser}'s Notion database synced successfully (${pagesUpdated} lectures updated)`;
+          } else if (pagesSkipped > 0) {
+            message = `${targetUser}'s Notion database synced successfully (${pagesSkipped} lectures already up to date)`;
+          } else {
+            message = `${targetUser}'s Notion database synced successfully`;
+          }
+        } else if ((result.skipped || 0) > 0) {
           message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
         } else if ((result.created || 0) > 0) {
           message = `${targetUser}'s Notion database updated successfully (lecture added)`;
@@ -768,6 +791,8 @@ exports.handler = async (event, context) => {
         successfulUpdates: successfulResults.length,
         failedUpdates: failedResults.length,
         pagesCreated,
+        pagesUpdated,
+        pagesSkipped,
         targetUser: shouldUpdateAllUsers ? 'all' : targetUser,
         usersProcessed: usersToProcess
       }
