@@ -424,11 +424,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         
         if (action === "deleteLecture" && lectureId) {
           // Authentication check for lecture deletion
-          const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+          const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl", "dronnlid"];
           if (!userFullName || !allowedNames.includes(userFullName)) {
             return res.status(403).json({ 
               error: 'Unauthorized',
-              message: 'Only authorized users (David, Albin, or Mattias) can delete lectures'
+              message: 'Only authorized users (David, Albin, Mattias, or dronnlid) can delete lectures'
             });
           }
           console.log("🗑️ Deleting lecture:", lectureId);

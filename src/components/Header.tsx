@@ -20,6 +20,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
+import NotionSetupDialog from './NotionSetupDialog';
 import { RootState } from "store/types";
 import { persistor } from "store/store";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -78,6 +79,22 @@ export default function Header() {
     setAnchorEl(null);
   };
 
+  const [showNotionSetup, setShowNotionSetup] = useState(false);
+
+  // Map username to person (handles special cases like dronnlid -> David)
+  const mapUserNameToPerson = (fullName: string): string => {
+    const nameLower = fullName.toLowerCase();
+    
+    // Special mapping for dronnlid -> David
+    if (nameLower.includes('dronnlid')) {
+      return 'David';
+    }
+    
+    // Extract first name and capitalize
+    const firstName = fullName.split(" ")[0];
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  };
+
   const handleSyncToNotion = async () => {
     try {
       handleCloseMenu();
@@ -89,6 +106,34 @@ export default function Header() {
 
       if (!currentUser) {
         alert('Please log in to sync to Notion.');
+        return;
+      }
+
+      const userName = mapUserNameToPerson(currentUser.full_name);
+
+      // Check Notion setup status first
+      console.log(`🔍 Checking Notion setup for ${userName}...`);
+      
+      const setupResponse = await fetch('/api/notion-setup-check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName })
+      });
+      
+      const setupData = await setupResponse.json();
+      
+      if (!setupData.isSetup) {
+        console.log(`⚠️ ${userName} needs Notion setup`);
+        
+        // Show helpful message to user
+        const setupMessage = setupData.needsReconfiguration 
+          ? `Notion integration behöver uppdateras för ${userName}. Klicka "Set Up Now" för att konfigurera.`
+          : `Notion integration behöver konfigureras för ${userName}. Klicka "Set Up Now" för att komma igång.`;
+        
+        alert(setupMessage);
+        
+        // Show setup dialog instead of syncing
+        setShowNotionSetup(true);
         return;
       }
 
@@ -490,6 +535,18 @@ export default function Header() {
       <UserPreferencesDialog
         open={showPreferencesDialog}
         onClose={() => setShowPreferencesDialog(false)}
+      />
+
+      {/* Notion Setup Dialog */}
+      <NotionSetupDialog
+        open={showNotionSetup}
+        userName={currentUser ? mapUserNameToPerson(currentUser.full_name) : ''}
+        onClose={() => setShowNotionSetup(false)}
+        onSetupComplete={() => {
+          setShowNotionSetup(false);
+          // Optionally trigger sync after setup
+          setTimeout(() => handleSyncToNotion(), 1000);
+        }}
       />
 
     </React.Fragment>

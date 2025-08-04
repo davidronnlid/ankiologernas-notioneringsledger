@@ -302,13 +302,41 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
               </AccordionSummary>
               <AccordionDetails>
                 <Box>
-                  {setupStatus?.setupInstructions?.steps.map((step: string, index: number) => (
-                    <div key={index} className={classes.instructionStep}>
-                      <Typography variant="body2">
-                        {index + 1}. {step}
-                      </Typography>
-                    </div>
-                  ))}
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      1. Gå till <Link href="https://notion.so/my-integrations" target="_blank" style={{ color: '#2196f3' }}>notion.so/my-integrations</Link> och skapa en ny integration
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      2. Ge integrationen ett namn (t.ex. "Ankiologernas Notioneringsledger")
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      3. Kopiera "Internal Integration Token" (börjar med "secret_")
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      4. Skapa en ny sida i Notion för din kurs (t.ex. "Klinisk medicin 4")
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      5. Dela sidan med din integration (klicka "Share" → "Invite" → välj din integration)
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      6. Kopiera sidans ID från URL:en (den långa strängen efter sidans namn)
+                    </Typography>
+                  </div>
+                  <div className={classes.instructionStep}>
+                    <Typography variant="body2">
+                      7. Klistra in token och sid-ID i fälten nedan och klicka "Test Connection"
+                    </Typography>
+                  </div>
                 </Box>
               </AccordionDetails>
             </Accordion>
@@ -322,19 +350,19 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
               className={classes.textField}
               margin="normal"
               variant="outlined"
-              helperText="Starts with 'secret_' - get this from notion.so/my-integrations"
+              helperText="Kopiera från notion.so/my-integrations (börjar med 'secret_')"
             />
 
             <TextField
               fullWidth
-              label="Database ID"
+              label="Notion Page ID"
               value={databaseId}
               onChange={(e) => setDatabaseId(e.target.value)}
               placeholder="a1b2c3d4e5f6789..."
               className={classes.textField}
               margin="normal"
               variant="outlined"
-              helperText="Found in your Notion database URL"
+              helperText="Hittas i URL:en till din Notion-sida (den långa strängen efter sidans namn)"
             />
           </Box>
         );

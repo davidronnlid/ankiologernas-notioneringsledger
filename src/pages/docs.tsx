@@ -39,8 +39,7 @@ const DocsPage: React.FC = () => {
       features: [
         'Börja skriva direkt - ingen klickning på sökrutan behövs',
         'Sök på föreläsningsnamn, nummer eller ämnesområde',
-        'Realtidsfiltrering när du skriver',
-        'Tryck Escape för att rensa sökningen'
+        'Realtidsfiltrering när du skriver'
       ]
     },
     {
@@ -49,7 +48,8 @@ const DocsPage: React.FC = () => {
       description: 'Synka dina föreläsningar till Notion',
       features: [
         'Klicka på menyikonen och välj "Sync all to Notion"',
-        'Automatisk skapande av inline-databas i din Notion-sida'
+        'Automatisk skapande av inline-databas i din Notion-sida',
+        'Automatisk taggning för varje person som väljer en föreläsning'
       ]
     },
     {
@@ -72,7 +72,7 @@ const DocsPage: React.FC = () => {
         'NOTIFIERA-knapp kopierar färdignotieringsmeddelande automatiskt',
         'Öppnar Ankiologernachatten i Messenger direkt',
         'Snabb delning av dina valda föreläsningar',
-        'Tre klick för att meddela gruppen vad du ska notionera'
+        'Tre klick för att meddela gruppen vad du notionerat'
       ]
     }
   ];

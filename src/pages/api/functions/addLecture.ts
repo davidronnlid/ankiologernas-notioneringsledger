@@ -30,11 +30,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { title, date, time, duration, course, userFullName } = req.body;
     
     // Authentication check for lecture creation
-    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl", "dronnlid"];
     if (!userFullName || !allowedNames.includes(userFullName)) {
       return res.status(403).json({ 
         error: 'Unauthorized',
-        message: 'Only authorized users (David, Albin, or Mattias) can create lectures'
+        message: 'Only authorized users (David, Albin, Mattias, or dronnlid) can create lectures'
       });
     }
 

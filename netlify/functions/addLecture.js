@@ -38,14 +38,14 @@ exports.handler = async (event, context) => {
     const { title, date, time, duration, course, userFullName } = JSON.parse(event.body);
 
     // Authentication check for lecture creation
-    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl"];
+    const allowedNames = ["David Rönnlid", "Albin Lindberg", "Mattias Österdahl", "dronnlid"];
     if (!userFullName || !allowedNames.includes(userFullName)) {
       return {
         statusCode: 403,
         headers,
         body: JSON.stringify({
           error: "Unauthorized",
-          message: "Only authorized users (David, Albin, or Mattias) can create lectures"
+          message: "Only authorized users (David, Albin, Mattias, or dronnlid) can create lectures"
         }),
       };
     }
