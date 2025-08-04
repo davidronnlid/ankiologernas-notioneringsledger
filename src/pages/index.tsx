@@ -2060,8 +2060,7 @@ export default function Index() {
                 </>
               )}
             </div>
-
-
+          )}
 
           {/* Lectures Toggle Button */}
           <div style={{ 
@@ -2090,7 +2089,7 @@ export default function Index() {
 
           {/* Lectures Grid */}
           {showLectures && (
-            <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
+          <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
             <Grid container spacing={3} style={{ overflow: "visible" }}>
               {filteredWeeks.map((week) => {
                 // Group lectures by date for better gap placement
@@ -2153,36 +2152,36 @@ export default function Index() {
                             gap: "8px",
                             zIndex: 20,
                           }}>
-                            {/* Edit Button */}
-                            <div 
-                              style={{
+                        {/* Edit Button */}
+                        <div 
+                          style={{
                                 width: "28px",
                                 height: "28px",
-                                borderRadius: "50%",
-                                background: "rgba(255, 255, 255, 0.1)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                                transition: "all 0.3s ease",
-                                opacity: 0.7,
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditLecture(lecture);
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
-                                e.currentTarget.style.opacity = "1";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                                e.currentTarget.style.opacity = "0.7";
-                              }}
-                              title="Redigera föreläsning"
-                            >
-                              <EditIcon style={{ fontSize: "14px", color: "white" }} />
-                            </div>
+                            borderRadius: "50%",
+                            background: "rgba(255, 255, 255, 0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                            opacity: 0.7,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditLecture(lecture);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                            e.currentTarget.style.opacity = "1";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                            e.currentTarget.style.opacity = "0.7";
+                          }}
+                          title="Redigera föreläsning"
+                        >
+                          <EditIcon style={{ fontSize: "14px", color: "white" }} />
+                        </div>
 
                             {/* Delete Button */}
                             <div
@@ -2251,9 +2250,9 @@ export default function Index() {
 
                         {/* Lecture Title with Copy Icon */}
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
-                          <Typography className={classes.lectureTitle}>
-                            {lecture.title}
-                          </Typography>
+                        <Typography className={classes.lectureTitle}>
+                          {lecture.title}
+                        </Typography>
                           <div
                             style={{
                               width: "20px",
@@ -2458,9 +2457,20 @@ export default function Index() {
             </Grid>
           </div>
 
-
-          </div>
-        )}
+          {filteredWeeks.length === 0 &&
+            !searchTerm &&
+            selectedFilter === "alla" && (
+              <Box style={{ textAlign: "center", marginTop: "64px" }}>
+                <Typography
+                  variant="h6"
+                  style={{ color: "#ccc", marginBottom: "16px" }}
+                >
+                  Inga föreläsningar hittades för {getDisplayCourseTitle(courseTitle)}
+                </Typography>
+              </Box>
+            )}
+            </div>
+          )}
 
         {/* Smart AI Recommendations */}
                   <SmartRecommendations
@@ -2534,7 +2544,7 @@ export default function Index() {
                           transition: "all 0.3s ease"
                         }}
                       >
-                        <Typography
+                <Typography
                           style={{
                             fontSize: "0.8rem",
                             color: "#ccc",
@@ -2542,7 +2552,7 @@ export default function Index() {
                           }}
                         >
                           Detaljer per vecka
-                        </Typography>
+                </Typography>
                         {expandedWeeklyDetails[person] ? (
                           <ExpandLessIcon style={{ color: "#ccc", fontSize: "1rem" }} />
                         ) : (
