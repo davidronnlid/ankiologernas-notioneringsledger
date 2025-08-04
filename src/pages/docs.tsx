@@ -69,12 +69,12 @@ const DocsPage: React.FC = () => {
     {
       title: '🔔 Notifieringar',
       icon: <NotificationsIcon color="warning" />,
-      description: 'Håll koll på föreläsningar och uppdateringar',
+      description: 'Skicka färdignotieringsmeddelanden till Ankiologernachatten',
       features: [
-        'NOTIFIERA-knapp för att skicka påminnelser',
-        'Automatiska meddelanden vid ändringar',
-        'Visuell feedback för alla åtgärder',
-        'Realtidsstatusuppdateringar'
+        'NOTIFIERA-knapp kopierar färdignotieringsmeddelande automatiskt',
+        'Öppnar Ankiologernachatten i Messenger direkt',
+        'Snabb delning av dina valda föreläsningar',
+        'Ett klick för att meddela gruppen vad du ska notionera'
       ]
     }
   ];
@@ -82,9 +82,6 @@ const DocsPage: React.FC = () => {
   const quickTips = [
     { icon: <SearchIcon />, tip: 'Börja skriva direkt för att söka - ingen klickning behövs!' },
     { icon: <CheckIcon />, tip: 'Markera föreläsningar genom att klicka på korten' },
-    { icon: <CopyIcon />, tip: 'Använd kopiera-knappen för att snabbt dela föreläsningsnamn' },
-    { icon: <SyncIcon />, tip: 'Synka till Notion via menyn för att backup dina data' },
-    { icon: <FilterIcon />, tip: 'Filtrera på person genom att klicka på namnchips' },
   ];
 
   return (
@@ -181,48 +178,7 @@ const DocsPage: React.FC = () => {
           ))}
         </Box>
 
-        {/* Workflow Section */}
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4, 
-            mb: 4,
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
-              : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-            border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd'
-          }}
-        >
-          <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
-            📋 Typiskt Arbetsflöde
-          </Typography>
-          <Box component="ol" sx={{ pl: 2 }}>
-            <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Sök efter föreläsningar</Typography>
-              <Typography variant="body2" sx={{ color: 'white' }}>
-                Börja skriva direkt när du kommer till sidan - ingen klickning på sökrutan behövs
-              </Typography>
-            </Box>
-            <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Markera relevanta föreläsningar</Typography>
-              <Typography variant="body2" sx={{ color: 'white' }}>
-                Klicka på föreläsningskorten för att markera dem som du ska notionera
-              </Typography>
-            </Box>
-            <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Synka till Notion (valfritt)</Typography>
-              <Typography variant="body2" sx={{ color: 'white' }}>
-                Persontaggning i din Notion-databas sker automatiskt när du väljer en föreläsning i ledgern
-              </Typography>
-            </Box>
-            <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Hantera föreläsningar</Typography>
-              <Typography variant="body2" sx={{ color: 'white' }}>
-                Redigera, kopiera eller ta bort föreläsningar från ledgern med ikonerna i övre högra hörnet av ett föreläsningskort. Synka sedan till notion för att uppdatera föreläsningens siffra utifrån den nya föreläsningsordningen
-              </Typography>
-            </Box>
-          </Box>
-        </Paper>
+
 
         {/* Technical Info */}
         <Card 

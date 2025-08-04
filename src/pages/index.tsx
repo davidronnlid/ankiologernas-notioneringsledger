@@ -1988,39 +1988,7 @@ export default function Index() {
 
 
 
-          {/* Current Week Indicator */}
-          {activeCourse && currentWeekNumber && (
-            <div style={{
-              background: "linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(102, 187, 106, 0.1) 100%)",
-              border: "2px solid rgba(76, 175, 80, 0.3)",
-              borderRadius: "12px",
-              padding: muiTheme.spacing(2),
-              marginBottom: muiTheme.spacing(3),
-              textAlign: "center",
-              boxShadow: "0 4px 20px rgba(76, 175, 80, 0.15)",
-            }}>
-              <Typography variant="h6" style={{ 
-                color: "#4caf50", 
-                fontWeight: 600,
-                marginBottom: muiTheme.spacing(1)
-              }}>
-                🗓️ Aktuell kurs: {activeCourse.title}
-              </Typography>
-              <Typography variant="body1" style={{ 
-                color: "#66bb6a",
-                fontSize: "1.1rem"
-              }}>
-                📍 Vecka {currentWeekNumber} pågår just nu
-              </Typography>
-              <Typography variant="body2" style={{ 
-                color: "#ccc",
-                fontSize: "0.9rem",
-                marginTop: muiTheme.spacing(0.5)
-              }}>
-                Använd veckofilter nedan för att se specifika veckor
-              </Typography>
-            </div>
-          )}
+
 
           {/* Search and Filter Section */}
           <div className={classes.searchSection}>
@@ -2224,13 +2192,6 @@ export default function Index() {
           {/* Lectures Grid */}
           {showLectures && (
           <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
-              {/* Smart AI Recommendations */}
-              <SmartRecommendations
-                lectures={allLectures}
-                onLectureClick={handleCardClick}
-                onOpenPreferences={() => setShowPreferencesDialog(true)}
-              />
-
             <Grid container spacing={3} style={{ overflow: "visible" }}>
               {filteredWeeks.map((week) => {
                 // Group lectures by date for better gap placement
@@ -2609,6 +2570,15 @@ export default function Index() {
                 </Typography>
               </Box>
             )}
+
+            {/* Smart AI Recommendations - positioned after lectures */}
+            <div style={{ marginTop: muiTheme.spacing(4) }}>
+              <SmartRecommendations
+                lectures={allLectures}
+                onLectureClick={handleCardClick}
+                onOpenPreferences={() => setShowPreferencesDialog(true)}
+              />
+            </div>
             </div>
           )}
 
