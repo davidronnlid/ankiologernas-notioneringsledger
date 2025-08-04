@@ -20,8 +20,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Notifications as NotificationsIcon,
-  FilterList as FilterIcon,
-  CheckCircle as CheckIcon,
   Star as StarIcon,
   MenuBook as DocsIcon
 } from '@mui/icons-material';
@@ -84,11 +82,7 @@ const DocsPage: React.FC = () => {
   ];
 
   const quickTips = [
-    { icon: <SearchIcon />, tip: 'Börja skriva direkt för att söka - ingen klickning behövs!' },
-    { icon: <CheckIcon />, tip: 'Markera föreläsningar genom att klicka på korten' },
-    { icon: <CopyIcon />, tip: 'Använd kopiera-knappen för att snabbt dela föreläsningsnamn' },
-    { icon: <SyncIcon />, tip: 'Synka till Notion via menyn för effektiv namngivning och persontaggning' },
-    { icon: <FilterIcon />, tip: 'Filtrera på person genom att klicka på namnchips' },
+    { icon: <SearchIcon />, tip: 'Börja skriva direkt för att söka bland föreläsningar - ingen klickning i sökrutan behövs!' },
   ];
 
   return (
