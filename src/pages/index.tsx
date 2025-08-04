@@ -2089,6 +2089,13 @@ export default function Index() {
           {/* Lectures Grid */}
           {showLectures && (
           <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
+              {/* Smart AI Recommendations */}
+              <SmartRecommendations
+                lectures={allLectures}
+                onLectureClick={handleCardClick}
+                onOpenPreferences={() => setShowPreferencesDialog(true)}
+              />
+
             <Grid container spacing={3} style={{ overflow: "visible" }}>
               {filteredWeeks.map((week) => {
                 // Group lectures by date for better gap placement
@@ -2469,15 +2476,6 @@ export default function Index() {
             )}
             </div>
           )}
-
-        {/* Smart AI Recommendations */}
-                  <SmartRecommendations
-            lectures={allLectures}
-            onLectureClick={handleCardClick}
-            onOpenPreferences={() => setShowPreferencesDialog(true)}
-          />
-
-
 
         {/* User Statistics Section */}
         <div className={classes.statsSection}>
