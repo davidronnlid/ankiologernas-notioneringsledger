@@ -109,19 +109,14 @@ export default function Layout({
     try {
       if (lecturesData.length === 0) {
         fetchDataAndDispatch();
-      } else {
-        // If data already exists, also trigger auto-sync to ensure Notion is up to date
-        console.log('📊 Data already exists, triggering auto-sync to ensure Notion is up to date');
-        setTimeout(() => {
-          triggerAutoNotionSync(lecturesData);
-        }, 2000);
       }
+      // Note: Auto-sync removed - now only triggered manually via "Sync all to Notion" button
     } catch (error) {
       console.error('❌ Layout data loading error:', error);
     }
   }, [lecturesData.length]);
 
-  // Auto-sync function to sync all lectures to Notion databases when app loads
+  // Sync function for bulk syncing lectures to Notion databases (no longer called automatically)
   const triggerAutoNotionSync = async (lectureData: WeekData[]) => {
     // Prevent multiple simultaneous syncs (which could cause duplicates)
     if (isSyncInProgress) {
