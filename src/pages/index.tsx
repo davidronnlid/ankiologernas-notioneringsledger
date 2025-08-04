@@ -449,7 +449,7 @@ const useStyles = makeStyles((muiTheme: Theme) =>
     completionBadge: {
       position: "absolute",
       top: "12px",
-      right: "12px",
+      // right position will be set inline to handle conditional logic
       background: "linear-gradient(45deg, #4caf50, #66bb6a)",
       color: "white",
       borderRadius: "50%",
@@ -2114,98 +2114,105 @@ export default function Index() {
                         }}
                       >
 
-                        {/* Delete Button - only for authorized users */}
+                                                {/* Action Buttons Container - properly spaced icons */}
                         {isAllowedToCreateLectures && (
-                        <div 
-                          style={{
+                          <div style={{
                             position: "absolute",
-                              top: "12px",
-                              right: isSelected ? "82px" : "44px", // Further right than edit button
-                              width: "28px",
-                              height: "28px",
-                              borderRadius: "50%",
-                              background: isUpdating === `deleting-${lecture.id}` 
-                                ? "rgba(244, 67, 54, 0.3)" 
-                                : "rgba(244, 67, 54, 0.1)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: isUpdating === `deleting-${lecture.id}` ? "not-allowed" : "pointer",
-                              transition: "all 0.3s ease",
-                              zIndex: 20,
-                              opacity: isUpdating === `deleting-${lecture.id}` ? 1 : 0.7,
-                              pointerEvents: isUpdating === `deleting-${lecture.id}` ? "none" : "auto",
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isUpdating !== `deleting-${lecture.id}`) {
-                                handleDeleteLecture(lecture);
-                              }
-                            }}
-                            onMouseEnter={(e) => {
-                              if (isUpdating !== `deleting-${lecture.id}`) {
-                                e.currentTarget.style.background = "rgba(244, 67, 54, 0.2)";
-                                e.currentTarget.style.opacity = "1";
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (isUpdating !== `deleting-${lecture.id}`) {
-                                e.currentTarget.style.background = "rgba(244, 67, 54, 0.1)";
-                                e.currentTarget.style.opacity = "0.7";
-                              }
-                            }}
-                            title={isUpdating === `deleting-${lecture.id}` ? "Tar bort..." : "Ta bort föreläsning"}
-                          >
-                            {isUpdating === `deleting-${lecture.id}` ? (
-                              <CircularProgress size={14} style={{ color: "#f44336" }} />
-                            ) : (
-                              <DeleteIcon style={{ fontSize: "14px", color: "#f44336" }} />
-                            )}
-                          </div>
-                        )}
-
-                        {/* Edit Button - only for authorized users */}
-                        {isAllowedToCreateLectures && (
-                          <div 
-                            style={{
-                              position: "absolute",
-                              top: "12px",
-                              right: isSelected ? "50px" : "12px", // Positioned in top-right corner
-                              width: "28px",
-                              height: "28px",
-                            borderRadius: "50%",
-                            background: "rgba(255, 255, 255, 0.1)",
+                            top: "12px",
+                            right: "12px",
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            transition: "all 0.3s ease",
+                            gap: "8px",
                             zIndex: 20,
-                            opacity: 0.7,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditLecture(lecture);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
-                            e.currentTarget.style.opacity = "1";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                            e.currentTarget.style.opacity = "0.7";
-                          }}
-                          title="Redigera föreläsning"
-                        >
-                          <EditIcon style={{ fontSize: "14px", color: "white" }} />
-                        </div>
+                          }}>
+                            {/* Edit Button */}
+                            <div 
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "50%",
+                                background: "rgba(255, 255, 255, 0.1)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                transition: "all 0.3s ease",
+                                opacity: 0.7,
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditLecture(lecture);
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                                e.currentTarget.style.opacity = "1";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                e.currentTarget.style.opacity = "0.7";
+                              }}
+                              title="Redigera föreläsning"
+                            >
+                              <EditIcon style={{ fontSize: "14px", color: "white" }} />
+                            </div>
+
+                            {/* Delete Button */}
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "50%",
+                                background: isUpdating === `deleting-${lecture.id}` 
+                                  ? "rgba(244, 67, 54, 0.3)" 
+                                  : "rgba(244, 67, 54, 0.1)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: isUpdating === `deleting-${lecture.id}` ? "not-allowed" : "pointer",
+                                transition: "all 0.3s ease",
+                                opacity: isUpdating === `deleting-${lecture.id}` ? 1 : 0.7,
+                                pointerEvents: isUpdating === `deleting-${lecture.id}` ? "none" : "auto",
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isUpdating !== `deleting-${lecture.id}`) {
+                                  handleDeleteLecture(lecture);
+                                }
+                              }}
+                              onMouseEnter={(e) => {
+                                if (isUpdating !== `deleting-${lecture.id}`) {
+                                  e.currentTarget.style.background = "rgba(244, 67, 54, 0.2)";
+                                  e.currentTarget.style.opacity = "1";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (isUpdating !== `deleting-${lecture.id}`) {
+                                  e.currentTarget.style.background = "rgba(244, 67, 54, 0.1)";
+                                  e.currentTarget.style.opacity = "0.7";
+                                }
+                              }}
+                              title={isUpdating === `deleting-${lecture.id}` ? "Tar bort..." : "Ta bort föreläsning"}
+                            >
+                              {isUpdating === `deleting-${lecture.id}` ? (
+                                <CircularProgress size={14} style={{ color: "#f44336" }} />
+                              ) : (
+                                <DeleteIcon style={{ fontSize: "14px", color: "#f44336" }} />
+                              )}
+                            </div>
+                          </div>
                         )}
 
 
 
                         {/* Completion Badge */}
                         {isSelected && (
-                          <div className={classes.completionBadge}>✓</div>
+                          <div 
+                            className={classes.completionBadge}
+                            style={{
+                              right: isAllowedToCreateLectures ? "88px" : "12px", // Move left to avoid action buttons when present
+                            }}
+                          >
+                            ✓
+                          </div>
                         )}
 
                         {/* Lecture Number - now permanent */}

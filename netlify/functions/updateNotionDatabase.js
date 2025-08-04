@@ -629,23 +629,37 @@ exports.handler = async (event, context) => {
     } // End of for loop
 
     // Calculate summary for multiple user processing
-    const success = results.length > 0 && results[0].success;
+    const successfulResults = results.filter(r => r.success);
+    const failedResults = results.filter(r => !r.success);
+    const success = successfulResults.length > 0;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
     
     let message;
-    if (success) {
-      const result = results[0];
-      if (result.skipped > 0) {
-        message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
-      } else if (result.created > 0) {
-        message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+    if (shouldUpdateAllUsers) {
+      // Message for multiple users (select/unselect actions)
+      if (successfulResults.length === results.length) {
+        message = `Lecture ${action} updated successfully in all ${results.length} users' Notion databases`;
+      } else if (successfulResults.length > 0) {
+        message = `Lecture ${action} updated in ${successfulResults.length}/${results.length} users' Notion databases`;
       } else {
-        message = `${targetUser}'s Notion database updated successfully`;
+        message = `Failed to update lecture ${action} in any Notion database`;
       }
-    } else if (results.length > 0) {
-      message = `Failed to update ${targetUser}'s Notion database: ${results[0].error}`;
     } else {
-      message = `Failed to process ${targetUser}'s Notion database`;
+      // Message for single user (bulk_add and other actions)
+      if (success) {
+        const result = results[0];
+        if ((result.skipped || 0) > 0) {
+          message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
+        } else if ((result.created || 0) > 0) {
+          message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+        } else {
+          message = `${targetUser}'s Notion database updated successfully`;
+        }
+      } else if (results.length > 0) {
+        message = `Failed to update ${targetUser}'s Notion database: ${results[0].error}`;
+      } else {
+        message = `Failed to process ${targetUser}'s Notion database`;
+      }
     }
 
     const response = {
@@ -653,10 +667,11 @@ exports.handler = async (event, context) => {
       message,
       results,
       summary: {
-        successfulUpdates: success ? 1 : 0,
-        failedUpdates: success ? 0 : 1,
+        successfulUpdates: successfulResults.length,
+        failedUpdates: failedResults.length,
         pagesCreated,
-        targetUser
+        targetUser: shouldUpdateAllUsers ? 'all' : targetUser,
+        usersProcessed: usersToProcess
       }
     };
 
