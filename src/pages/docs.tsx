@@ -34,7 +34,7 @@ const DocsPage: React.FC = () => {
   const featureCards = [
     {
       title: '🔍 Smart Sökning',
-      icon: <SearchIcon color="primary" />,
+      icon: null,
       description: 'Hitta föreläsningar snabbt och enkelt',
       features: [
         'Börja skriva direkt - ingen klickning på sökrutan behövs',
@@ -45,21 +45,19 @@ const DocsPage: React.FC = () => {
     },
     {
       title: '📋 Notion-synkronisering',
-      icon: <SyncIcon color="success" />,
+      icon: null,
       description: 'Synka dina föreläsningar till Notion',
       features: [
         'Klicka på menyikonen och välj "Sync all to Notion"',
-        'Automatisk skapande av inline-databas i din Notion-sida',
-
-        'Automatisk dupliceringshantering'
+        'Automatisk skapande av inline-databas i din Notion-sida'
       ]
     },
     {
       title: '✏️ Föreläsningshantering',
-      icon: <EditIcon color="info" />,
+      icon: null,
       description: 'Redigera och hantera föreläsningar',
       features: [
-        'Klicka på föreläsningskort för att markera dem som du ska notionera',
+        'Klicka på föreläsningskort för att markera de som du ska notionera',
         'Redigera-knapp (penna) för att ändra detaljer',
         'Ta bort-knapp (papperskorg) för att radera',
         'Kopiera-knapp för att kopiera föreläsningsnamn',
@@ -68,13 +66,13 @@ const DocsPage: React.FC = () => {
     },
     {
       title: '🔔 Notifieringar',
-      icon: <NotificationsIcon color="warning" />,
+      icon: null,
       description: 'Skicka färdignotieringsmeddelanden till Ankiologernachatten',
       features: [
         'NOTIFIERA-knapp kopierar färdignotieringsmeddelande automatiskt',
         'Öppnar Ankiologernachatten i Messenger direkt',
         'Snabb delning av dina valda föreläsningar',
-        'Ett klick för att meddela gruppen vad du ska notionera'
+        'Tre klick för att meddela gruppen vad du ska notionera'
       ]
     }
   ];
@@ -92,12 +90,9 @@ const DocsPage: React.FC = () => {
           <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
             <DocsIcon sx={{ fontSize: 40, mr: 2, color: '#ff9800' }} />
             <Typography variant="h3" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
-              Dokumentation & Guide
+              Dokumentation
             </Typography>
           </Box>
-          <Typography variant="h6" maxWidth="600px" mx="auto" sx={{ color: 'white' }}>
-            Allt du behöver veta för att använda Ankiologernas Notioneringsledger effektivt
-          </Typography>
         </Box>
 
         {/* Quick Tips */}
@@ -152,8 +147,8 @@ const DocsPage: React.FC = () => {
             >
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" mb={2}>
-                  {card.icon}
-                  <Typography variant="h6" fontWeight="bold" ml={1} sx={{ color: 'white' }}>
+                  {card.icon && card.icon}
+                  <Typography variant="h6" fontWeight="bold" ml={card.icon ? 1 : 0} sx={{ color: 'white' }}>
                     {card.title}
                   </Typography>
                 </Box>
@@ -180,38 +175,7 @@ const DocsPage: React.FC = () => {
 
 
 
-        {/* Technical Info */}
-        <Card 
-          elevation={3}
-          sx={{ 
-            background: theme === 'dark' 
-              ? 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)'
-              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-            border: theme === 'dark' ? '1px solid #333' : '1px solid #e0e0e0'
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
-              ⚙️ Teknisk Information
-            </Typography>
-            <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }} gap={3}>
-              <Box>
-                <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>Notion-integration</Typography>
-                <Typography variant="body2" paragraph sx={{ color: 'white' }}>
-                  Appen integrerar med Notion API för att skapa och uppdatera databaser. 
-                  Dina Notion-tokens och sidor konfigureras säkert via miljövariabler.
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>Datahantering</Typography>
-                <Typography variant="body2" paragraph sx={{ color: 'white' }}>
-                  All data sparas lokalt och synkroniseras med backend-API:er. 
-                  Föreläsningsdata hämtas från ICS-filer och bearbetas automatiskt.
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
+
 
         {/* Footer */}
         <Box textAlign="center" mt={6} pt={4} borderTop="1px solid" borderColor="divider">
