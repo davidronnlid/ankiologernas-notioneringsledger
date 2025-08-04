@@ -2170,7 +2170,7 @@ export default function Index() {
                             style={{
                               position: "absolute",
                               top: "12px",
-                              right: isSelected ? "50px" : "12px", // Next to checkmark if selected, or in corner if not
+                              right: isSelected ? "88px" : "50px", // Positioned to the left of copy button
                               width: "28px",
                               height: "28px",
                             borderRadius: "50%",
@@ -2205,14 +2205,19 @@ export default function Index() {
                         <div
                           style={{
                             position: "absolute",
-                            top: muiTheme.spacing(1),
-                            right: isAllowedToCreateLectures ? muiTheme.spacing(4) : muiTheme.spacing(1),
+                            top: "12px",
+                            right: isAllowedToCreateLectures ? "50px" : "12px", // Positioned consistently
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "50%",
+                            background: "rgba(255, 255, 255, 0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
                             zIndex: 20,
                             opacity: 0.7,
-                            cursor: "pointer",
-                            padding: muiTheme.spacing(0.5),
-                            borderRadius: "4px",
-                            transition: "all 0.3s ease",
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
