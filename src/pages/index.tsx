@@ -20,7 +20,7 @@ import {
   Button,
 } from "@material-ui/core";
 import NotifyButton from "@/components/NotifyButton";
-import NotionSyncButton from "@/components/NotionSyncButton";
+
 import NotionSetupManager from "@/components/NotionSetupManager";
 import NotionIntegrationSetup from "@/components/NotionIntegrationSetup";
 import SmartRecommendations from "@/components/SmartRecommendations";
@@ -1020,6 +1020,7 @@ export default function Index() {
   const [showNotionSetup, setShowNotionSetup] = useState(false);
   const [urlSyncCompleted, setUrlSyncCompleted] = useState(false);
   const [lectureSyncCompleted, setLectureSyncCompleted] = useState(false);
+  const [showLectures, setShowLectures] = useState(true);
   
   // Check Notion setup status
   const notionSetupStatus = useNotionSetup(currentUser);
@@ -2061,8 +2062,34 @@ export default function Index() {
             </div>
           )}
 
+          {/* Lectures Toggle Button */}
+          <div style={{ 
+            marginTop: muiTheme.spacing(4), 
+            marginBottom: muiTheme.spacing(2),
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <Button
+              variant="outlined"
+              onClick={() => setShowLectures(!showLectures)}
+              style={{
+                color: '#fff',
+                borderColor: '#666',
+                borderRadius: '20px',
+                padding: '8px 24px',
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+              }}
+              startIcon={showLectures ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            >
+              {showLectures ? 'Dölj föreläsningar' : 'Visa föreläsningar'}
+            </Button>
+          </div>
+
           {/* Lectures Grid */}
-          <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
+          {showLectures && (
+            <div style={{ marginTop: muiTheme.spacing(4), overflow: "visible" }}>
             <Grid container spacing={3} style={{ overflow: "visible" }}>
               {filteredWeeks.map((week) => {
                 // Group lectures by date for better gap placement
@@ -2442,7 +2469,8 @@ export default function Index() {
                 </Typography>
               </Box>
             )}
-        </div>
+          </div>
+        )}
 
         {/* Smart AI Recommendations */}
                   <SmartRecommendations
@@ -2451,29 +2479,7 @@ export default function Index() {
             onOpenPreferences={() => setShowPreferencesDialog(true)}
           />
 
-          {/* Notion Integration Section */}
-          <div style={{ 
-            marginTop: muiTheme.spacing(4), 
-            marginBottom: muiTheme.spacing(2),
-            display: 'flex',
-            justifyContent: 'center',
-            gap: muiTheme.spacing(2),
-            flexWrap: 'wrap'
-          }}>
-            <NotionSyncButton 
-              variant="button"
-              size="large"
-              onSyncComplete={(results) => {
-                console.log('Sync completed:', results);
-                // Optionally refresh data after sync
-                if (results.success) {
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1000);
-                }
-              }}
-            />
-          </div>
+
 
         {/* User Statistics Section */}
         <div className={classes.statsSection}>
