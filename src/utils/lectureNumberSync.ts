@@ -61,7 +61,7 @@ export const syncLectureNumbersWithNotion = async (
     console.log(`📊 Flattened to ${flatLectures.length} lectures`);
 
     // Call the sync API
-    const endpoint = process.env.NODE_ENV === 'development' 
+    const endpoint = (process.env.NODE_ENV as string) === 'development' 
       ? '/api/syncLectureNumbers' 
       : '/.netlify/functions/syncLectureNumbers';
 

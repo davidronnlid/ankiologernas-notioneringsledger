@@ -309,6 +309,132 @@ export const filterLecturesByActiveCourse = (lecturesData: any[]) => {
 // Track ongoing requests to prevent duplicates
 const ongoingRequests = new Set<string>();
 
+/**
+ * Analyzes Notion API errors and provides detailed guidance
+ */
+function analyzeNotionError(result: any, lecture: any) {
+  const errorMessage = result.message || result.error || 'Unknown error';
+  const statusCode = result.statusCode || result.status;
+  
+  // Common error patterns and their solutions
+  if (errorMessage.includes('subjectArea is not defined')) {
+    return {
+      message: 'Subject area configuration error',
+      details: `The lecture "${lecture.title}" couldn't be synced because the subject area is not properly configured.`,
+      action: 'Check that the lecture has a valid subject area assigned in the app.'
+    };
+  }
+  
+  if (errorMessage.includes('No Notion token configured')) {
+    return {
+      message: 'Notion integration not configured',
+      details: `No Notion API token is configured for your account. The app needs access to your Notion workspace.`,
+      action: 'Go to Settings > Notion Setup and configure your Notion integration.'
+    };
+  }
+  
+  if (errorMessage.includes('page not found') || errorMessage.includes('database not found')) {
+    return {
+      message: 'Notion page/database not found',
+      details: `The Notion page or database for course "${lecture.course}" could not be found.`,
+      action: 'Check that the Notion page exists and is shared with the integration. Go to Settings > Notion Setup to verify.'
+    };
+  }
+  
+  if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+    return {
+      message: 'Notion API rate limit exceeded',
+      details: `Too many requests were sent to Notion. The API has rate limits to prevent abuse.`,
+      action: 'Wait a few minutes and try again. The sync will automatically retry with delays.'
+    };
+  }
+  
+  if (errorMessage.includes('unauthorized') || errorMessage.includes('forbidden')) {
+    return {
+      message: 'Notion access denied',
+      details: `The app doesn't have permission to access your Notion workspace.`,
+      action: 'Check that the Notion integration is properly set up and the page is shared with the integration.'
+    };
+  }
+  
+  if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+    return {
+      message: 'Network connection error',
+      details: `Could not connect to Notion's servers. This might be a temporary network issue.`,
+      action: 'Check your internet connection and try again. The sync will automatically retry.'
+    };
+  }
+  
+  if (statusCode === 500) {
+    return {
+      message: 'Server error',
+      details: `The Notion API returned a server error (500). This is usually temporary.`,
+      action: 'Wait a few minutes and try again. If the problem persists, check the Notion service status.'
+    };
+  }
+  
+  if (statusCode === 404) {
+    return {
+      message: 'Resource not found',
+      details: `The requested Notion resource (page, database, or integration) was not found.`,
+      action: 'Verify your Notion setup in Settings > Notion Setup. Make sure the page exists and is accessible.'
+    };
+  }
+  
+  // Default error analysis
+  return {
+    message: 'Sync failed',
+    details: `Failed to sync lecture "${lecture.title}" to Notion: ${errorMessage}`,
+    action: 'Check your Notion setup and try again. If the problem persists, contact support.'
+  };
+}
+
+/**
+ * Analyzes network and connection errors
+ */
+function analyzeNetworkError(error: any, lecture: any) {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  
+  if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+    return {
+      message: 'Network connection failed',
+      details: `Could not connect to the server while syncing "${lecture.title}". This might be a temporary network issue.`,
+      action: 'Check your internet connection and try again. The sync will automatically retry with delays.'
+    };
+  }
+  
+  if (errorMessage.includes('timeout')) {
+    return {
+      message: 'Request timeout',
+      details: `The request to sync "${lecture.title}" timed out. The server took too long to respond.`,
+      action: 'Wait a moment and try again. The sync will automatically retry with longer delays.'
+    };
+  }
+  
+  if (errorMessage.includes('CORS') || errorMessage.includes('cross-origin')) {
+    return {
+      message: 'Browser security error',
+      details: `A browser security restriction prevented syncing "${lecture.title}". This is usually temporary.`,
+      action: 'Refresh the page and try again. If the problem persists, check your browser settings.'
+    };
+  }
+  
+  if (errorMessage.includes('Failed to get response after all retry attempts')) {
+    return {
+      message: 'Multiple retry attempts failed',
+      details: `The sync for "${lecture.title}" failed after multiple retry attempts. This might be a server issue.`,
+      action: 'Wait a few minutes and try again. If the problem persists, check the server status.'
+    };
+  }
+  
+  // Default network error analysis
+  return {
+    message: 'Connection error',
+    details: `Failed to sync "${lecture.title}" due to a connection error: ${errorMessage}`,
+    action: 'Check your internet connection and try again. The sync will automatically retry.'
+  };
+}
+
 export const syncAllLecturesToNotionPages = async (
   lectures: any[],
   progressCallbacks?: {
@@ -498,18 +624,24 @@ export const syncAllLecturesToNotionPages = async (
         );
       } else {
         errorCount++;
+        
+        // Analyze the error and provide detailed guidance
+        const errorAnalysis = analyzeNotionError(result, lecture);
         console.error(`❌ Failed to sync lecture: ${lecture.title}`, result);
+        
         results.push({
           lecture: lecture.title,
           status: 'error',
-          error: result.message || 'Unknown error'
+          error: errorAnalysis.message,
+          details: errorAnalysis.details,
+          action: errorAnalysis.action
         });
         
-        // Notify UI of error
+        // Notify UI of detailed error
         progressCallbacks?.onLectureError?.(
           lecture.lectureNumber, 
           lecture.title, 
-          result.message || 'Unknown error', 
+          errorAnalysis.message, 
           currentProgress, 
           totalLectures
         );
@@ -522,17 +654,23 @@ export const syncAllLecturesToNotionPages = async (
       errorCount++;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`❌ Exception while syncing lecture ${lecture.title}:`, errorMessage);
+      
+      // Analyze network/connection errors
+      const errorAnalysis = analyzeNetworkError(error, lecture);
+      
       results.push({
         lecture: lecture.title,
         status: 'error',
-        reason: errorMessage
+        reason: errorAnalysis.message,
+        details: errorAnalysis.details,
+        action: errorAnalysis.action
       });
       
-      // Notify UI of error
+      // Notify UI of detailed error
       progressCallbacks?.onLectureError?.(
         lecture.lectureNumber, 
         lecture.title, 
-        errorMessage, 
+        errorAnalysis.message, 
         currentProgress, 
         totalLectures
       );

@@ -569,10 +569,37 @@ exports.handler = async (event, context) => {
       
     } catch (error) {
       console.error(`❌ Failed to update ${userName}'s Notion database:`, error);
+      
+      // Provide detailed error analysis
+      let detailedError = error.message;
+      let errorType = 'Unknown error';
+      
+      if (error.message.includes('subjectArea is not defined')) {
+        detailedError = `Subject area is not defined for lecture "${lectureTitle}". The lecture needs a valid subject area to be synced to Notion.`;
+        errorType = 'Configuration error';
+      } else if (error.message.includes('No Notion token configured')) {
+        detailedError = `No Notion API token is configured for user "${userName}". Please set up the Notion integration in your account settings.`;
+        errorType = 'Integration error';
+      } else if (error.message.includes('page not found') || error.message.includes('database not found')) {
+        detailedError = `The Notion page or database for user "${userName}" could not be found. Please check that the page exists and is shared with the integration.`;
+        errorType = 'Resource not found';
+      } else if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
+        detailedError = `Notion API rate limit exceeded. Too many requests were sent. Please wait a few minutes and try again.`;
+        errorType = 'Rate limit exceeded';
+      } else if (error.message.includes('unauthorized') || error.message.includes('forbidden')) {
+        detailedError = `Access denied to Notion workspace for user "${userName}". Please check that the integration has proper permissions.`;
+        errorType = 'Access denied';
+      } else if (error.message.includes('network') || error.message.includes('connection')) {
+        detailedError = `Network connection error while syncing to Notion. This might be a temporary issue.`;
+        errorType = 'Network error';
+      }
+      
       results.push({
         user: userName,
         success: false,
-        error: error.message
+        error: detailedError,
+        errorType: errorType,
+        originalError: error.message
       });
     }
 
@@ -618,15 +645,34 @@ exports.handler = async (event, context) => {
   } catch (error) {
     console.error('❌ Error in Notion database update function:', error);
     
+    // Provide detailed error guidance
+    let errorMessage = `Server error: ${error.message}`;
+    let guidance = '';
+    
+    if (error.message.includes('MONGODB_URI') || error.message.includes('database connection')) {
+      errorMessage = 'Database connection error';
+      guidance = 'The app cannot connect to the database. This is a server configuration issue.';
+    } else if (error.message.includes('NOTION_TOKEN') || error.message.includes('environment variable')) {
+      errorMessage = 'Notion integration not configured';
+      guidance = 'The Notion integration is not properly configured on the server. Contact the administrator.';
+    } else if (error.message.includes('JSON') || error.message.includes('parse')) {
+      errorMessage = 'Invalid request data';
+      guidance = 'The request data is malformed. Please try again or contact support.';
+    } else if (error.message.includes('timeout') || error.message.includes('network')) {
+      errorMessage = 'Network timeout';
+      guidance = 'The request timed out. This might be a temporary network issue. Please try again.';
+    }
+    
     return {
       statusCode: 500,
       body: JSON.stringify({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: errorMessage,
+        guidance: guidance,
         results: [],
         summary: {
           successfulUpdates: 0,
-          failedUpdates: 3,
+          failedUpdates: 1,
           pagesCreated: 0
         }
       })
