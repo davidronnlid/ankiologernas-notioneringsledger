@@ -1821,7 +1821,6 @@ export default function Index() {
 
   return (
     <Layout>
-      <>
         {/* Celebration Animation Overlay */}
         {showCelebration && celebrationUser && celebrationLecture && (
           <div className={classes.celebrationOverlay}>
@@ -2681,7 +2680,7 @@ export default function Index() {
             window.location.reload();
           }}
         />
-      </>
+        </div>
     </Layout>
   );
 }
