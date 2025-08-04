@@ -31,6 +31,7 @@ import UserPreferencesDialog from "./UserPreferencesDialog";
 import { useTheme } from "../contexts/ThemeContext";
 import { syncAllLecturesToNotionPages, filterLecturesByActiveCourse } from "utils/notionCRUD";
 import { useNotionSync } from "../contexts/NotionSyncContext";
+import { DatabaseNotifications } from "utils/notificationSystem";
 
 interface Props {
   children: React.ReactElement;
@@ -123,16 +124,24 @@ export default function Header() {
 
       if (results.success) {
         addMessage(`✅ Manual sync completed successfully!`);
+        
+        // Show success notification with lecture count
+        const lectureCount = activeCourseLectures.length;
+        DatabaseNotifications.notionSyncCompleted(lectureCount);
+        
         finishSync('🎉 Manual sync to Notion completed successfully!');
       } else {
         addMessage(`❌ Manual sync failed: ${results.message}`);
         setError(`Manual sync failed: ${results.message}`);
+        DatabaseNotifications.notionSyncError(results.message);
         finishSync();
       }
 
     } catch (error) {
       console.error('❌ Error during manual sync:', error);
-      setError(`Manual sync error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Manual sync error: ${errorMessage}`);
+      DatabaseNotifications.notionSyncError(errorMessage);
       finishSync();
     }
   };

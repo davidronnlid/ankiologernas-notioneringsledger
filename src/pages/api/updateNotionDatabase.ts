@@ -265,7 +265,7 @@ async function ensureDatabaseSchema(notion: Client, database: any, userName: str
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, subjectArea: string, selectedByUser: string, action: string) {
+async function addLectureToDatabase(notion: Client, databaseId: string, lectureTitle: string, lectureNumber: number, subjectArea: string, selectedByUser: string, action: string, checkboxStates?: any) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
@@ -318,6 +318,62 @@ async function addLectureToDatabase(notion: Client, databaseId: string, lectureT
         
         // Mark the lecture as skipped for proper response handling
         (existingLecture as any).wasSkipped = true;
+        return existingLecture;
+      }
+
+      // For bulk_sync_with_checkboxes, update Person tag based on current checkbox states
+      if (action === 'bulk_sync_with_checkboxes') {
+        console.log(`🔄 Updating Person tag for existing lecture based on checkbox states: ${lectureNumber}. ${lectureTitle}`);
+        
+        // Get current person selection from checkbox states
+        let newPerson = null;
+        let newStatus = 'Bör göra';
+        
+        if (checkboxStates) {
+          const selectedUsers = Object.keys(checkboxStates).filter(user => 
+            checkboxStates[user]?.confirm === true
+          );
+          
+          if (selectedUsers.length === 1) {
+            // Single user selected
+            const user = selectedUsers[0];
+            if (user === 'David') newPerson = 'D';
+            else if (user === 'Albin') newPerson = 'A';
+            else if (user === 'Mattias') newPerson = 'M';
+            newStatus = 'Bör göra';
+          } else if (selectedUsers.length > 1) {
+            // Multiple users selected
+            newPerson = null;
+            newStatus = 'Blå ankiz';
+          } else {
+            // No users selected
+            newPerson = null;
+            newStatus = 'Bör göra';
+          }
+        }
+
+        const updateProperties: any = {
+          'Status': {
+            select: newStatus ? { name: newStatus } : null
+          }
+        };
+
+        if (newPerson) {
+          updateProperties['Person'] = {
+            select: { name: newPerson }
+          };
+        } else {
+          updateProperties['Person'] = {
+            select: null
+          };
+        }
+
+        await notion.pages.update({
+          page_id: existingLecture.id,
+          properties: updateProperties
+        });
+
+        console.log(`✅ Updated Person tag: ${newPerson || 'none'}, Status: ${newStatus}`);
         return existingLecture;
       }
 
@@ -447,7 +503,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action } = req.body;
+    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action, checkboxStates } = req.body;
     
     // Handle special mapping for full names to short names
     if (selectedByUser) {
@@ -478,6 +534,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let targetUser = selectedByUser;
     if (action === 'bulk_add') {
       console.log(`📦 Bulk sync requested by ${selectedByUser} - updating their Notion database`);
+    }
+    
+    // For bulk_sync_with_checkboxes action, update Person tags based on current checkbox states
+    if (action === 'bulk_sync_with_checkboxes') {
+      console.log(`📦 Bulk sync with checkbox states requested by ${selectedByUser} - updating Person tags based on current selections`);
     }
     
     // For select/unselect actions, we need to update ALL users' databases
@@ -557,7 +618,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
               // Step 4: Add or update the lecture in the database with retry logic
         console.log(`📝 Adding/updating lecture for ${userName}...`);
-        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action), 3);
+        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action, checkboxStates), 3);
       
       if (result) {
         // Check if this was a duplicate skip or actual creation/update

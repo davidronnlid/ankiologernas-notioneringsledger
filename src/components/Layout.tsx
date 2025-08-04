@@ -22,6 +22,7 @@ import { initializeDevelopmentUser } from "../store/slices/authReducer";
 import { syncAllLecturesToNotionPages, filterLecturesByActiveCourse } from "utils/notionCRUD";
 import { useNotionSync } from "../contexts/NotionSyncContext";
 import { syncLectureNumbersWithNotion, shouldSyncLectureNumbers } from "utils/lectureNumberSync";
+import { DatabaseNotifications } from "utils/notificationSystem";
 
 export default function Layout({
   title = "Ankiologernas Notioneringsledger",
@@ -192,16 +193,22 @@ export default function Layout({
           addMessage(`📊 Processed ${result.results.length} operations`);
           const successCount = result.results.filter(r => r.success).length;
           addMessage(`✅ ${successCount} successful, ${result.results.length - successCount} failed`);
+          
+          // Show success notification with lecture count
+          DatabaseNotifications.notionSyncCompleted(successCount);
         }
         finishSync('🎉 Notion sync completed successfully!');
       } else {
         setError(result.message || 'Sync failed');
         addMessage(`⚠️ Auto-sync had issues: ${result.message}`);
+        DatabaseNotifications.notionSyncError(result.message || 'Sync failed');
         finishSync();
       }
     } catch (error) {
       console.error('❌ Auto-sync failed:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(errorMessage);
+      DatabaseNotifications.notionSyncError(errorMessage);
       finishSync();
     } finally {
       // Always unlock sync, regardless of success or failure

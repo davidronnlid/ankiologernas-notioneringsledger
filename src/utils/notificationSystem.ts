@@ -244,6 +244,20 @@ export const DatabaseNotifications = {
       }
     ),
 
+  notionSyncCompleted: (lectureCount: number) =>
+    notificationManager.success(
+      'Notion-synkronisering slutförd',
+      `${lectureCount} föreläsningar har synkroniserats till Notion framgångsrikt!`,
+      { duration: 5000 }
+    ),
+
+  notionSyncError: (error: string) =>
+    notificationManager.error(
+      'Notion-synkroniseringsfel',
+      `Kunde inte synkronisera till Notion: ${error}`,
+      { duration: 6000 }
+    ),
+
 
 };
 

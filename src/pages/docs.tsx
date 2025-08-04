@@ -20,6 +20,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Notifications as NotificationsIcon,
+  FilterList as FilterIcon,
+  CheckCircle as CheckIcon,
   Star as StarIcon,
   MenuBook as DocsIcon
 } from '@mui/icons-material';
@@ -44,14 +46,12 @@ const DocsPage: React.FC = () => {
     {
       title: '📋 Notion-synkronisering',
       icon: <SyncIcon color="success" />,
-      description: 'Effektivisera namngivning och persontaggning av föreläsningar i Notion',
+      description: 'Synka dina föreläsningar till Notion',
       features: [
         'Klicka på menyikonen och välj "Sync all to Notion"',
         'Automatisk skapande av inline-databas i din Notion-sida',
-        'Överför föreläsningsnamn och personassigneringar till Notion',
-        'Strukturerad formatering för enkel användning i Notion',
-        'Avbryt synkronisering när som helst med Cancel-knappen',
-        'Realtidsuppdateringar med detaljerad progress'
+
+        'Automatisk dupliceringshantering'
       ]
     },
     {
@@ -59,7 +59,7 @@ const DocsPage: React.FC = () => {
       icon: <EditIcon color="info" />,
       description: 'Redigera och hantera föreläsningar',
       features: [
-        'Klicka på föreläsningskort för att markera/avmarkera',
+        'Klicka på föreläsningskort för att markera dem som du ska notionera',
         'Redigera-knapp (penna) för att ändra detaljer',
         'Ta bort-knapp (papperskorg) för att radera',
         'Kopiera-knapp för att kopiera föreläsningsnamn',
@@ -67,36 +67,38 @@ const DocsPage: React.FC = () => {
       ]
     },
     {
-      title: '🔔 Teamkommunikation',
+      title: '🔔 Notifieringar',
       icon: <NotificationsIcon color="warning" />,
-      description: 'Meddela teammates när du har slutfört föreläsningsnoteringar',
+      description: 'Håll koll på föreläsningar och uppdateringar',
       features: [
-        'NOTIFIERA-knapp visas för föreläsningar du har markerat',
-        'Skicka meddelande till teammedlemmar om färdigställd föreläsning',
-        'Automatisk öppning av Messenger med förifyllt meddelande',
-        'Meddelandet kopieras automatiskt till clipboard',
-        'Välj vilken föreläsning att notifiera om',
-        'Anpassningsbart meddelande med föreläsningsinformation'
+        'NOTIFIERA-knapp för att skicka påminnelser',
+        'Automatiska meddelanden vid ändringar',
+        'Visuell feedback för alla åtgärder',
+        'Realtidsstatusuppdateringar'
       ]
     }
   ];
 
   const quickTips = [
-    { icon: <SearchIcon />, tip: 'Börja skriva direkt för att söka bland föreläsningar - ingen klickning i sökrutan behövs!' },
+    { icon: <SearchIcon />, tip: 'Börja skriva direkt för att söka - ingen klickning behövs!' },
+    { icon: <CheckIcon />, tip: 'Markera föreläsningar genom att klicka på korten' },
+    { icon: <CopyIcon />, tip: 'Använd kopiera-knappen för att snabbt dela föreläsningsnamn' },
+    { icon: <SyncIcon />, tip: 'Synka till Notion via menyn för att backup dina data' },
+    { icon: <FilterIcon />, tip: 'Filtrera på person genom att klicka på namnchips' },
   ];
 
   return (
-    <Layout title="Dokumentation - Ankiologernas NL">
+    <Layout title="Dokumentation & Guide - Ankiologernas NL">
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
         <Box textAlign="center" mb={6}>
           <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
             <DocsIcon sx={{ fontSize: 40, mr: 2, color: '#ff9800' }} />
-            <Typography variant="h3" component="h1" fontWeight="bold" color="white">
-              Dokumentation
+            <Typography variant="h3" component="h1" fontWeight="bold">
+              Dokumentation & Guide
             </Typography>
           </Box>
-          <Typography variant="h6" color="white" maxWidth="600px" mx="auto">
+          <Typography variant="h6" color="text.secondary" maxWidth="600px" mx="auto">
             Allt du behöver veta för att använda Ankiologernas Notioneringsledger effektivt
           </Typography>
         </Box>
@@ -113,9 +115,9 @@ const DocsPage: React.FC = () => {
             border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd'
           }}
         >
-                      <Typography variant="h5" gutterBottom color="white" fontWeight="bold">
-              ⚡ Snabbtips
-            </Typography>
+          <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
+            ⚡ Snabbtips
+          </Typography>
           <List dense>
             {quickTips.map((tip, index) => (
               <ListItem key={index} sx={{ py: 0.5 }}>
@@ -126,7 +128,7 @@ const DocsPage: React.FC = () => {
                 </ListItemIcon>
                 <ListItemText 
                   primary={tip.tip}
-                  primaryTypographyProps={{ variant: 'body2', color: 'white' }}
+                  primaryTypographyProps={{ variant: 'body2' }}
                 />
               </ListItem>
             ))}
@@ -154,11 +156,11 @@ const DocsPage: React.FC = () => {
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" mb={2}>
                   {card.icon}
-                  <Typography variant="h6" fontWeight="bold" ml={1} color="white">
+                  <Typography variant="h6" fontWeight="bold" ml={1}>
                     {card.title}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="white" mb={3}>
+                <Typography variant="body2" color="text.secondary" mb={3}>
                   {card.description}
                 </Typography>
                 <List dense>
@@ -169,7 +171,7 @@ const DocsPage: React.FC = () => {
                       </ListItemIcon>
                       <ListItemText 
                         primary={feature}
-                        primaryTypographyProps={{ variant: 'body2', color: 'white' }}
+                        primaryTypographyProps={{ variant: 'body2' }}
                       />
                     </ListItem>
                   ))}
@@ -191,32 +193,32 @@ const DocsPage: React.FC = () => {
             border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd'
           }}
         >
-          <Typography variant="h5" gutterBottom color="white" fontWeight="bold">
+          <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
             📋 Typiskt Arbetsflöde
           </Typography>
           <Box component="ol" sx={{ pl: 2 }}>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" color="white">Sök efter föreläsningar</Typography>
-              <Typography variant="body2" color="white">
+              <Typography variant="body1" fontWeight="bold">Sök efter föreläsningar</Typography>
+              <Typography variant="body2" color="text.secondary">
                 Börja skriva direkt när du kommer till sidan - ingen klickning på sökrutan behövs
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" color="white">Markera relevanta föreläsningar</Typography>
-              <Typography variant="body2" color="white">
-                Klicka på föreläsningskorten för att markera dem som du ska notera
+              <Typography variant="body1" fontWeight="bold">Markera relevanta föreläsningar</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Klicka på föreläsningskorten för att markera dem som du ska notionera
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" color="white">Synka till Notion (valfritt)</Typography>
-              <Typography variant="body2" color="white">
-                Använd menyn för effektiv namngivning och persontaggning i din Notion-databas
+              <Typography variant="body1" fontWeight="bold">Synka till Notion (valfritt)</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Persontaggning i din Notion-databas sker automatiskt när du väljer en föreläsning i ledgern
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold" color="white">Hantera föreläsningar</Typography>
-              <Typography variant="body2" color="white">
-                Redigera, kopiera eller ta bort föreläsningar med ikonerna i övre högra hörnet
+              <Typography variant="body1" fontWeight="bold">Hantera föreläsningar</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Redigera, kopiera eller ta bort föreläsningar från ledgern med ikonerna i övre högra hörnet av ett föreläsningskort. Synka sedan till notion för att uppdatera föreläsningens siffra utifrån den nya föreläsningsordningen
               </Typography>
             </Box>
           </Box>
@@ -233,20 +235,20 @@ const DocsPage: React.FC = () => {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom color="white" fontWeight="bold">
+            <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
               ⚙️ Teknisk Information
             </Typography>
             <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }} gap={3}>
               <Box>
-                <Typography variant="h6" gutterBottom color="white">Notion-integration</Typography>
-                <Typography variant="body2" color="white" paragraph>
+                <Typography variant="h6" gutterBottom>Notion-integration</Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
                   Appen integrerar med Notion API för att skapa och uppdatera databaser. 
                   Dina Notion-tokens och sidor konfigureras säkert via miljövariabler.
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="h6" gutterBottom color="white">Datahantering</Typography>
-                <Typography variant="body2" color="white" paragraph>
+                <Typography variant="h6" gutterBottom>Datahantering</Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
                   All data sparas lokalt och synkroniseras med backend-API:er. 
                   Föreläsningsdata hämtas från ICS-filer och bearbetas automatiskt.
                 </Typography>
@@ -257,8 +259,8 @@ const DocsPage: React.FC = () => {
 
         {/* Footer */}
         <Box textAlign="center" mt={6} pt={4} borderTop="1px solid" borderColor="divider">
-          <Typography variant="body2" color="white">
-            Behöver du hjälp? Kontakta utvecklingsteamet eller skapa en issue på GitHub.
+          <Typography variant="body2" color="text.secondary">
+            Behöver du hjälp? Kontakta David genom att skriva till honom på Messenger.
           </Typography>
           <Box mt={2}>
             <Chip 

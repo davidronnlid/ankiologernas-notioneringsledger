@@ -256,7 +256,7 @@ async function ensureDatabaseSchema(notion, database, userName) {
 }
 
 // Helper function to add or update lecture in database
-async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action) {
+async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action, checkboxStates) {
   try {
     const userLetter = USER_LETTERS[selectedByUser];
     
@@ -309,6 +309,99 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
         
         // Mark the lecture as skipped for proper response handling
         existingLecture.wasSkipped = true;
+        return existingLecture;
+      }
+
+      // For bulk_sync_with_checkboxes, update Person tag and other properties based on current app state
+      if (action === 'bulk_sync_with_checkboxes') {
+        console.log(`🔄 Updating existing lecture based on current app state: ${lectureNumber}. ${lectureTitle}`);
+        
+        // Get current person selection from checkbox states
+        let newPerson = null;
+        let newStatus = 'Bör göra';
+        
+        if (checkboxStates) {
+          const selectedUsers = Object.keys(checkboxStates).filter(user => 
+            checkboxStates[user]?.confirm === true
+          );
+          
+          if (selectedUsers.length === 1) {
+            // Single user selected
+            const user = selectedUsers[0];
+            if (user === 'David') newPerson = 'D';
+            else if (user === 'Albin') newPerson = 'A';
+            else if (user === 'Mattias') newPerson = 'M';
+            newStatus = 'Bör göra';
+          } else if (selectedUsers.length > 1) {
+            // Multiple users selected
+            newPerson = null;
+            newStatus = 'Blå ankiz';
+          } else {
+            // No users selected
+            newPerson = null;
+            newStatus = 'Bör göra';
+          }
+        }
+
+        // Check if we need to update the lecture title or subject area
+        const currentTitle = existingLecture.properties['Föreläsning']?.title?.[0]?.plain_text || '';
+        const newTitle = `${lectureNumber}. ${lectureTitle}`;
+        const currentSubjectArea = existingLecture.properties['Subject area']?.select?.name || '';
+        const newSubjectArea = subjectArea || 'Global hälsa';
+        
+        const needsUpdate = currentTitle !== newTitle || 
+                           currentSubjectArea !== newSubjectArea ||
+                           existingLecture.properties['Person']?.select?.name !== newPerson ||
+                           existingLecture.properties['Status']?.select?.name !== newStatus;
+
+        if (needsUpdate) {
+          console.log(`📝 Updating lecture properties:`);
+          console.log(`   Title: "${currentTitle}" -> "${newTitle}"`);
+          console.log(`   Subject Area: "${currentSubjectArea}" -> "${newSubjectArea}"`);
+          console.log(`   Person: "${existingLecture.properties['Person']?.select?.name || 'none'}" -> "${newPerson || 'none'}"`);
+          console.log(`   Status: "${existingLecture.properties['Status']?.select?.name || 'none'}" -> "${newStatus}"`);
+
+          const updateProperties = {
+            'Föreläsning': {
+              title: [
+                {
+                  type: 'text',
+                  text: {
+                    content: newTitle
+                  }
+                }
+              ]
+            },
+            'Subject area': {
+              select: { name: newSubjectArea }
+            },
+            'Status': {
+              select: newStatus ? { name: newStatus } : null
+            }
+          };
+
+          if (newPerson) {
+            updateProperties['Person'] = {
+              select: { name: newPerson }
+            };
+          } else {
+            updateProperties['Person'] = {
+              select: null
+            };
+          }
+
+          await notion.pages.update({
+            page_id: existingLecture.id,
+            properties: updateProperties
+          });
+
+          console.log(`✅ Updated lecture properties successfully`);
+          existingLecture.wasUpdated = true;
+        } else {
+          console.log(`✅ Lecture is already up to date - no changes needed`);
+          existingLecture.wasSkipped = true;
+        }
+        
         return existingLecture;
       }
 
@@ -441,7 +534,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action } = JSON.parse(event.body);
+    let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action, checkboxStates } = JSON.parse(event.body);
     
     // Handle special mapping for full names to short names
     if (selectedByUser) {
@@ -475,6 +568,11 @@ exports.handler = async (event, context) => {
     let targetUser = selectedByUser;
     if (action === 'bulk_add') {
       console.log(`📦 Bulk sync requested by ${selectedByUser} - updating their Notion database`);
+    }
+    
+    // For bulk_sync_with_checkboxes action, update Person tags based on current checkbox states
+    if (action === 'bulk_sync_with_checkboxes') {
+      console.log(`📦 Bulk sync with checkbox states requested by ${selectedByUser} - updating Person tags based on current selections`);
     }
     
     // For select/unselect actions, we need to update ALL users' databases
@@ -563,7 +661,7 @@ exports.handler = async (event, context) => {
       
               // Step 4: Add or update the lecture in the database with retry logic
         console.log(`📝 Adding/updating lecture for ${userName}...`);
-        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action), 3);
+        const result = await retryOperation(() => addLectureToDatabase(notion, database.id, lectureTitle, lectureNumber, subjectArea, targetUser, action, checkboxStates), 3);
       
       if (result) {
         // Check if this was a duplicate skip or actual creation/update

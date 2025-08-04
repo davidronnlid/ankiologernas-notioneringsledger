@@ -521,7 +521,8 @@ export const syncAllLecturesToNotionPages = async (
         lectureNumber: lecture.lectureNumber,
         subjectArea: lecture.subjectArea, // Add subject area to the request
         selectedByUser: selectedByUser, // Use actual logged-in user
-        action: 'bulk_add' // New action type for bulk adding
+        action: 'bulk_sync_with_checkboxes', // New action type for bulk sync with checkbox states
+        checkboxStates: lecture.checkboxState // Include current checkbox states
       };
       
       // Create unique request key for deduplication

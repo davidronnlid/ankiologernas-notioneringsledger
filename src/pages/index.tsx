@@ -1336,7 +1336,8 @@ export default function Index() {
           const searchTerm = debouncedSearchTerm.trim().toLowerCase();
           const matchesSearch = searchTerm === '' || 
             lecture.title.toLowerCase().includes(searchTerm) ||
-            lecture.lectureNumber?.toString().includes(searchTerm);
+            lecture.lectureNumber?.toString().includes(searchTerm) ||
+            lecture.subjectArea?.toLowerCase().includes(searchTerm);
 
           // Person selection filter
           let matchesPersonFilter = true;
