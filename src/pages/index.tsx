@@ -1287,37 +1287,8 @@ export default function Index() {
             console.log('✅ Notion connection test passed');
             
             // First: Comprehensive lecture sync to ensure all lectures have correct titles
-            if (!lectureSyncCompleted && allLectures.length > 0) {
-              setLectureSyncCompleted(true);
-              console.log('🔄 Starting comprehensive lecture synchronization...');
-              
-              // Use setTimeout to avoid blocking the main thread
-              setTimeout(() => {
-                syncAllLecturesToNotion(allLectures, currentUser).then(summary => {
-                  console.log('✅ Comprehensive lecture sync completed:', summary);
-                  
-                  // After lecture sync, proceed with URL sync
-                  if (allLectures.length > 0) {
-                    syncLectureUrls(allLectures, currentUser).catch(error => {
-                      console.error('Failed to sync URLs to Notion:', error);
-                    });
-                  }
-                }).catch(error => {
-                  console.error('❌ Comprehensive lecture sync failed:', error);
-                  // Still try URL sync even if lecture sync fails
-                  if (allLectures.length > 0) {
-                    syncLectureUrls(allLectures, currentUser).catch(urlError => {
-                      console.error('Failed to sync URLs to Notion:', urlError);
-                    });
-                  }
-                });
-              }, 1000);
-            } else if (lectureSyncCompleted && allLectures.length > 0) {
-              // If lecture sync already done, just do URL sync
-              syncLectureUrls(allLectures, currentUser).catch(error => {
-                console.error('Failed to sync URLs to Notion:', error);
-              });
-            }
+            // Automatic sync removed - now only happens via manual button
+            console.log('✅ Notion connection test passed - sync available via menu button');
           } else {
             console.error('❌ Notion connection test failed - skipping sync');
           }

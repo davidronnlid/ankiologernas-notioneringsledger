@@ -24,9 +24,12 @@ import { RootState } from "store/types";
 import { persistor } from "store/store";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SyncIcon from "@mui/icons-material/Sync";
 
 import UserPreferencesDialog from "./UserPreferencesDialog";
 import { useTheme } from "../contexts/ThemeContext";
+import { syncAllLecturesToNotionPages, filterLecturesByActiveCourse } from "utils/notionCRUD";
+import { useNotionSync } from "../contexts/NotionSyncContext";
 
 interface Props {
   children: React.ReactElement;
@@ -48,6 +51,7 @@ export default function Header() {
   const { theme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
+  const { startSync, addMessage, finishSync, setError } = useNotionSync();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -67,6 +71,66 @@ export default function Header() {
     handleCloseMenu();
   };
 
+  const handleSyncToNotion = async () => {
+    try {
+      handleCloseMenu();
+      
+      if (!lectures || lectures.length === 0) {
+        alert('No lectures found to sync. Please load the main page first.');
+        return;
+      }
+
+      if (!currentUser) {
+        alert('Please log in to sync to Notion.');
+        return;
+      }
+
+      // Filter lectures for active course
+      const activeCourseData = filterLecturesByActiveCourse(lectures);
+      const activeCourseLectures = activeCourseData.activeLectures;
+      
+      if (activeCourseLectures.length === 0) {
+        alert('No lectures found for the active course.');
+        return;
+      }
+
+      console.log(`🔄 Starting manual sync to Notion for ${activeCourseLectures.length} lectures...`);
+      
+      // Start sync with progress tracking
+      startSync(`Manual sync to Notion (${activeCourseLectures.length} lectures)`, activeCourseLectures.length);
+      addMessage(`🔄 Starting manual sync for ${activeCourseLectures.length} lectures...`);
+
+      // Perform the sync
+      const results = await syncAllLecturesToNotionPages(activeCourseLectures, {
+        onLectureStart: (lectureNumber, title, current, total) => {
+          addMessage(`${current}/${total}: Syncing ${lectureNumber}. ${title}...`);
+        },
+        onLectureComplete: (lectureNumber, title, success, current, total) => {
+          if (success) {
+            addMessage(`${current}/${total}: ${lectureNumber}. ${title} - synced`);
+          }
+        },
+        onLectureError: (lectureNumber, title, error, current, total) => {
+          addMessage(`${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
+        }
+      });
+
+      if (results.success) {
+        addMessage(`✅ Manual sync completed successfully!`);
+        finishSync('🎉 Manual sync to Notion completed successfully!');
+      } else {
+        addMessage(`❌ Manual sync failed: ${results.message}`);
+        setError(`Manual sync failed: ${results.message}`);
+        finishSync();
+      }
+
+    } catch (error) {
+      console.error('❌ Error during manual sync:', error);
+      setError(`Manual sync error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      finishSync();
+    }
+  };
+
   // Get authentication state and user's username from Redux store
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated
@@ -75,6 +139,9 @@ export default function Header() {
   const profile_pic = useSelector(
     (state: RootState) => state.auth.user?.profile_pic
   );
+
+  const lectures = useSelector((state: RootState) => state.lectures.lectures);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const router = useRouter();
 
@@ -371,6 +438,12 @@ export default function Header() {
                       <SettingsIcon style={{ color: '#2196f3' }} />
                     </ListItemIcon>
                     <ListItemText primary="AI-rekommendationsinställningar" />
+                  </MenuItem>
+                  <MenuItem onClick={handleSyncToNotion}>
+                    <ListItemIcon>
+                      <SyncIcon style={{ color: '#4caf50' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Sync all to Notion" />
                   </MenuItem>
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
