@@ -2060,7 +2060,8 @@ export default function Index() {
                 </>
               )}
             </div>
-          )}
+
+
 
           {/* Lectures Toggle Button */}
           <div style={{ 
@@ -2457,18 +2458,7 @@ export default function Index() {
             </Grid>
           </div>
 
-          {filteredWeeks.length === 0 &&
-            !searchTerm &&
-            selectedFilter === "alla" && (
-              <Box style={{ textAlign: "center", marginTop: "64px" }}>
-                <Typography
-                  variant="h6"
-                  style={{ color: "#ccc", marginBottom: "16px" }}
-                >
-                  Inga föreläsningar hittades för {getDisplayCourseTitle(courseTitle)}
-                </Typography>
-              </Box>
-            )}
+
           </div>
         )}
 
