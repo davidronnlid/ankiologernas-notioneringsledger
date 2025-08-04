@@ -4,7 +4,8 @@ import { updateCheckboxStateThunk } from "store/updateCheckboxStateThunk";
 import { updateLectureCheckboxState } from "store/slices/lecturesReducer";
 import { RootState } from "store/types";
 import Lecture from "types/lecture";
-import { Box, Button, Typography } from "@material-ui/core";
+import { Box, Button, Typography, Snackbar } from "@material-ui/core";
+import { Alert } from "@mui/material";
 import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
 import { updateNotionLectureTags, isNotionIntegrationEnabled } from "../utils/notionIntegration";
 import { triggerNotionSync } from "../utils/notionCRUD";
@@ -202,6 +203,11 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
     Array<{ id: number; color: string; left: number; delay: number }>
   >([]);
   const [showAchievement, setShowAchievement] = useState(false);
+  
+  // Snackbar state
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
   const full_name = useSelector(
     (state: RootState) => state.auth.user?.full_name
   );
@@ -242,6 +248,17 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
 
     // Reset celebration background
     setTimeout(() => setShowCelebration(false), 600);
+  };
+
+  // Snackbar functions
+  const showSnackbar = (message: string, severity: "success" | "error" = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
   };
 
   const handleCheckboxChange = async (
@@ -313,14 +330,29 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
             ? (isChecked ? 'lecture_selected' : 'lecture_unselected')
             : 'lecture_updated';
 
-          await triggerNotionSync(action, lectureData, name);
-          console.log(`✅ Notion sync triggered for ${action}: ${lecture.title}`);
+          const syncResult = await triggerNotionSync(action, lectureData, name);
+          
+          if (syncResult.success) {
+            console.log(`✅ Notion sync triggered for ${action}: ${lecture.title}`);
+            
+            // Show success snackbar
+            const actionText = field === "confirm" 
+              ? (isChecked ? "valt" : "avvalt")
+              : "uppdaterat";
+            showSnackbar(`✅ Tagg ${actionText} i Notion: ${lecture.title}`);
+          } else {
+            console.error('❌ Notion sync failed:', syncResult.message);
+            // Show error snackbar
+            showSnackbar(`❌ Kunde inte synka till Notion: ${lecture.title}`, "error");
+          }
         } catch (notionError) {
           console.error('❌ Notion sync failed:', notionError);
-          // Don't block the main functionality if Notion sync fails
+          // Show error snackbar
+          showSnackbar(`❌ Kunde inte synka till Notion: ${lecture.title}`, "error");
         }
       } catch (error) {
         console.error("Error updating checkbox state:", error);
+        showSnackbar("❌ Kunde inte uppdatera föreläsning", "error");
       } finally {
         setIsUpdating(null);
       }
@@ -457,6 +489,22 @@ const VemNotionerar: React.FC<Props> = ({ lectureID }) => {
           </div>
         );
       })}
+
+      {/* Snackbar for Notion sync confirmation */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          style={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

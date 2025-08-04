@@ -152,7 +152,7 @@ export const triggerNotionSync = async (
   action: 'lecture_created' | 'lecture_updated' | 'lecture_deleted' | 'lecture_selected' | 'lecture_unselected',
   lectureData: any,
   user?: string
-) => {
+): Promise<{ success: boolean; message: string }> => {
   // Check if we have the necessary environment variables for page-based sync
   const hasPageConfig = !!(
     process.env.NOTION_COURSE_PAGE_DAVID ||
@@ -162,7 +162,7 @@ export const triggerNotionSync = async (
 
   if (!hasPageConfig) {
     console.log('🔄 Notion page-based integration not configured, skipping sync');
-    return;
+    return { success: false, message: 'Notion integration not configured' };
   }
 
   console.log(`🔄 Triggering Notion page sync for action: ${action}`);
@@ -173,7 +173,7 @@ export const triggerNotionSync = async (
     if (action === 'lecture_selected' || action === 'lecture_unselected') {
       if (!user) {
         console.warn('❌ User is required for lecture selection sync');
-        return;
+        return { success: false, message: 'User is required for sync' };
       }
 
       // Subject area logic removed - simplified database with only 3 columns
@@ -204,14 +204,18 @@ export const triggerNotionSync = async (
       
       if (result.success) {
         console.log(`✅ Notion page sync successful for ${action}: ${lectureData.title}`);
+        return { success: true, message: `Successfully synced ${action}` };
       } else {
         console.error(`❌ Notion page sync failed:`, result.message);
+        return { success: false, message: result.message || 'Sync failed' };
       }
     } else {
       console.log(`🔄 Skipping ${action} - page-based system only handles lecture selection`);
+      return { success: false, message: `Action ${action} not supported` };
     }
   } catch (error) {
     console.error(`❌ Failed to sync ${action} to Notion:`, error);
+    return { success: false, message: `Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 };
 
