@@ -943,6 +943,7 @@ export default function Index() {
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [dateFilterType, setDateFilterType] = useState("alla"); // "alla", "intervall"
+  const [selectedWeek, setSelectedWeek] = useState("alla"); // Week filter state
   const [expandedWeeklyDetails, setExpandedWeeklyDetails] = useState<{
     [key: string]: boolean;
   }>({});
@@ -1327,6 +1328,58 @@ export default function Index() {
     });
   }, [userStats, totalCourseHours, currentUser]);
 
+  // Utility function to get current active course
+  const getActiveCourse = () => {
+    const currentDate = new Date();
+    return coursePeriods.find((course) =>
+      isWithinInterval(currentDate, {
+        start: parseISO(course.startDate),
+        end: parseISO(course.endDate),
+      })
+    );
+  };
+
+  // Utility function to determine current week number for active course
+  const getCurrentWeekForActiveCourse = () => {
+    const activeCourse = getActiveCourse();
+    if (!activeCourse) return null;
+
+    const currentDate = new Date();
+    const courseStart = parseISO(activeCourse.startDate);
+    
+    // If current date is before course start, return week 1
+    if (isBefore(currentDate, courseStart)) {
+      return 1;
+    }
+
+    // Calculate week number since course start
+    const weeksSinceStart = Math.floor(
+      (currentDate.getTime() - courseStart.getTime()) / (7 * 24 * 60 * 60 * 1000)
+    );
+    
+    return weeksSinceStart + 1; // Week numbers start from 1
+  };
+
+  // Get available weeks for the current course
+  const getAvailableWeeks = () => {
+    // Get unique weeks from km4Weeks (assumes km4Weeks contains current course weeks)
+    const uniqueWeeks = Array.from(
+      new Set(km4Weeks.map(week => week.week))
+    ).sort((a, b) => {
+      // Extract week numbers for proper sorting (e.g., "Vecka 1", "Vecka 2")
+      const aNum = parseInt(a.replace(/\D/g, '')) || 0;
+      const bNum = parseInt(b.replace(/\D/g, '')) || 0;
+      return aNum - bNum;
+    });
+    
+    return uniqueWeeks;
+  };
+
+  // Get current week info
+  const currentWeekNumber = getCurrentWeekForActiveCourse();
+  const activeCourse = getActiveCourse();
+  const availableWeeks = getAvailableWeeks();
+
   // Filter lectures based on search term and selected filter - simplified
   const filteredWeeks = (() => {
     return km4Weeks
@@ -1377,12 +1430,22 @@ export default function Index() {
             }
           }
 
-
+          // Week filter
+          let matchesWeekFilter = true;
+          if (selectedWeek !== "alla") {
+            matchesWeekFilter = week.week === selectedWeek;
+          }
 
           return matchesSearch && matchesPersonFilter && matchesDateFilter;
         }),
       }))
-      .filter((week) => week.lectures.length > 0);
+      // Apply week filter at the week level
+      .filter((week) => {
+        if (selectedWeek !== "alla") {
+          return week.week === selectedWeek;
+        }
+        return week.lectures.length > 0;
+      });
   })();
 
   // Count total filtered lectures - simplified
@@ -1925,6 +1988,40 @@ export default function Index() {
 
 
 
+          {/* Current Week Indicator */}
+          {activeCourse && currentWeekNumber && (
+            <div style={{
+              background: "linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(102, 187, 106, 0.1) 100%)",
+              border: "2px solid rgba(76, 175, 80, 0.3)",
+              borderRadius: "12px",
+              padding: muiTheme.spacing(2),
+              marginBottom: muiTheme.spacing(3),
+              textAlign: "center",
+              boxShadow: "0 4px 20px rgba(76, 175, 80, 0.15)",
+            }}>
+              <Typography variant="h6" style={{ 
+                color: "#4caf50", 
+                fontWeight: 600,
+                marginBottom: muiTheme.spacing(1)
+              }}>
+                🗓️ Aktuell kurs: {activeCourse.title}
+              </Typography>
+              <Typography variant="body1" style={{ 
+                color: "#66bb6a",
+                fontSize: "1.1rem"
+              }}>
+                📍 Vecka {currentWeekNumber} pågår just nu
+              </Typography>
+              <Typography variant="body2" style={{ 
+                color: "#ccc",
+                fontSize: "0.9rem",
+                marginTop: muiTheme.spacing(0.5)
+              }}>
+                Använd veckofilter nedan för att se specifika veckor
+              </Typography>
+            </div>
+          )}
+
           {/* Search and Filter Section */}
           <div className={classes.searchSection}>
             <TextField
@@ -1980,6 +2077,41 @@ export default function Index() {
                 </MenuItem>
               </Select>
             </FormControl>
+
+            <FormControl variant="outlined" className={classes.filterField}>
+              <InputLabel style={{ color: "#ccc" }}>
+                Filtera efter vecka
+              </InputLabel>
+              <Select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(e.target.value as string)}
+                label="Filtera efter vecka"
+                style={{ color: "white" }}
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      backgroundColor: "#2c2c2c",
+                      color: "white",
+                    },
+                  },
+                }}
+              >
+                <MenuItem value="alla" style={{ color: "white" }}>
+                  <FilterListIcon style={{ marginRight: 8, color: "#ccc" }} />
+                  Alla veckor
+                </MenuItem>
+                {availableWeeks.map((week) => {
+                  const weekNumber = parseInt(week.replace(/\D/g, '')) || 0;
+                  const isCurrentWeek = currentWeekNumber === weekNumber;
+                  return (
+                    <MenuItem key={week} value={week} style={{ color: "white" }}>
+                      {isCurrentWeek && "🟢 "}
+                      {week} {isCurrentWeek && "(Aktuell vecka)"}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
           </div>
 
           {/* Date Filter Section - Second Row */}
@@ -2019,6 +2151,7 @@ export default function Index() {
           {/* Search Results Info */}
           {(debouncedSearchTerm ||
             selectedFilter !== "alla" ||
+            selectedWeek !== "alla" ||
             dateFilterType !== "alla" ||
             (startDate && endDate)) && (
             <div className={classes.searchResults}>
@@ -2032,6 +2165,7 @@ export default function Index() {
                     selectedFilter !== "ej-valda" &&
                     ` som ${selectedFilter} har valt`}
                   {selectedFilter === "ej-valda" && ` som ingen har valt`}
+                  {selectedWeek !== "alla" && ` från ${selectedWeek}`}
                   {startDate && endDate && (
                     <>
                       {startDate === defaultStartDate && endDate === defaultEndDate
@@ -2049,6 +2183,7 @@ export default function Index() {
                     selectedFilter !== "ej-valda" &&
                     ` som ${selectedFilter} har valt`}
                   {selectedFilter === "ej-valda" && ` som ingen har valt`}
+                  {selectedWeek !== "alla" && ` från ${selectedWeek}`}
                   {startDate && endDate && (
                     <>
                       {startDate === defaultStartDate && endDate === defaultEndDate

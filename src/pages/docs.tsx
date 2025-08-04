@@ -94,11 +94,11 @@ const DocsPage: React.FC = () => {
         <Box textAlign="center" mb={6}>
           <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
             <DocsIcon sx={{ fontSize: 40, mr: 2, color: '#ff9800' }} />
-            <Typography variant="h3" component="h1" fontWeight="bold">
+            <Typography variant="h3" component="h1" fontWeight="bold" sx={{ color: 'white' }}>
               Dokumentation & Guide
             </Typography>
           </Box>
-          <Typography variant="h6" color="text.secondary" maxWidth="600px" mx="auto">
+          <Typography variant="h6" maxWidth="600px" mx="auto" sx={{ color: 'white' }}>
             Allt du behöver veta för att använda Ankiologernas Notioneringsledger effektivt
           </Typography>
         </Box>
@@ -115,7 +115,7 @@ const DocsPage: React.FC = () => {
             border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd'
           }}
         >
-          <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
+          <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
             ⚡ Snabbtips
           </Typography>
           <List dense>
@@ -123,12 +123,12 @@ const DocsPage: React.FC = () => {
               <ListItem key={index} sx={{ py: 0.5 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   {React.cloneElement(tip.icon, { 
-                    sx: { fontSize: 20, color: 'primary.main' } 
+                    sx: { fontSize: 20, color: 'white' } 
                   })}
                 </ListItemIcon>
                 <ListItemText 
                   primary={tip.tip}
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', sx: { color: 'white' } }}
                 />
               </ListItem>
             ))}
@@ -156,22 +156,22 @@ const DocsPage: React.FC = () => {
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" mb={2}>
                   {card.icon}
-                  <Typography variant="h6" fontWeight="bold" ml={1}>
+                  <Typography variant="h6" fontWeight="bold" ml={1} sx={{ color: 'white' }}>
                     {card.title}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" mb={3}>
+                <Typography variant="body2" mb={3} sx={{ color: 'white' }}>
                   {card.description}
                 </Typography>
                 <List dense>
                   {card.features.map((feature, featureIndex) => (
                     <ListItem key={featureIndex} sx={{ px: 0, py: 0.5 }}>
                       <ListItemIcon sx={{ minWidth: 24 }}>
-                        <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                        <StarIcon sx={{ fontSize: 16, color: 'white' }} />
                       </ListItemIcon>
                       <ListItemText 
                         primary={feature}
-                        primaryTypographyProps={{ variant: 'body2' }}
+                        primaryTypographyProps={{ variant: 'body2', sx: { color: 'white' } }}
                       />
                     </ListItem>
                   ))}
@@ -193,31 +193,31 @@ const DocsPage: React.FC = () => {
             border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd'
           }}
         >
-          <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
+          <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
             📋 Typiskt Arbetsflöde
           </Typography>
           <Box component="ol" sx={{ pl: 2 }}>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold">Sök efter föreläsningar</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Sök efter föreläsningar</Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
                 Börja skriva direkt när du kommer till sidan - ingen klickning på sökrutan behövs
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold">Markera relevanta föreläsningar</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Markera relevanta föreläsningar</Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
                 Klicka på föreläsningskorten för att markera dem som du ska notionera
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold">Synka till Notion (valfritt)</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Synka till Notion (valfritt)</Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
                 Persontaggning i din Notion-databas sker automatiskt när du väljer en föreläsning i ledgern
               </Typography>
             </Box>
             <Box component="li" sx={{ mb: 2 }}>
-              <Typography variant="body1" fontWeight="bold">Hantera föreläsningar</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>Hantera föreläsningar</Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
                 Redigera, kopiera eller ta bort föreläsningar från ledgern med ikonerna i övre högra hörnet av ett föreläsningskort. Synka sedan till notion för att uppdatera föreläsningens siffra utifrån den nya föreläsningsordningen
               </Typography>
             </Box>
@@ -235,20 +235,20 @@ const DocsPage: React.FC = () => {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
+            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ color: 'white' }}>
               ⚙️ Teknisk Information
             </Typography>
             <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }} gap={3}>
               <Box>
-                <Typography variant="h6" gutterBottom>Notion-integration</Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
+                <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>Notion-integration</Typography>
+                <Typography variant="body2" paragraph sx={{ color: 'white' }}>
                   Appen integrerar med Notion API för att skapa och uppdatera databaser. 
                   Dina Notion-tokens och sidor konfigureras säkert via miljövariabler.
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="h6" gutterBottom>Datahantering</Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
+                <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>Datahantering</Typography>
+                <Typography variant="body2" paragraph sx={{ color: 'white' }}>
                   All data sparas lokalt och synkroniseras med backend-API:er. 
                   Föreläsningsdata hämtas från ICS-filer och bearbetas automatiskt.
                 </Typography>
@@ -259,7 +259,7 @@ const DocsPage: React.FC = () => {
 
         {/* Footer */}
         <Box textAlign="center" mt={6} pt={4} borderTop="1px solid" borderColor="divider">
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'white' }}>
             Behöver du hjälp? Kontakta David genom att skriva till honom på Messenger.
           </Typography>
           <Box mt={2}>
