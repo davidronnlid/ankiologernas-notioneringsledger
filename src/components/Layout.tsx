@@ -329,17 +329,7 @@ export default function Layout({
           dispatch(setLectures(dataWithCheckboxStates));
           console.log("✅ Layout: Data dispatched to Redux!");
           
-          // Auto-sync all lectures to Notion databases after a small delay to ensure state is set
-          setTimeout(() => {
-            console.log("🎯 Triggering auto-sync to Notion databases...");
-            triggerAutoNotionSync(dataWithCheckboxStates);
-          }, 1000);
-          
-          // Sync lecture numbers with Notion database
-          setTimeout(() => {
-            console.log("🔢 Triggering lecture number sync...");
-            triggerLectureNumberSync(dataWithCheckboxStates);
-          }, 2000);
+          // Note: Auto-sync removed - now only triggered manually via "Sync all to Notion" button
         } else {
           console.log("❌ Layout: No processed data to dispatch");
         }

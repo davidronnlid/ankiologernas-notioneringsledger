@@ -25,6 +25,7 @@ import {
   syncAllLecturesToNotionPages,
   filterLecturesByActiveCourse
 } from 'utils/notionCRUD';
+import { syncLectureNumbersWithNotion } from 'utils/lectureNumberSync';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store/types';
 
@@ -104,6 +105,7 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
   
   // Get lectures from Redux store
   const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const isAvailable = isNotionIntegrationAvailable();
 
@@ -157,6 +159,14 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
       // Perform bulk sync to add ONLY active course lectures to Notion pages
       const results = await syncAllLecturesToNotionPages(sortedLectures);
       
+      // After bulk sync, also sync lecture numbers
+      console.log('🔢 Starting lecture number sync...');
+      const lectureNumberResults = await syncLectureNumbersWithNotion(lecturesData, currentUser);
+      
+      if (lectureNumberResults.success && lectureNumberResults.updatedCount && lectureNumberResults.updatedCount > 0) {
+        console.log(`📊 Updated ${lectureNumberResults.updatedCount} lecture numbers in Notion`);
+      }
+      
       setSyncResults({
         success: results.success,
         message: results.message,
@@ -165,7 +175,8 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
           successful: results.results.filter(r => r.status === 'success').length,
           failed: results.results.filter(r => r.status === 'error').length,
           total: results.results.length
-        }
+        },
+        lectureNumberSync: lectureNumberResults
       });
       
       onSyncComplete?.(results);
@@ -336,6 +347,22 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
                   <Typography variant="body2">
                     Misslyckades: {syncResults.summary.failed}/{syncResults.summary.total}
                   </Typography>
+                  
+                  {syncResults.lectureNumberSync && (
+                    <>
+                      <Typography variant="subtitle1" gutterBottom style={{ marginTop: 16 }}>
+                        🔢 Föreläsningsnummer-synk
+                      </Typography>
+                      <Typography variant="body2">
+                        {syncResults.lectureNumberSync.success ? '✅ Lyckades' : '❌ Misslyckades'}: {syncResults.lectureNumberSync.message}
+                      </Typography>
+                      {syncResults.lectureNumberSync.updatedCount && syncResults.lectureNumberSync.updatedCount > 0 && (
+                        <Typography variant="body2">
+                          📊 Uppdaterade {syncResults.lectureNumberSync.updatedCount} föreläsningsnummer i Notion
+                        </Typography>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </Box>
