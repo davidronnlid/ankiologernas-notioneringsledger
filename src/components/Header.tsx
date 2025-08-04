@@ -443,7 +443,7 @@ export default function Header() {
                     <ListItemIcon>
                       <MenuBookIcon style={{ color: '#ff9800' }} />
                     </ListItemIcon>
-                    <ListItemText primary="Dokumentation & Guide" />
+                    <ListItemText primary="Dokumentation" />
                   </MenuItem>
                   <MenuItem onClick={handleOpenPreferences}>
                     <ListItemIcon>
