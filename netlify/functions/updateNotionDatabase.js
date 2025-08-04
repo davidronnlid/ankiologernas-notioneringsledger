@@ -476,6 +476,12 @@ exports.handler = async (event, context) => {
     if (action === 'bulk_add') {
       console.log(`📦 Bulk sync requested by ${selectedByUser} - updating their Notion database`);
     }
+    
+    // For select/unselect actions, we need to update ALL users' databases
+    const shouldUpdateAllUsers = (action === 'select' || action === 'unselect');
+    if (shouldUpdateAllUsers) {
+      console.log(`🔄 Lecture ${action} action - will update ALL users' Notion databases`);
+    }
 
     const userLetter = USER_LETTERS[targetUser];
     if (userLetter === undefined) {
@@ -487,38 +493,56 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Process update ONLY for the logged-in user's Notion database
+    // Determine which users to process based on action type
     const results = [];
     let successfulUpdates = 0;
     
-    // Only process the target user (logged-in user), not all users
-    const targetUserToken = NOTION_TOKENS[targetUser];
-    const targetUserPageId = COURSE_PAGE_IDS[targetUser];
+    let usersToProcess = [];
     
-    console.log(`🎯 Processing Notion database for ${targetUser} only`);
-    
-    if (!targetUserToken) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          error: `No Notion token configured for ${targetUser}` 
-        })
-      };
+    if (shouldUpdateAllUsers) {
+      // For select/unselect actions, process ALL users who have tokens and page IDs
+      usersToProcess = Object.keys(NOTION_TOKENS).filter(user => 
+        NOTION_TOKENS[user] && COURSE_PAGE_IDS[user]
+      );
+      console.log(`🔄 Processing ALL users' Notion databases: ${usersToProcess.join(', ')}`);
+    } else {
+      // For bulk_add and other actions, only process the target user
+      usersToProcess = [targetUser];
+      console.log(`🎯 Processing Notion database for ${targetUser} only`);
+      
+      if (!NOTION_TOKENS[targetUser]) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ 
+            error: `No Notion token configured for ${targetUser}` 
+          })
+        };
+      }
+
+      if (!COURSE_PAGE_IDS[targetUser]) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ 
+            error: `No course page ID configured for ${targetUser}` 
+          })
+        };
+      }
     }
 
-    if (!targetUserPageId) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          error: `No course page ID configured for ${targetUser}` 
-        })
-      };
-    }
-
-    // Process single user's Notion database
-    const userName = targetUser;
-    const token = targetUserToken;
-    const pageId = targetUserPageId;
+    // Process each user's Notion database
+    for (const userName of usersToProcess) {
+      const token = NOTION_TOKENS[userName];
+      const pageId = COURSE_PAGE_IDS[userName];
+      
+      if (!token || !pageId) {
+        console.log(`⚠️ Skipping ${userName} - missing token or page ID`);
+        results.push({
+          user: userName,
+          success: false,
+          error: 'Missing token or page ID'
+        });
+        continue;
+      }
     
     try {
       console.log(`🔄 Processing ${userName}'s Notion database...`);
@@ -602,8 +626,9 @@ exports.handler = async (event, context) => {
         originalError: error.message
       });
     }
+    } // End of for loop
 
-    // Calculate summary for single user processing
+    // Calculate summary for multiple user processing
     const success = results.length > 0 && results[0].success;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
     

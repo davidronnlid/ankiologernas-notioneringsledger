@@ -9,6 +9,7 @@ interface NotionSyncState {
   };
   messages: string[];
   error?: string;
+  isCancelled: boolean;
 }
 
 interface NotionSyncContextType extends NotionSyncState {
@@ -18,6 +19,7 @@ interface NotionSyncContextType extends NotionSyncState {
   setError: (error: string) => void;
   finishSync: (finalMessage?: string) => void;
   clearMessages: () => void;
+  cancelSync: () => void;
 }
 
 const NotionSyncContext = createContext<NotionSyncContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     currentOperation: '',
     progress: { current: 0, total: 0 },
     messages: [],
+    isCancelled: false,
   });
 
   const startSync = (operation: string, total: number = 0) => {
@@ -49,6 +52,7 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
       progress: { current: 0, total },
       messages: [`🔄 Starting ${operation}...`],
       error: undefined,
+      isCancelled: false,
     });
   };
 
@@ -91,6 +95,15 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     }));
   };
 
+  const cancelSync = () => {
+    setState(prev => ({
+      ...prev,
+      isCancelled: true,
+      isLoading: false,
+      messages: [...prev.messages, '⚠️ Sync cancelled by user'],
+    }));
+  };
+
   const value: NotionSyncContextType = {
     ...state,
     startSync,
@@ -99,6 +112,7 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     setError,
     finishSync,
     clearMessages,
+    cancelSync,
   };
 
   return (

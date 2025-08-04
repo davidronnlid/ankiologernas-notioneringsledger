@@ -45,7 +45,7 @@ export default function Layout({
   );
 
   // Notion sync loading state
-  const { startSync, updateProgress, addMessage, setError, finishSync } = useNotionSync();
+  const { startSync, updateProgress, addMessage, setError, finishSync, isCancelled } = useNotionSync();
   
   // Sync lock to prevent multiple simultaneous syncs (which could cause duplicates)
   const [isSyncInProgress, setIsSyncInProgress] = useState(false);
@@ -184,7 +184,7 @@ export default function Layout({
         }
       };
       
-      const result = await syncAllLecturesToNotionPages(sortedLectures, progressCallbacks);
+      const result = await syncAllLecturesToNotionPages(sortedLectures, progressCallbacks, () => isCancelled);
       
       if (result.success) {
         addMessage(`✅ Auto-sync completed successfully: ${result.message}`);

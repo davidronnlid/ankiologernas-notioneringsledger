@@ -441,7 +441,8 @@ export const syncAllLecturesToNotionPages = async (
     onLectureStart?: (lectureNumber: number, title: string, current: number, total: number) => void;
     onLectureComplete?: (lectureNumber: number, title: string, success: boolean, current: number, total: number) => void;
     onLectureError?: (lectureNumber: number, title: string, error: string, current: number, total: number) => void;
-  }
+  },
+  isCancelled?: () => boolean
 ): Promise<{ success: boolean; message: string; results: any[] }> => {
   // NOTE: Lectures are already filtered by Layout.tsx - don't filter again here to avoid progress mismatch
   console.log(`🔄 Starting bulk sync of ${lectures.length} pre-filtered lectures`);
@@ -463,6 +464,12 @@ export const syncAllLecturesToNotionPages = async (
   let errorCount = 0;
 
   for (let i = 0; i < lectures.length; i++) {
+    // Check for cancellation before processing each lecture
+    if (isCancelled && isCancelled()) {
+      console.log('⚠️ Sync cancelled by user - stopping bulk sync');
+      break;
+    }
+    
     const lecture = lectures[i];
     const currentProgress = i + 1;
     const totalLectures = lectures.length;

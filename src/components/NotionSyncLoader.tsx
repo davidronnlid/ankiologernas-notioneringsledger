@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogActions,
   Box,
   Typography,
   LinearProgress,
@@ -10,6 +11,7 @@ import {
   ListItem,
   ListItemText,
   Chip,
+  Button,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -17,7 +19,7 @@ import { useNotionSync } from '../contexts/NotionSyncContext';
 
 const NotionSyncLoader: React.FC = () => {
   const theme = useTheme();
-  const { isLoading, currentOperation, progress, messages, error } = useNotionSync();
+  const { isLoading, currentOperation, progress, messages, error, cancelSync } = useNotionSync();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to latest message
@@ -194,6 +196,27 @@ const NotionSyncLoader: React.FC = () => {
           </Box>
         </Box>
       </DialogContent>
+      
+      {/* Cancel Button */}
+      <DialogActions sx={{ px: 4, pb: 3 }}>
+        <Button 
+          onClick={cancelSync}
+          variant="outlined"
+          color="error"
+          size="medium"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 'bold',
+            px: 3,
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.error.main, 0.1),
+            }
+          }}
+        >
+          Cancel Sync
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };

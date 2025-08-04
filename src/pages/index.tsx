@@ -2170,7 +2170,7 @@ export default function Index() {
                             style={{
                               position: "absolute",
                               top: "12px",
-                              right: isSelected ? "88px" : "50px", // Positioned to the left of copy button
+                              right: isSelected ? "50px" : "12px", // Positioned in top-right corner
                               width: "28px",
                               height: "28px",
                             borderRadius: "50%",
@@ -2201,40 +2201,7 @@ export default function Index() {
                         </div>
                         )}
 
-                        {/* Copy Button - always show */}
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "12px",
-                            right: isAllowedToCreateLectures ? "50px" : "12px", // Positioned consistently
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "50%",
-                            background: "rgba(255, 255, 255, 0.1)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            transition: "all 0.3s ease",
-                            zIndex: 20,
-                            opacity: 0.7,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyLectureTitle(lecture);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
-                            e.currentTarget.style.opacity = "1";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                            e.currentTarget.style.opacity = "0.7";
-                          }}
-                          title="Kopiera föreläsningsnamn"
-                        >
-                          <ContentCopyIcon style={{ fontSize: "14px", color: "white" }} />
-                        </div>
+
 
                         {/* Completion Badge */}
                         {isSelected && (
@@ -2246,10 +2213,42 @@ export default function Index() {
                           {lecture.lectureNumber}
                         </div>
 
-                        {/* Lecture Title */}
-                        <Typography className={classes.lectureTitle}>
-                          {lecture.title}
-                        </Typography>
+                        {/* Lecture Title with Copy Icon */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
+                          <Typography className={classes.lectureTitle}>
+                            {lecture.title}
+                          </Typography>
+                          <div
+                            style={{
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "rgba(255, 255, 255, 0.1)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "all 0.3s ease",
+                              opacity: 0.7,
+                              flexShrink: 0,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyLectureTitle(lecture);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                              e.currentTarget.style.opacity = "1";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                              e.currentTarget.style.opacity = "0.7";
+                            }}
+                            title="Kopiera föreläsningsnamn"
+                          >
+                            <ContentCopyIcon style={{ fontSize: "12px", color: "white" }} />
+                          </div>
+                        </div>
 
                         {/* Category Tag */}
                         {lecture.subjectArea && (

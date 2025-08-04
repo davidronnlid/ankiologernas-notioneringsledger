@@ -51,7 +51,7 @@ export default function Header() {
   const { theme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
-  const { startSync, addMessage, finishSync, setError } = useNotionSync();
+  const { startSync, addMessage, finishSync, setError, isCancelled } = useNotionSync();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -113,7 +113,7 @@ export default function Header() {
         onLectureError: (lectureNumber, title, error, current, total) => {
           addMessage(`${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
         }
-      });
+      }, () => isCancelled);
 
       if (results.success) {
         addMessage(`✅ Manual sync completed successfully!`);

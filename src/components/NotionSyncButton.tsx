@@ -157,7 +157,7 @@ const NotionSyncButton: React.FC<NotionSyncButtonProps> = ({
       const sortedLectures = activeLectures.sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
       
       // Perform bulk sync to add ONLY active course lectures to Notion pages
-      const results = await syncAllLecturesToNotionPages(sortedLectures);
+      const results = await syncAllLecturesToNotionPages(sortedLectures, undefined, () => false);
       
       // After bulk sync, also sync lecture numbers
       console.log('🔢 Starting lecture number sync...');

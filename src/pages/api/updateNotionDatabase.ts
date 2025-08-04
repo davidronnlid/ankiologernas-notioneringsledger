@@ -479,6 +479,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (action === 'bulk_add') {
       console.log(`📦 Bulk sync requested by ${selectedByUser} - updating their Notion database`);
     }
+    
+    // For select/unselect actions, we need to update ALL users' databases
+    const shouldUpdateAllUsers = (action === 'select' || action === 'unselect');
+    if (shouldUpdateAllUsers) {
+      console.log(`🔄 Lecture ${action} action - will update ALL users' Notion databases`);
+    }
 
     const userLetter = USER_LETTERS[targetUser];
     if (userLetter === undefined) {
@@ -487,32 +493,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Process update ONLY for the logged-in user's Notion database
+    // Determine which users to process based on action type
     const results = [];
     let successfulUpdates = 0;
     
-    // Only process the target user (logged-in user), not all users
-    const targetUserToken = NOTION_TOKENS[targetUser];
-    const targetUserPageId = COURSE_PAGE_IDS[targetUser];
+    let usersToProcess: string[] = [];
     
-    console.log(`🎯 Processing Notion database for ${targetUser} only`);
-    
-    if (!targetUserToken) {
-      return res.status(400).json({ 
-        error: `No Notion token configured for ${targetUser}` 
-      });
+    if (shouldUpdateAllUsers) {
+      // For select/unselect actions, process ALL users who have tokens and page IDs
+      usersToProcess = Object.keys(NOTION_TOKENS).filter(user => 
+        NOTION_TOKENS[user] && COURSE_PAGE_IDS[user]
+      );
+      console.log(`🔄 Processing ALL users' Notion databases: ${usersToProcess.join(', ')}`);
+    } else {
+      // For bulk_add and other actions, only process the target user
+      usersToProcess = [targetUser];
+      console.log(`🎯 Processing Notion database for ${targetUser} only`);
+      
+      if (!NOTION_TOKENS[targetUser]) {
+        return res.status(400).json({ 
+          error: `No Notion token configured for ${targetUser}` 
+        });
+      }
+
+      if (!COURSE_PAGE_IDS[targetUser]) {
+        return res.status(400).json({ 
+          error: `No course page ID configured for ${targetUser}` 
+        });
+      }
     }
 
-    if (!targetUserPageId) {
-      return res.status(400).json({ 
-        error: `No course page ID configured for ${targetUser}` 
-      });
-    }
-
-    // Process single user's Notion database
-    const userName = targetUser;
-    const token = targetUserToken;
-    const pageId = targetUserPageId;
+    // Process each user's Notion database
+    for (const userName of usersToProcess) {
+      const token = NOTION_TOKENS[userName];
+      const pageId = COURSE_PAGE_IDS[userName];
+      
+      if (!token || !pageId) {
+        console.log(`⚠️ Skipping ${userName} - missing token or page ID`);
+        results.push({
+          user: userName,
+          success: false,
+          error: 'Missing token or page ID'
+        });
+        continue;
+      }
     
     try {
       console.log(`🔄 Processing ${userName}'s Notion database...`);
@@ -569,25 +593,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
+    } // End of for loop
 
-    // Calculate summary for single user processing
-    const success = results.length > 0 && results[0].success;
+    // Calculate summary for multiple user processing
+    const successfulResults = results.filter(r => r.success);
+    const failedResults = results.filter(r => !r.success);
+    const success = successfulResults.length > 0;
     const pagesCreated = results.reduce((sum, r) => sum + (r.created || 0), 0);
     
     let message: string;
-    if (success) {
-      const result = results[0];
-      if ((result.skipped || 0) > 0) {
-        message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
-      } else if ((result.created || 0) > 0) {
-        message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+    if (shouldUpdateAllUsers) {
+      // Message for multiple users (select/unselect actions)
+      if (successfulResults.length === results.length) {
+        message = `Lecture ${action} updated successfully in all ${results.length} users' Notion databases`;
+      } else if (successfulResults.length > 0) {
+        message = `Lecture ${action} updated in ${successfulResults.length}/${results.length} users' Notion databases`;
       } else {
-        message = `${targetUser}'s Notion database updated successfully`;
+        message = `Failed to update lecture ${action} in any Notion database`;
       }
-    } else if (results.length > 0) {
-      message = `Failed to update ${targetUser}'s Notion database: ${results[0].error}`;
     } else {
-      message = `Failed to process ${targetUser}'s Notion database`;
+      // Message for single user (bulk_add and other actions)
+      if (success) {
+        const result = results[0];
+        if ((result.skipped || 0) > 0) {
+          message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
+        } else if ((result.created || 0) > 0) {
+          message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+        } else {
+          message = `${targetUser}'s Notion database updated successfully`;
+        }
+      } else if (results.length > 0) {
+        message = `Failed to update ${targetUser}'s Notion database: ${results[0].error}`;
+      } else {
+        message = `Failed to process ${targetUser}'s Notion database`;
+      }
     }
 
     const response = {
@@ -595,10 +634,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message,
       results,
       summary: {
-        successfulUpdates: success ? 1 : 0,
-        failedUpdates: success ? 0 : 1,
+        successfulUpdates: successfulResults.length,
+        failedUpdates: failedResults.length,
         pagesCreated,
-        targetUser
+        targetUser: shouldUpdateAllUsers ? 'all' : targetUser,
+        usersProcessed: usersToProcess
       }
     };
 
