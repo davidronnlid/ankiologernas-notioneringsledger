@@ -4,6 +4,7 @@ publish = ".next" # The directory for Next.js output
 
 [functions]
 directory = "netlify/functions"
+node_bundler = "esbuild"
 
 # Enable Netlify Identity
 [build.environment]

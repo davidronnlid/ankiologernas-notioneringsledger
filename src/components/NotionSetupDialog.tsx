@@ -355,6 +355,28 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     }
   };
 
+  const testNetlifyHealth = async () => {
+    console.log(`🏥 Testing Netlify Functions health...`);
+    
+    try {
+      const response = await fetch('/.netlify/functions/health-check');
+      const data = await response.json();
+      
+      console.log(`📡 Health check response:`, data);
+      
+      if (data.success) {
+        console.log(`✅ Netlify Functions are working`);
+        alert(`Netlify Functions fungerar! ${data.message}`);
+      } else {
+        console.error(`❌ Health check failed:`, data);
+        alert(`Health check misslyckades: ${data.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error(`💥 Health check error:`, err);
+      alert(`Health check error: ${err instanceof Error ? err.message : 'Network error'}`);
+    }
+  };
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0: // Check Current Setup
@@ -577,6 +599,15 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           style={{ marginRight: 'auto' }}
         >
           Test Netlify API
+        </Button>
+
+        {/* Debug button for testing Netlify health */}
+        <Button 
+          onClick={testNetlifyHealth}
+          color="secondary"
+          size="small"
+        >
+          Test Netlify Health
         </Button>
         
         {activeStep === 1 && (
