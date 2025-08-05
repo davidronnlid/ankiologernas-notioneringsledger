@@ -131,14 +131,7 @@ export default function Header() {
       if (!setupData.isSetup) {
         console.log(`⚠️ ${userName} needs Notion setup`);
         
-        // Show helpful message to user
-        const setupMessage = setupData.needsReconfiguration 
-          ? `Notion integration behöver uppdateras för ${userName}. Klicka "Set Up Now" för att konfigurera.`
-          : `Notion integration behöver konfigureras för ${userName}. Klicka "Set Up Now" för att komma igång.`;
-        
-        alert(setupMessage);
-        
-        // Show setup dialog instead of syncing
+        // Show setup dialog directly without intermediate alert
         setShowNotionSetup(true);
         return;
       }
