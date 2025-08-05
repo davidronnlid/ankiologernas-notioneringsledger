@@ -55,14 +55,6 @@ async function getUserNotionConfig(userName) {
   }
 }
 
-// User name to letter mapping for tracking
-const USER_LETTERS = {
-  'David': 'D',
-  'Albin': 'A', 
-  'Mattias': 'M',
-  'System': '' // For bulk operations, no user letter needed
-};
-
 // Helper function to get the specific course page for a user
 async function getUserCoursePage(notion, userName, pageId) {
   try {
@@ -274,7 +266,9 @@ async function ensureDatabaseSchema(notion, database, userName) {
 // Helper function to add or update lecture in database
 async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNumber, subjectArea, selectedByUser, action, checkboxStates) {
   try {
-    const userLetter = USER_LETTERS[selectedByUser];
+    // Get user letter for tracking
+    const userLetterMap = { 'David': 'D', 'Albin': 'A', 'Mattias': 'M', 'System': '' };
+    const userLetter = userLetterMap[selectedByUser] || '';
     
     // STRICT duplicate detection - prevent any lecture with same title from being added twice
     console.log(`🔍 STRICT duplicate check for lecture: ${lectureNumber}. ${lectureTitle}`);
@@ -602,7 +596,7 @@ exports.handler = async (event, context) => {
     }
     
     console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle}`);
-    console.log(`📊 Processing for all users: ${Object.keys(NOTION_TOKENS).join(', ')}`);
+    console.log(`📊 Processing lecture update for user: ${selectedByUser}`);
 
     // Validate required fields
     if (!lectureTitle || !lectureNumber || !selectedByUser || !action) {
@@ -632,8 +626,9 @@ exports.handler = async (event, context) => {
       console.log(`🔄 Lecture ${action} action - will update ALL users' Notion databases`);
     }
 
-    const userLetter = USER_LETTERS[targetUser];
-    if (userLetter === undefined) {
+    // Validate user exists
+    const validUsers = ['David', 'Albin', 'Mattias'];
+    if (!validUsers.includes(targetUser)) {
       return {
         statusCode: 400,
         body: JSON.stringify({ 
@@ -664,14 +659,23 @@ exports.handler = async (event, context) => {
       const userConfig = await getUserNotionConfig(userName);
       
       if (!userConfig) {
-        console.log(`⚠️ Skipping ${userName} - no Notion configuration found`);
+        console.log(`⚠️ Skipping ${userName} - no Notion configuration found in database`);
+        const errorMsg = `No Notion configuration found for ${userName} in database. User needs to complete Notion setup.`;
+        console.error(`❌ ${errorMsg}`);
         results.push({
           user: userName,
           success: false,
-          error: 'No Notion configuration found. Please set up Notion integration.'
+          error: errorMsg
         });
         continue;
       }
+      
+      console.log(`✅ Found Notion config for ${userName}:`, {
+        hasToken: !!userConfig.notionToken,
+        hasPageId: !!userConfig.databaseId,
+        tokenPrefix: userConfig.notionToken ? userConfig.notionToken.substring(0, 10) + '...' : 'NOT SET',
+        pageId: userConfig.databaseId || 'NOT SET'
+      });
 
       const token = userConfig.notionToken;
       const pageId = userConfig.databaseId;
@@ -849,9 +853,9 @@ exports.handler = async (event, context) => {
     if (error.message.includes('MONGODB_URI') || error.message.includes('database connection')) {
       errorMessage = 'Database connection error';
       guidance = 'The app cannot connect to the database. This is a server configuration issue.';
-    } else if (error.message.includes('NOTION_TOKEN') || error.message.includes('environment variable')) {
-      errorMessage = 'Notion integration not configured';
-      guidance = 'The Notion integration is not properly configured on the server. Contact the administrator.';
+    } else if (error.message.includes('No Notion configuration found')) {
+      errorMessage = 'User Notion setup incomplete';
+      guidance = 'This user has not completed Notion integration setup. Please run Notion setup first.';
     } else if (error.message.includes('JSON') || error.message.includes('parse')) {
       errorMessage = 'Invalid request data';
       guidance = 'The request data is malformed. Please try again or contact support.';
