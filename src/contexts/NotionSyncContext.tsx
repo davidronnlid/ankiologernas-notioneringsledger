@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
+
+// Module-level cancellation state that persists across re-renders
+let globalCancellationFlag = false;
 
 interface NotionSyncState {
   isLoading: boolean;
@@ -23,6 +26,7 @@ interface NotionSyncContextType extends NotionSyncState {
   cancelSync: () => void;
   continueInBackground: () => void;
   showSyncUI: () => void;
+  getCancellationChecker: () => () => boolean;
 }
 
 const NotionSyncContext = createContext<NotionSyncContextType | undefined>(undefined);
@@ -49,7 +53,14 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     isCancelled: false,
   });
 
+  const cancelRef = useRef(false);
+
   const startSync = (operation: string, total: number = 0) => {
+    // Reset cancellation flags when starting new sync
+    cancelRef.current = false;
+    globalCancellationFlag = false;
+    console.log('🔄 Starting sync - reset cancellation flags');
+    
     setState(prev => ({
       ...prev,
       isLoading: true,
@@ -103,6 +114,13 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
   };
 
   const cancelSync = () => {
+    // Set both flags to true so running sync can detect cancellation
+    console.log('🛑 Setting cancellation flags to true');
+    cancelRef.current = true;
+    globalCancellationFlag = true;
+    console.log('🛑 cancelRef.current is now:', cancelRef.current);
+    console.log('🛑 globalCancellationFlag is now:', globalCancellationFlag);
+    
     setState(prev => ({
       ...prev,
       isCancelled: true,
@@ -127,6 +145,18 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     }));
   };
 
+  const getCancellationChecker = () => {
+    // Return a function that checks the global flag (which persists across re-renders)
+    return () => {
+      const isCancelled = globalCancellationFlag;
+      console.log('🔍 Checking cancellation - global flag:', globalCancellationFlag, 'ref:', cancelRef.current);
+      if (isCancelled) {
+        console.log('🛑 Cancellation detected in checker - global flag:', globalCancellationFlag);
+      }
+      return isCancelled;
+    };
+  };
+
   const value: NotionSyncContextType = {
     ...state,
     startSync,
@@ -138,6 +168,7 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     cancelSync,
     continueInBackground,
     showSyncUI,
+    getCancellationChecker,
   };
 
   return (

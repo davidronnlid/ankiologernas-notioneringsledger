@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -54,7 +54,7 @@ export default function Header() {
   const { theme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
-  const { startSync, addMessage, finishSync, setError, isCancelled, isLoading, isRunningInBackground, showSyncUI } = useNotionSync();
+  const { startSync, addMessage, finishSync, setError, isCancelled, isLoading, isRunningInBackground, showSyncUI, getCancellationChecker } = useNotionSync();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -98,6 +98,12 @@ export default function Header() {
   const handleSyncToNotion = async () => {
     try {
       handleCloseMenu();
+      
+      // If sync is already running in background, show the UI
+      if (isLoading && isRunningInBackground) {
+        showSyncUI();
+        return;
+      }
       
       if (!lectures || lectures.length === 0) {
         alert('No lectures found to sync. Please load the main page first.');
@@ -152,6 +158,9 @@ export default function Header() {
       startSync(`Manual sync to Notion (${activeCourseLectures.length} lectures)`, activeCourseLectures.length);
       addMessage(`🔄 Starting manual sync for ${activeCourseLectures.length} lectures...`);
 
+      // Get the cancellation checker from context
+      const isCancelledChecker = getCancellationChecker();
+
       // Perform the sync
       const results = await syncAllLecturesToNotionPages(activeCourseLectures, {
         onLectureStart: (lectureNumber, title, current, total) => {
@@ -165,7 +174,7 @@ export default function Header() {
         onLectureError: (lectureNumber, title, error, current, total) => {
           addMessage(`${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
         }
-      }, () => isCancelled);
+      }, isCancelledChecker);
 
       if (results.success) {
         addMessage(`✅ Manual sync completed successfully!`);
