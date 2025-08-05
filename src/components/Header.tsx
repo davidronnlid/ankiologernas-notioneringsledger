@@ -164,14 +164,19 @@ export default function Header() {
       // Perform the sync
       const results = await syncAllLecturesToNotionPages(activeCourseLectures, {
         onLectureStart: (lectureNumber, title, current, total) => {
+          console.log(`🔄 Lecture start callback: ${lectureNumber}. ${title} (${current}/${total})`);
           addMessage(`${current}/${total}: Syncing ${lectureNumber}. ${title}...`);
         },
         onLectureComplete: (lectureNumber, title, success, current, total) => {
+          console.log(`📊 Lecture complete callback: ${lectureNumber}. ${title} - success: ${success}`);
           if (success) {
             addMessage(`${current}/${total}: ${lectureNumber}. ${title} - synced`);
+          } else {
+            addMessage(`${current}/${total}: ${lectureNumber}. ${title} - failed`);
           }
         },
         onLectureError: (lectureNumber, title, error, current, total) => {
+          console.log(`❌ Lecture error callback: ${lectureNumber}. ${title} - error: ${error}`);
           addMessage(`${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
         }
       }, isCancelledChecker);

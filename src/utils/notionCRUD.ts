@@ -600,8 +600,11 @@ export const syncAllLecturesToNotionPages = async (
 
       const result = await response.json();
       console.log(`📊 Response result:`, result);
+      console.log(`🔍 Success check: result.success = ${result.success}, message = "${result.message}"`);
+      console.log(`🔍 Message contains 'synced successfully': ${result.message?.includes('synced successfully')}`);
+      console.log(`🔍 Message contains 'updated successfully': ${result.message?.includes('updated successfully')}`);
       
-      if (result.success || (result.message && (result.message.includes('updated successfully') || result.message.includes('lecture added') || result.message.includes('lecture created')))) {
+      if (result.success || (result.message && (result.message.includes('updated successfully') || result.message.includes('lecture added') || result.message.includes('lecture created') || result.message.includes('synced successfully')))) {
         successCount++;
         console.log(`✅ Successfully synced: ${lecture.title}`);
         results.push({
