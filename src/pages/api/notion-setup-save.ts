@@ -241,6 +241,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const successful = results.filter(r => r.status === 'created' || r.status === 'updated');
     const failed = results.filter(r => r.status === 'error');
 
+    console.log(`📊 Results summary:`);
+    console.log(`   ✅ Successful: ${successful.length}`);
+    console.log(`   ❌ Failed: ${failed.length}`);
+    console.log(`   📋 All results:`, results);
+
     if (failed.length === 0) {
       console.log(`🎉 Successfully configured ${successful.length} environment variables`);
       
@@ -259,10 +264,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         );
         
+        console.log(`📡 Rebuild response status: ${rebuildResponse.status}`);
+        
         if (rebuildResponse.ok) {
           console.log(`✅ Rebuild triggered successfully`);
         } else {
-          console.warn(`⚠️ Failed to trigger rebuild: ${rebuildResponse.status}`);
+          const rebuildErrorText = await rebuildResponse.text();
+          console.warn(`⚠️ Failed to trigger rebuild: ${rebuildResponse.status} - ${rebuildErrorText}`);
         }
       } catch (rebuildError) {
         console.warn(`⚠️ Error triggering rebuild:`, rebuildError);
@@ -272,7 +280,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: true,
         message: `Notion integration konfigurerad! Sidan bygger om för att aktivera integrationen.`,
         results: successful,
-        rebuild: true
+        rebuild: true,
+        userName: userName
       });
       
     } else {
@@ -285,7 +294,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: false,
         message: `Kunde inte spara environment variables: ${errorDetails}`,
         results: results,
-        failed: failed
+        failed: failed,
+        userName: userName,
+        attemptedVars: Object.keys(envVars)
       });
     }
 
