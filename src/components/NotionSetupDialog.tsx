@@ -214,7 +214,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     setTestResult(null);
 
     try {
-      const response = await fetch('/api/notion-setup-save', {
+      const response = await fetch('/.netlify/functions/notion-setup-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -251,7 +251,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     setError('');
 
     try {
-      const response = await fetch('/api/notion-setup-save', {
+      const response = await fetch('/.netlify/functions/notion-setup-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

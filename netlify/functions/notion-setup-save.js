@@ -1,17 +1,9 @@
-exports.handler = async (event, context) => {
-  // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
-  }
+const fetch = require('node-fetch');
 
+exports.handler = async function(event, context) {
+  console.log('🔍 Notion setup save function called');
+  
+  // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -20,145 +12,344 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { userName, notionToken, databaseId, testConnection = true } = JSON.parse(event.body);
-    
-    if (!userName || !['David', 'Albin', 'Mattias'].includes(userName)) {
+    const { userName, notionToken, databaseId, testTokenOnly, saveToNetlify, testConnection } = JSON.parse(event.body);
+
+    console.log(`👤 Processing setup for: ${userName}`);
+    console.log(`🔑 Has token: ${!!notionToken}`);
+    console.log(`📄 Has database ID: ${!!databaseId}`);
+
+    if (!userName || !notionToken) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ 
-          error: 'Invalid user name. Must be David, Albin, or Mattias' 
+        body: JSON.stringify({
+          success: false,
+          message: 'Användarnamn och notion token krävs'
         })
       };
     }
 
-    if (!notionToken || !notionToken.startsWith('secret_')) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          error: 'Invalid Notion token. Must start with "secret_"' 
-        })
-      };
-    }
-
-    if (!databaseId || databaseId.length < 10) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          error: 'Invalid database ID. Must be a valid Notion database ID' 
-        })
-      };
-    }
-
-    console.log(`🔧 Setting up Notion integration for ${userName}...`);
-
-    // Test the connection before saving
-    if (testConnection) {
-      try {
-        const { Client } = require('@notionhq/client');
-        const notion = new Client({ auth: notionToken });
-        
-        const database = await notion.databases.retrieve({
-          database_id: databaseId
-        });
-        
-        const databaseTitle = database.title?.[0]?.plain_text || 'Untitled';
-        const properties = Object.keys(database.properties);
-        
-        console.log(`✅ Connection test successful for ${userName}:`, databaseTitle);
-        
-        // Check for required properties
-        const requiredProperties = ['Name', 'Föreläsning', 'Vems'];
-        const missingProperties = requiredProperties.filter(prop => !properties.includes(prop));
-        
-        if (missingProperties.length > 0) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({
-              success: false,
-              error: 'Database missing required properties',
-              missingProperties,
-              currentProperties: properties,
-              instructions: `Please add these columns to your Notion database: ${missingProperties.join(', ')}`
-            })
-          };
-        }
-        
-      } catch (error) {
-        console.error(`❌ Connection test failed for ${userName}:`, error);
+    // If only testing token, do a basic validation and return
+    if (testTokenOnly) {
+      console.log(`🧪 Testing token only for ${userName}...`);
+      
+      // Basic token validation (check format)
+      if (!notionToken.startsWith('secret_') && !notionToken.startsWith('ntn_')) {
         return {
           statusCode: 400,
           body: JSON.stringify({
             success: false,
-            error: 'Failed to connect to Notion database',
-            details: error.message,
-            possibleCauses: [
-              'Invalid token or database ID',
-              'Database not shared with integration',
-              'Integration permissions insufficient'
-            ]
+            error: 'Token måste börja med "secret_" eller "ntn_"'
           })
         };
       }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          message: 'Token format validerat',
+          tokenValid: true
+        })
+      };
     }
 
-    // In production, this would save to Netlify environment variables
-    // For now, we'll provide manual setup instructions
-    
-    const envVars = {
-      [`NOTION_TOKEN_${userName.toUpperCase()}`]: notionToken,
-      [`NOTION_DATABASE_${userName.toUpperCase()}`]: databaseId
-    };
+    console.log(`💾 Saving Notion configuration for ${userName}...`);
 
-    console.log(`💾 Would save environment variables for ${userName}:`, Object.keys(envVars));
+    // Check if we have Netlify API credentials
+    const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
+    const netlifySiteId = process.env.NETLIFY_SITE_ID;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const hasNetlifyCredentials = netlifyApiToken && netlifySiteId;
 
-    // TODO: Implement actual Netlify API call to save environment variables
-    // This would require:
-    // 1. Netlify API access token in environment
-    // 2. Site ID
-    // 3. Call to Netlify API to update environment variables
-    // 4. Trigger a new deployment
+    console.log(`🔍 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+    console.log(`🔐 API Token exists: ${!!netlifyApiToken} (length: ${netlifyApiToken?.length || 0})`);
+    console.log(`🏗️ Site ID: ${netlifySiteId}`);
+    console.log(`📦 Is Production: ${isProduction}`);
+    console.log(`🔑 Has Netlify Credentials: ${hasNetlifyCredentials}`);
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: JSON.stringify({
-        success: true,
-        message: `Notion integration configured for ${userName}`,
-        user: userName,
-        savedVariables: Object.keys(envVars),
-        nextSteps: [
-          'Environment variables would be saved to Netlify',
-          'A new deployment would be triggered',
-          'The integration would be active after deployment'
-        ],
-        manualSetup: {
-          instructions: 'For now, please manually add these environment variables to Netlify:',
-          variables: envVars,
-          netlifyPath: 'Site settings → Environment variables → Add variable'
-        },
-        testConnection: testConnection ? {
+    // In development or when missing credentials, simulate the save
+    if (!isProduction || !hasNetlifyCredentials) {
+      console.log(`📝 ${!isProduction ? 'Development mode' : 'Missing Netlify credentials'} - simulating save:`);
+      console.log(`   NOTION_TOKEN_${userName.toUpperCase()}=${notionToken.substring(0, 20)}...`);
+      if (databaseId) {
+        console.log(`   NOTION_COURSE_PAGE_${userName.toUpperCase()}=${databaseId}`);
+      }
+      
+      // For development/missing credentials, simulate success
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
           success: true,
-          message: 'Connection test passed'
-        } : null
-      })
+          message: !isProduction 
+            ? 'Konfiguration sparad till Netlify (simulerat i development mode)'
+            : 'Konfiguration validerad (Netlify API ej konfigurerad)',
+          development: !isProduction,
+          simulated: true
+        })
+      };
+    }
+
+    // Test basic site access first
+    console.log(`🧪 Testing basic site access...`);
+    console.log(`🔗 Testing URL: https://api.netlify.com/api/v1/sites/${netlifySiteId}`);
+    console.log(`🔑 Using token: ${netlifyApiToken ? netlifyApiToken.substring(0, 10) + '...' : 'MISSING'}`);
+    
+    try {
+      const siteTestResponse = await fetch(
+        `https://api.netlify.com/api/v1/sites/${netlifySiteId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${netlifyApiToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log(`📡 Site test response status: ${siteTestResponse.status}`);
+      
+      if (!siteTestResponse.ok) {
+        const errorText = await siteTestResponse.text();
+        console.error(`❌ Site access test failed: ${siteTestResponse.status} - ${errorText}`);
+        
+        // More specific error messages based on status code
+        let errorMessage = `Site access misslyckades: ${siteTestResponse.status}`;
+        if (siteTestResponse.status === 401) {
+          errorMessage = 'Netlify API token är ogiltig eller saknar behörighet';
+        } else if (siteTestResponse.status === 404) {
+          errorMessage = `Site ID "${netlifySiteId}" hittades inte - kontrollera NETLIFY_SITE_ID`;
+        } else if (siteTestResponse.status === 403) {
+          errorMessage = 'Netlify API token saknar behörighet för denna site';
+        }
+        
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            success: false,
+            message: errorMessage,
+            details: errorText
+          })
+        };
+      }
+
+      const siteInfo = await siteTestResponse.json();
+      console.log(`✅ Site access OK: ${siteInfo.name} (${siteInfo.id})`);
+    } catch (siteError) {
+      console.error(`❌ Site access error:`, siteError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          success: false,
+          message: `Kunde inte kontakta Netlify API: ${siteError instanceof Error ? siteError.message : 'Okänt fel'}`,
+          error: siteError instanceof Error ? siteError.message : 'Unknown error'
+        })
+      };
+    }
+
+    // Prepare environment variables to set
+    const envVars = {
+      [`NOTION_TOKEN_${userName.toUpperCase()}`]: notionToken
     };
+
+    if (databaseId) {
+      envVars[`NOTION_COURSE_PAGE_${userName.toUpperCase()}`] = databaseId;
+    }
+
+    console.log(`🌐 Setting ${Object.keys(envVars).length} environment variables via Netlify API...`);
+
+    // Get current environment variables
+    console.log(`📋 Fetching current environment variables...`);
+    const getCurrentEnvResponse = await fetch(
+      `https://api.netlify.com/api/v1/sites/${netlifySiteId}/env`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${netlifyApiToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log(`📡 Env vars response status: ${getCurrentEnvResponse.status}`);
+    
+    if (!getCurrentEnvResponse.ok) {
+      const errorText = await getCurrentEnvResponse.text();
+      console.error(`❌ Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
+      throw new Error(`Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
+    }
+
+    const currentEnvVars = await getCurrentEnvResponse.json();
+    console.log(`📋 Current env vars: ${currentEnvVars.length} variables`);
+    console.log(`📋 Existing env var keys:`, currentEnvVars.map((env) => env.key));
+
+    // Update/add each environment variable
+    const results = [];
+    
+    for (const [key, value] of Object.entries(envVars)) {
+      try {
+        console.log(`🔧 Processing env var: ${key} = ${value.substring(0, 10)}...`);
+        
+        // Check if variable already exists
+        const existingVar = currentEnvVars.find((env) => env.key === key);
+        
+        if (existingVar) {
+          // Update existing variable
+          console.log(`🔄 Updating existing variable: ${key}`);
+          
+          const updateResponse = await fetch(
+            `https://api.netlify.com/api/v1/sites/${netlifySiteId}/env/${key}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${netlifyApiToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                values: [{ 
+                  value: value, 
+                  context: 'production',
+                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
+                }]
+              })
+            }
+          );
+
+          console.log(`📡 Update response status: ${updateResponse.status}`);
+          
+          if (updateResponse.ok) {
+            console.log(`✅ Updated ${key}`);
+            results.push({ key, status: 'updated' });
+          } else {
+            const errorText = await updateResponse.text();
+            console.error(`❌ Failed to update ${key}: ${updateResponse.status} - ${errorText}`);
+            results.push({ key, status: 'error', error: updateResponse.status, details: errorText });
+          }
+          
+        } else {
+          // Create new variable
+          console.log(`➕ Creating new variable: ${key}`);
+          
+          const createResponse = await fetch(
+            `https://api.netlify.com/api/v1/sites/${netlifySiteId}/env`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${netlifyApiToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                key: key,
+                values: [{ 
+                  value: value, 
+                  context: 'production',
+                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
+                }]
+              })
+            }
+          );
+
+          console.log(`📡 Create response status: ${createResponse.status}`);
+          
+          if (createResponse.ok) {
+            console.log(`✅ Created ${key}`);
+            results.push({ key, status: 'created' });
+          } else {
+            const errorText = await createResponse.text();
+            console.error(`❌ Failed to create ${key}: ${createResponse.status} - ${errorText}`);
+            results.push({ key, status: 'error', error: createResponse.status, details: errorText });
+          }
+        }
+      } catch (varError) {
+        console.error(`❌ Error processing ${key}:`, varError);
+        results.push({ key, status: 'error', error: 'exception', details: varError instanceof Error ? varError.message : 'Unknown error' });
+      }
+    }
+
+    // Check if all operations succeeded
+    const successful = results.filter(r => r.status === 'created' || r.status === 'updated');
+    const failed = results.filter(r => r.status === 'error');
+
+    console.log(`📊 Results summary:`);
+    console.log(`   ✅ Successful: ${successful.length}`);
+    console.log(`   ❌ Failed: ${failed.length}`);
+    console.log(`   📋 All results:`, results);
+
+    if (failed.length === 0) {
+      console.log(`🎉 Successfully configured ${successful.length} environment variables`);
+      
+      // Trigger a rebuild to apply the new environment variables
+      console.log(`🔄 Triggering site rebuild...`);
+      
+      try {
+        const rebuildResponse = await fetch(
+          `https://api.netlify.com/api/v1/sites/${netlifySiteId}/builds`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${netlifyApiToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        console.log(`📡 Rebuild response status: ${rebuildResponse.status}`);
+        
+        if (rebuildResponse.ok) {
+          console.log(`✅ Rebuild triggered successfully`);
+        } else {
+          const rebuildErrorText = await rebuildResponse.text();
+          console.warn(`⚠️ Failed to trigger rebuild: ${rebuildResponse.status} - ${rebuildErrorText}`);
+        }
+      } catch (rebuildError) {
+        console.warn(`⚠️ Error triggering rebuild:`, rebuildError);
+      }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          message: `Notion integration konfigurerad! Sidan bygger om för att aktivera integrationen.`,
+          results: successful,
+          rebuild: true,
+          userName: userName
+        })
+      };
+      
+    } else {
+      console.error(`❌ ${failed.length} operations failed:`, failed);
+      
+      // Create detailed error message
+      const errorDetails = failed.map(f => `${f.key}: ${f.error}${f.details ? ` (${f.details})` : ''}`).join(', ');
+      
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          success: false,
+          message: `Kunde inte spara environment variables: ${errorDetails}`,
+          results: results,
+          failed: failed,
+          userName: userName,
+          attemptedVars: Object.keys(envVars)
+        })
+      };
+    }
 
   } catch (error) {
-    console.error('❌ Notion setup save error:', error);
+    console.error('❌ Error in notion-setup-save:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined
+    });
+    
     return {
       statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      },
       body: JSON.stringify({
         success: false,
-        error: 'Failed to save Notion setup',
-        details: error.message
+        message: `Serverfel: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+        errorType: error instanceof Error ? error.name : 'Unknown',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
       })
     };
   }

@@ -310,10 +310,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Error in notion-setup-save:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined
+    });
     
     return res.status(500).json({
       success: false,
-      message: `Serverfel: ${error instanceof Error ? error.message : 'Okänt fel'}`
+      message: `Serverfel: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
     });
   }
 }
