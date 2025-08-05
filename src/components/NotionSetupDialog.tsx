@@ -377,6 +377,28 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     }
   };
 
+  const testNetlifyAPI = async () => {
+    console.log(`🧪 Testing Netlify API via function...`);
+    
+    try {
+      const response = await fetch('/.netlify/functions/test-netlify-api');
+      const data = await response.json();
+      
+      console.log(`📡 Netlify API test response:`, data);
+      
+      if (data.success) {
+        console.log(`✅ Netlify API test successful`);
+        alert(`Netlify API fungerar! Site: ${data.site.name}, Env vars: ${data.envVars.count}`);
+      } else {
+        console.error(`❌ Netlify API test failed:`, data);
+        alert(`Netlify API test misslyckades: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(`💥 Netlify API test error:`, err);
+      alert(`Netlify API test error: ${err instanceof Error ? err.message : 'Network error'}`);
+    }
+  };
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0: // Check Current Setup
@@ -608,6 +630,15 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           size="small"
         >
           Test Netlify Health
+        </Button>
+
+        {/* Debug button for testing Netlify API via function */}
+        <Button 
+          onClick={testNetlifyAPI}
+          color="secondary"
+          size="small"
+        >
+          Test Netlify API Func
         </Button>
         
         {activeStep === 1 && (

@@ -162,7 +162,78 @@ exports.handler = async function(event, context) {
     if (!getCurrentEnvResponse.ok) {
       const errorText = await getCurrentEnvResponse.text();
       console.error(`❌ Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
-      throw new Error(`Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
+      
+      // If we can't get current env vars, try to create them directly
+      console.log(`🔄 Trying to create environment variables directly...`);
+      
+      const results = [];
+      for (const [key, value] of Object.entries(envVars)) {
+        try {
+          console.log(`➕ Creating new variable: ${key}`);
+          
+          const createResponse = await fetch(
+            `https://api.netlify.com/api/v1/sites/${netlifySiteId}/env`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${netlifyApiToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                key: key,
+                value: value,
+                context: 'production'
+              })
+            }
+          );
+
+          console.log(`📡 Create response status: ${createResponse.status}`);
+          
+          if (createResponse.ok) {
+            console.log(`✅ Created ${key}`);
+            results.push({ key, status: 'created' });
+          } else {
+            const errorText = await createResponse.text();
+            console.error(`❌ Failed to create ${key}: ${createResponse.status} - ${errorText}`);
+            results.push({ key, status: 'error', error: createResponse.status, details: errorText });
+          }
+        } catch (varError) {
+          console.error(`❌ Error processing ${key}:`, varError);
+          results.push({ key, status: 'error', error: 'exception', details: varError instanceof Error ? varError.message : 'Unknown error' });
+        }
+      }
+      
+      // Check results and return
+      const successful = results.filter(r => r.status === 'created');
+      const failed = results.filter(r => r.status === 'error');
+      
+      if (failed.length === 0) {
+        console.log(`🎉 Successfully created ${successful.length} environment variables`);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            success: true,
+            message: `Notion integration konfigurerad!`,
+            results: successful,
+            userName: userName
+          })
+        };
+      } else {
+        console.error(`❌ ${failed.length} operations failed:`, failed);
+        const errorDetails = failed.map(f => `${f.key}: ${f.error}${f.details ? ` (${f.details})` : ''}`).join(', ');
+        
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            success: false,
+            message: `Kunde inte spara environment variables: ${errorDetails}`,
+            results: results,
+            failed: failed,
+            userName: userName,
+            attemptedVars: Object.keys(envVars)
+          })
+        };
+      }
     }
 
     const currentEnvVars = await getCurrentEnvResponse.json();
@@ -192,11 +263,8 @@ exports.handler = async function(event, context) {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                values: [{ 
-                  value: value, 
-                  context: 'production',
-                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
-                }]
+                value: value,
+                context: 'production'
               })
             }
           );
@@ -226,11 +294,8 @@ exports.handler = async function(event, context) {
               },
               body: JSON.stringify({
                 key: key,
-                values: [{ 
-                  value: value, 
-                  context: 'production',
-                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
-                }]
+                value: value,
+                context: 'production'
               })
             }
           );
