@@ -13,7 +13,7 @@ För varje användare (David, Albin, Mattias):
 3. Namn: `Ankiologernas Notioneringsledger - [Användarnamn]`
 4. Workspace: Välj den workspace där föreläsningsdatabasen finns
 5. Capabilities: **Read content**, **Update content**, **Insert content**
-6. Kopiera **Internal Integration Token** (börjar med `secret_`)
+6. Kopiera **Internal Integration Token** (börjar med `secret_` eller `ntn_`)
 
 ### 2. Ge Integration Access till Databas
 

@@ -333,11 +333,11 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
               label="Notion Integration Token"
               value={notionToken}
               onChange={(e) => setNotionToken(e.target.value)}
-              placeholder="secret_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              placeholder="secret_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX eller ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
               className={classes.textField}
               margin="normal"
               variant="outlined"
-              helperText="Kopiera från notion.so/my-integrations (börjar med 'secret_')"
+              helperText="Kopiera från notion.so/my-integrations (börjar med 'secret_' eller 'ntn_')"
             />
           </Box>
         );

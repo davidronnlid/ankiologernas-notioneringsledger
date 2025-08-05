@@ -20,10 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`🧪 Testing token only for ${userName}...`);
       
       // Basic token validation (check format)
-      if (!notionToken.startsWith('secret_')) {
+      if (!notionToken.startsWith('secret_') && !notionToken.startsWith('ntn_')) {
         return res.status(400).json({
           success: false,
-          error: 'Token måste börja med "secret_"'
+          error: 'Token måste börja med "secret_" eller "ntn_"'
         });
       }
 
