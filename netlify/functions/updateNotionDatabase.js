@@ -1,4 +1,5 @@
 const { Client } = require('@notionhq/client');
+const { MongoClient } = require("mongodb");
 
 // Retry function for handling transient failures
 async function retryOperation(operation, maxRetries = 3, delayMs = 1000) {
@@ -21,19 +22,38 @@ async function retryOperation(operation, maxRetries = 3, delayMs = 1000) {
   }
 }
 
-// Notion API tokens for each user (store in environment variables)
-const NOTION_TOKENS = {
-  'David': process.env.NOTION_TOKEN_DAVID,
-  'Albin': process.env.NOTION_TOKEN_ALBIN, 
-  'Mattias': process.env.NOTION_TOKEN_MATTIAS
-};
-
-// Main course page IDs for each user (these will contain the single database)
-const COURSE_PAGE_IDS = {
-  'David': process.env.NOTION_COURSE_PAGE_DAVID,
-  'Albin': process.env.NOTION_COURSE_PAGE_ALBIN,
-  'Mattias': process.env.NOTION_COURSE_PAGE_MATTIAS
-};
+// Helper function to get user's Notion configuration from database
+async function getUserNotionConfig(userName) {
+  const uri = process.env.MONGODB_URI;
+  const client = new MongoClient(uri);
+  
+  try {
+    await client.connect();
+    const database = client.db("ankiologernasnotioneringsledger");
+    const collection = database.collection("notion_user_configs");
+    
+    const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`;
+    console.log(`🔍 Looking up Notion config for ${userName} (${userEmail})`);
+    
+    const config = await collection.findOne({ userEmail });
+    
+    if (!config) {
+      console.log(`❌ No Notion config found for ${userName}`);
+      return null;
+    }
+    
+    console.log(`✅ Found Notion config for ${userName}`);
+    return {
+      notionToken: config.notionToken,
+      databaseId: config.databaseId
+    };
+  } catch (error) {
+    console.error(`❌ Error getting Notion config for ${userName}:`, error);
+    return null;
+  } finally {
+    await client.close();
+  }
+}
 
 // User name to letter mapping for tracking
 const USER_LETTERS = {
@@ -43,15 +63,11 @@ const USER_LETTERS = {
   'System': '' // For bulk operations, no user letter needed
 };
 
-// Subject areas removed - no longer needed for simplified 3-column database
-
 // Helper function to get the specific course page for a user
-async function getUserCoursePage(notion, userName) {
+async function getUserCoursePage(notion, userName, pageId) {
   try {
-    const pageId = COURSE_PAGE_IDS[userName];
-    
     if (!pageId) {
-      throw new Error(`No course page ID configured for ${userName}. Please set NOTION_COURSE_PAGE_${userName.toUpperCase()} environment variable.`);
+      throw new Error(`No course page ID configured for ${userName}. Please set up Notion integration.`);
     }
 
     // Get the specific page by ID
@@ -633,58 +649,41 @@ exports.handler = async (event, context) => {
     let usersToProcess = [];
     
     if (shouldUpdateAllUsers) {
-      // For select/unselect actions, process ALL users who have tokens and page IDs
-      usersToProcess = Object.keys(NOTION_TOKENS).filter(user => 
-        NOTION_TOKENS[user] && COURSE_PAGE_IDS[user]
-      );
+      // For select/unselect actions, process ALL users who have Notion configs
+      usersToProcess = ['David', 'Albin', 'Mattias']; // All possible users
       console.log(`🔄 Processing ALL users' Notion databases: ${usersToProcess.join(', ')}`);
     } else {
       // For bulk_add and other actions, only process the target user
       usersToProcess = [targetUser];
       console.log(`🎯 Processing Notion database for ${targetUser} only`);
-      
-      if (!NOTION_TOKENS[targetUser]) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ 
-            error: `No Notion token configured for ${targetUser}` 
-          })
-        };
-      }
-
-      if (!COURSE_PAGE_IDS[targetUser]) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ 
-            error: `No course page ID configured for ${targetUser}` 
-          })
-        };
-      }
     }
 
     // Process each user's Notion database
     for (const userName of usersToProcess) {
-      const token = NOTION_TOKENS[userName];
-      const pageId = COURSE_PAGE_IDS[userName];
+      // Get user's Notion configuration from database
+      const userConfig = await getUserNotionConfig(userName);
       
-      if (!token || !pageId) {
-        console.log(`⚠️ Skipping ${userName} - missing token or page ID`);
+      if (!userConfig) {
+        console.log(`⚠️ Skipping ${userName} - no Notion configuration found`);
         results.push({
           user: userName,
           success: false,
-          error: 'Missing token or page ID'
+          error: 'No Notion configuration found. Please set up Notion integration.'
         });
         continue;
       }
+
+      const token = userConfig.notionToken;
+      const pageId = userConfig.databaseId;
     
-    try {
+      try {
       console.log(`🔄 Processing ${userName}'s Notion database...`);
       
       const notion = new Client({ auth: token });
       
       // Step 1: Get the user's specific course page with retry logic
       console.log(`📄 Getting course page for ${userName}...`);
-      const coursePage = await retryOperation(() => getUserCoursePage(notion, userName), 3);
+      const coursePage = await retryOperation(() => getUserCoursePage(notion, userName, pageId), 3);
       
       // Step 2: Find or create the single database on the course page with retry logic
       console.log(`🗄️ Finding/creating database for ${userName}...`);

@@ -171,30 +171,35 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     setError('');
     
     try {
-      const response = await fetch('/api/notion-setup-check-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName })
-      });
+      // Get user's email for database lookup
+      const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`; // Use pattern from auth
       
+      const response = await fetch(`/.netlify/functions/notion-user-config?userEmail=${encodeURIComponent(userEmail)}`);
       const data = await response.json();
       
       if (data.success) {
-        setSetupStatus(data);
-        if (data.isSetupComplete) {
-          setActiveStep(3); // Skip to final step if already configured
+        const config = data.config;
+        setSetupStatus({
+          hasToken: !!config.notionToken,
+          hasDatabase: !!config.databaseId,
+          isSetupComplete: config.isSetup,
+          userName: userName
+        });
+        
+        if (config.isSetup) {
+          console.log(`✅ User ${userName} has complete Notion setup`);
+          setActiveStep(4); // Go to final step - already configured
+          setDatabaseId(config.databaseId); // Pre-fill the database ID
         } else {
-          setActiveStep(1); // Go to credentials step
+          console.log(`⚠️ User ${userName} needs Notion setup`);
+          setActiveStep(1); // Go to token entry step
         }
       } else {
-        // If setup check fails, it means user hasn't configured Notion yet
-        // This is expected for new users, so proceed to token entry step
-        console.log('Setup check failed (expected for new users):', data.error);
+        console.log('Setup check failed:', data.message);
         setError(''); // Clear any error since this is expected for new users
         setActiveStep(1); // Go directly to token entry step
       }
     } catch (err) {
-      // Network or other errors - also proceed to setup since user needs to configure
       console.log('Setup check failed (expected for new users):', err);
       setError(''); // Clear any error since this is expected for new users
       setActiveStep(1); // Go directly to token entry step
@@ -298,15 +303,16 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     console.log(`📄 Database ID: ${databaseId}`);
 
     try {
-      const response = await fetch('/.netlify/functions/notion-setup-save', {
+      // Get user's email for database storage
+      const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`;
+      
+      const response = await fetch('/.netlify/functions/notion-user-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userName, 
+          userEmail,
           notionToken, 
-          databaseId,
-          testConnection: false,
-          saveToNetlify: true  // New flag for automatic Netlify saving
+          databaseId
         })
       });
       
@@ -317,12 +323,12 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
       console.log(`📄 Save response data:`, data);
       
       if (data.success) {
-        console.log(`✅ Configuration saved successfully`);
+        console.log(`✅ Configuration saved successfully to database`);
         onSetupComplete();
         onClose();
       } else {
         console.error(`❌ Failed to save configuration:`, data);
-        const errorMessage = data.error || data.message || 'Failed to save configuration to Netlify';
+        const errorMessage = data.message || 'Failed to save configuration to database';
         setError(errorMessage);
       }
     } catch (err) {
@@ -396,6 +402,28 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     } catch (err) {
       console.error(`💥 Netlify API test error:`, err);
       alert(`Netlify API test error: ${err instanceof Error ? err.message : 'Network error'}`);
+    }
+  };
+
+  const testEnvCreation = async () => {
+    console.log(`🧪 Testing environment variable creation...`);
+    
+    try {
+      const response = await fetch('/.netlify/functions/test-env-creation');
+      const data = await response.json();
+      
+      console.log(`📡 Env creation test response:`, data);
+      
+      if (data.success) {
+        console.log(`✅ Environment variable creation successful`);
+        alert(`Env var creation fungerar! Test key: ${data.testKey}`);
+      } else {
+        console.error(`❌ Environment variable creation failed:`, data);
+        alert(`Env var creation misslyckades: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(`💥 Env creation test error:`, err);
+      alert(`Env creation test error: ${err instanceof Error ? err.message : 'Network error'}`);
     }
   };
 
@@ -639,6 +667,15 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           size="small"
         >
           Test Netlify API Func
+        </Button>
+
+        {/* Debug button for testing environment variable creation */}
+        <Button 
+          onClick={testEnvCreation}
+          color="secondary"
+          size="small"
+        >
+          Test Env Creation
         </Button>
         
         {activeStep === 1 && (
