@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface NotionSyncState {
   isLoading: boolean;
+  isRunningInBackground: boolean;
   currentOperation: string;
   progress: {
     current: number;
@@ -20,6 +21,8 @@ interface NotionSyncContextType extends NotionSyncState {
   finishSync: (finalMessage?: string) => void;
   clearMessages: () => void;
   cancelSync: () => void;
+  continueInBackground: () => void;
+  showSyncUI: () => void;
 }
 
 const NotionSyncContext = createContext<NotionSyncContextType | undefined>(undefined);
@@ -39,6 +42,7 @@ interface NotionSyncProviderProps {
 export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children }) => {
   const [state, setState] = useState<NotionSyncState>({
     isLoading: false,
+    isRunningInBackground: false,
     currentOperation: '',
     progress: { current: 0, total: 0 },
     messages: [],
@@ -46,14 +50,16 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
   });
 
   const startSync = (operation: string, total: number = 0) => {
-    setState({
+    setState(prev => ({
+      ...prev,
       isLoading: true,
+      isRunningInBackground: false,
       currentOperation: operation,
       progress: { current: 0, total },
-      messages: [`🔄 Starting ${operation}...`],
+      messages: prev.isRunningInBackground ? prev.messages : [`🔄 Starting ${operation}...`],
       error: undefined,
       isCancelled: false,
-    });
+    }));
   };
 
   const updateProgress = (current: number, message?: string) => {
@@ -83,6 +89,7 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     setState(prev => ({
       ...prev,
       isLoading: false,
+      isRunningInBackground: false,
       messages: finalMessage ? [...prev.messages, finalMessage] : prev.messages,
     }));
   };
@@ -100,7 +107,23 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
       ...prev,
       isCancelled: true,
       isLoading: false,
+      isRunningInBackground: false,
       messages: [...prev.messages, '⚠️ Sync cancelled by user'],
+    }));
+  };
+
+  const continueInBackground = () => {
+    setState(prev => ({
+      ...prev,
+      isRunningInBackground: true,
+      messages: [...prev.messages, '📱 Continuing sync in background...'],
+    }));
+  };
+
+  const showSyncUI = () => {
+    setState(prev => ({
+      ...prev,
+      isRunningInBackground: false,
     }));
   };
 
@@ -113,6 +136,8 @@ export const NotionSyncProvider: React.FC<NotionSyncProviderProps> = ({ children
     finishSync,
     clearMessages,
     cancelSync,
+    continueInBackground,
+    showSyncUI,
   };
 
   return (

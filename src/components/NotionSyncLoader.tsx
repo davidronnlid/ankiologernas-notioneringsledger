@@ -19,7 +19,7 @@ import { useNotionSync } from '../contexts/NotionSyncContext';
 
 const NotionSyncLoader: React.FC = () => {
   const theme = useTheme();
-  const { isLoading, currentOperation, progress, messages, error, cancelSync } = useNotionSync();
+  const { isLoading, isRunningInBackground, currentOperation, progress, messages, error, cancelSync, continueInBackground } = useNotionSync();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to latest message
@@ -29,7 +29,7 @@ const NotionSyncLoader: React.FC = () => {
     }
   }, [messages]);
 
-  if (!isLoading) return null;
+  if (!isLoading || isRunningInBackground) return null;
 
   const progressPercentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
@@ -197,8 +197,25 @@ const NotionSyncLoader: React.FC = () => {
         </Box>
       </DialogContent>
       
-      {/* Cancel Button */}
-      <DialogActions sx={{ px: 4, pb: 3 }}>
+      {/* Action Buttons */}
+      <DialogActions sx={{ px: 4, pb: 3, gap: 1 }}>
+        <Button 
+          onClick={continueInBackground}
+          variant="outlined"
+          color="primary"
+          size="medium"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 'bold',
+            px: 3,
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.1),
+            }
+          }}
+        >
+          Continue in Background
+        </Button>
         <Button 
           onClick={cancelSync}
           variant="outlined"

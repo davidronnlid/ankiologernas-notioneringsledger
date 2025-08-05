@@ -54,7 +54,7 @@ export default function Header() {
   const { theme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
-  const { startSync, addMessage, finishSync, setError, isCancelled } = useNotionSync();
+  const { startSync, addMessage, finishSync, setError, isCancelled, isLoading, isRunningInBackground, showSyncUI } = useNotionSync();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
