@@ -508,10 +508,45 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
         return newLecture;
         
       } else if (action === 'select' || action === 'unselect') {
-        // User actions should NOT create new lectures, only update existing ones
-        console.log(`⚠️ Cannot ${action} lecture that doesn't exist in database: ${lectureNumber}. ${lectureTitle}`);
-        console.log(`💡 Lecture must be bulk-synced first before user selections can be applied`);
-        return null;
+        // Auto-create lecture if it doesn't exist, then apply the selection
+        console.log(`📝 Lecture doesn't exist yet - creating it first before applying ${action}`);
+        console.log(`🔧 Auto-creating lecture: ${lectureNumber}. ${lectureTitle}`);
+        
+        const newLecture = await notion.pages.create({
+          parent: {
+            database_id: databaseId
+          },
+          properties: {
+            'Föreläsning': {
+              title: [
+                {
+                  type: 'text',
+                  text: {
+                    content: `${lectureNumber}. ${lectureTitle}`
+                  }
+                }
+              ]
+            },
+            'Subject area': {
+              select: {
+                name: subjectArea || 'Global hälsa' // Use provided subject area or default
+              }
+            },
+            'Status': {
+              select: {
+                name: 'Bör göra'
+              }
+            },
+            'Person': {
+              select: null
+            }
+          }
+        });
+
+        console.log(`✅ Auto-created lecture: ${lectureNumber}. ${lectureTitle}`);
+        
+        // Now set existingLecture to the newly created one so it gets updated below
+        existingLecture = newLecture;
         
       } else {
         console.log(`⚠️ Unknown action "${action}" for non-existing lecture: ${lectureNumber}. ${lectureTitle}`);

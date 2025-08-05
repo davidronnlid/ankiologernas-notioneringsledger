@@ -2,7 +2,9 @@
   position: relative;
   bottom: 0;
   width: 100%;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 1rem;
   color: white;
 }
@@ -10,4 +12,15 @@
 .footerText {
   font-size: 0.8rem;
   color: white;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.footerText img {
+  border-radius: 50%;
+  margin: 0 0.1rem;
 }

@@ -21,8 +21,8 @@ export const calculateDuration = (time: string) => {
     durationMinutes -= fullHours * 15;
   }
 
-  // Convert the total duration in minutes to hours, rounding to two decimals
-  const durationHours = parseFloat((durationMinutes / 60).toFixed(2));
+  // Convert the total duration in minutes to hours without rounding
+  const durationHours = durationMinutes / 60;
 
   return durationHours;
 };

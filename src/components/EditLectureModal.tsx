@@ -459,7 +459,7 @@ const EditLectureModal: React.FC<EditLectureModalProps> = ({
 
         <div className={classes.formSection}>
           <Chip
-            label={`${duration.toFixed(1)} timmar`}
+            label={`${duration} timmar`}
             className={classes.durationChip}
           />
 
