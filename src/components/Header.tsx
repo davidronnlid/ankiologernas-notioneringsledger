@@ -152,11 +152,12 @@ export default function Header() {
         return;
       }
 
-      console.log(`🔄 Starting manual sync to Notion for ${activeCourseLectures.length} lectures...`);
+      console.log(`🔄 Starting automatic sync to Notion for ${activeCourseLectures.length} lectures...`);
       
       // Start sync with progress tracking
-      startSync(`Manual sync to Notion (${activeCourseLectures.length} lectures)`, activeCourseLectures.length);
-      addMessage(`🔄 Starting manual sync for ${activeCourseLectures.length} lectures...`);
+      startSync(`Automatic sync to Notion (${activeCourseLectures.length} lectures)`, activeCourseLectures.length);
+      addMessage(`🔄 Starting automatic sync for ${activeCourseLectures.length} lectures...`);
+      addMessage(`⚠️ Keep this browser tab open while syncing to Notion!`);
 
       // Get the cancellation checker from context
       const isCancelledChecker = getCancellationChecker();
@@ -188,18 +189,18 @@ export default function Header() {
         const lectureCount = activeCourseLectures.length;
         DatabaseNotifications.notionSyncCompleted(lectureCount);
         
-        finishSync('🎉 Manual sync to Notion completed successfully!');
+        finishSync('🎉 Automatic sync to Notion completed successfully!');
       } else {
-        addMessage(`❌ Manual sync failed: ${results.message}`);
-        setError(`Manual sync failed: ${results.message}`);
+        addMessage(`❌ Automatic sync failed: ${results.message}`);
+        setError(`Automatic sync failed: ${results.message}`);
         DatabaseNotifications.notionSyncError(results.message);
         finishSync();
       }
 
     } catch (error) {
-      console.error('❌ Error during manual sync:', error);
+      console.error('❌ Error during automatic sync:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Manual sync error: ${errorMessage}`);
+      setError(`Automatic sync error: ${errorMessage}`);
       DatabaseNotifications.notionSyncError(errorMessage);
       finishSync();
     }
