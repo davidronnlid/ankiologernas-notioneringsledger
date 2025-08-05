@@ -22,7 +22,7 @@ import {
 import NotifyButton from "@/components/NotifyButton";
 
 import NotionSetupManager from "@/components/NotionSetupManager";
-import NotionIntegrationSetup from "@/components/NotionIntegrationSetup";
+// import NotionIntegrationSetup from "@/components/NotionIntegrationSetup"; // DISABLED: Using Header setup flow instead
 import SmartRecommendations from "@/components/SmartRecommendations";
 import UserPreferencesDialog from "@/components/UserPreferencesDialog";
 import WeeklySummary from "@/components/WeeklySummary";
@@ -1018,7 +1018,7 @@ export default function Index() {
   // Edit lecture modal state
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState<Lecture | null>(null);
-  const [showNotionSetup, setShowNotionSetup] = useState(false);
+  // const [showNotionSetup, setShowNotionSetup] = useState(false); // DISABLED: Using Header setup flow instead
   const [urlSyncCompleted, setUrlSyncCompleted] = useState(false);
   const [lectureSyncCompleted, setLectureSyncCompleted] = useState(false);
   const [showLectures, setShowLectures] = useState(true);
@@ -1053,16 +1053,17 @@ export default function Index() {
   }, []);
 
   // Check Notion setup status and prompt if needed
-  useEffect(() => {
-    if (!notionSetupStatus.isLoading && !notionSetupStatus.isSetup && notionSetupStatus.userName) {
-      // Show setup dialog for new users OR users who need reconfiguration
-      const timer = setTimeout(() => {
-        setShowNotionSetup(true);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [notionSetupStatus]);
+  // NOTE: Disabled automatic setup prompt - users now set up via "Sync all to Notion" button
+  // useEffect(() => {
+  //   if (!notionSetupStatus.isLoading && !notionSetupStatus.isSetup && notionSetupStatus.userName) {
+  //     // Show setup dialog for new users OR users who need reconfiguration
+  //     const timer = setTimeout(() => {
+  //       setShowNotionSetup(true);
+  //     }, 2000);
+  //     
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [notionSetupStatus]);
 
   // Debounce search term to improve performance
   useEffect(() => {
@@ -2771,7 +2772,8 @@ export default function Index() {
           isLoading={isUpdating === "editing-lecture"}
         />
 
-        {/* Notion Integration Setup */}
+        {/* Notion Integration Setup - DISABLED: Now handled via Header "Sync all to Notion" button */}
+        {/* 
         <NotionIntegrationSetup
           open={showNotionSetup}
           onClose={() => setShowNotionSetup(false)}
@@ -2782,7 +2784,8 @@ export default function Index() {
             // Refresh setup status
             window.location.reload();
           }}
-        />
+        /> 
+        */}
         </div>
     </Layout>
   );

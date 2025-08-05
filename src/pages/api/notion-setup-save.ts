@@ -77,6 +77,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Test basic site access first
     console.log(`🧪 Testing basic site access...`);
+    console.log(`🔗 Testing URL: https://api.netlify.com/api/v1/sites/${netlifySiteId}`);
+    console.log(`🔑 Using token: ${netlifyApiToken ? netlifyApiToken.substring(0, 10) + '...' : 'MISSING'}`);
+    
     try {
       const siteTestResponse = await fetch(
         `https://api.netlify.com/api/v1/sites/${netlifySiteId}`,
@@ -84,26 +87,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${netlifyApiToken}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
+      console.log(`📡 Site test response status: ${siteTestResponse.status}`);
+      
       if (!siteTestResponse.ok) {
         const errorText = await siteTestResponse.text();
         console.error(`❌ Site access test failed: ${siteTestResponse.status} - ${errorText}`);
+        
+        // More specific error messages based on status code
+        let errorMessage = `Site access misslyckades: ${siteTestResponse.status}`;
+        if (siteTestResponse.status === 401) {
+          errorMessage = 'Netlify API token är ogiltig eller saknar behörighet';
+        } else if (siteTestResponse.status === 404) {
+          errorMessage = `Site ID "${netlifySiteId}" hittades inte - kontrollera NETLIFY_SITE_ID`;
+        } else if (siteTestResponse.status === 403) {
+          errorMessage = 'Netlify API token saknar behörighet för denna site';
+        }
+        
         return res.status(500).json({
           success: false,
-          message: `Site access misslyckades: ${siteTestResponse.status} - Token kan inte komma åt site ${netlifySiteId}`
+          message: errorMessage,
+          details: errorText
         });
       }
 
       const siteInfo = await siteTestResponse.json();
-      console.log(`✅ Site access OK: ${siteInfo.name}`);
+      console.log(`✅ Site access OK: ${siteInfo.name} (${siteInfo.id})`);
     } catch (siteError) {
       console.error(`❌ Site access error:`, siteError);
       return res.status(500).json({
         success: false,
-        message: `Kunde inte kontakta Netlify API: ${siteError instanceof Error ? siteError.message : 'Okänt fel'}`
+        message: `Kunde inte kontakta Netlify API: ${siteError instanceof Error ? siteError.message : 'Okänt fel'}`,
+        error: siteError instanceof Error ? siteError.message : 'Unknown error'
       });
     }
 
@@ -119,6 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`🌐 Setting ${Object.keys(envVars).length} environment variables via Netlify API...`);
 
     // Get current environment variables
+    console.log(`📋 Fetching current environment variables...`);
     const getCurrentEnvResponse = await fetch(
       `https://api.netlify.com/api/v1/sites/${netlifySiteId}/env`,
       {
@@ -130,18 +150,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     );
 
+    console.log(`📡 Env vars response status: ${getCurrentEnvResponse.status}`);
+    
     if (!getCurrentEnvResponse.ok) {
-      throw new Error(`Failed to get current env vars: ${getCurrentEnvResponse.status}`);
+      const errorText = await getCurrentEnvResponse.text();
+      console.error(`❌ Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
+      throw new Error(`Failed to get current env vars: ${getCurrentEnvResponse.status} - ${errorText}`);
     }
 
     const currentEnvVars = await getCurrentEnvResponse.json();
     console.log(`📋 Current env vars: ${currentEnvVars.length} variables`);
+    console.log(`📋 Existing env var keys:`, currentEnvVars.map((env: any) => env.key));
 
     // Update/add each environment variable
     const results = [];
     
     for (const [key, value] of Object.entries(envVars)) {
       try {
+        console.log(`🔧 Processing env var: ${key} = ${value.substring(0, 10)}...`);
+        
         // Check if variable already exists
         const existingVar = currentEnvVars.find((env: any) => env.key === key);
         
@@ -163,6 +190,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           );
 
+          console.log(`📡 Update response status: ${updateResponse.status}`);
+          
           if (updateResponse.ok) {
             console.log(`✅ Updated ${key}`);
             results.push({ key, status: 'updated' });
@@ -191,6 +220,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           );
 
+          console.log(`📡 Create response status: ${createResponse.status}`);
+          
           if (createResponse.ok) {
             console.log(`✅ Created ${key}`);
             results.push({ key, status: 'created' });
@@ -202,7 +233,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       } catch (varError) {
         console.error(`❌ Error processing ${key}:`, varError);
-        results.push({ key, status: 'error', error: 'exception' });
+        results.push({ key, status: 'error', error: 'exception', details: varError instanceof Error ? varError.message : 'Unknown error' });
       }
     }
 
