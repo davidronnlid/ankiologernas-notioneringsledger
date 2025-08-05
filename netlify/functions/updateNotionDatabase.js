@@ -114,8 +114,8 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
     }
 
     // Create new INLINE database on the page (not a separate page database)
-    console.log(`📊 Creating new INLINE database on ${userName}'s course page`);
-    console.log(`🔧 Database will be embedded directly in page, not as separate page`);
+    console.log(`📊 Automatically creating new inline database in ${userName}'s Notion course page`);
+    console.log(`🔧 Database will be embedded directly in the page - no separate page needed`);
     const database = await notion.databases.create({
       parent: {
         type: 'page_id',
@@ -171,6 +171,7 @@ async function findOrCreateCourseDatabase(notion, coursePageId, userName) {
     // Verify the database was created as inline
     if (database.is_inline) {
       console.log(`✅ Database successfully created as INLINE database within the page`);
+      console.log(`🎉 New inline database automatically created in ${userName}'s Notion course page!`);
     } else {
       console.warn(`⚠️ Database was created as page database instead of inline - this may need manual conversion`);
     }
@@ -702,7 +703,7 @@ exports.handler = async (event, context) => {
       const coursePage = await retryOperation(() => getUserCoursePage(notion, userName, pageId), 3);
       
       // Step 2: Find or create the single database on the course page with retry logic
-      console.log(`🗄️ Finding/creating database for ${userName}...`);
+      console.log(`🗄️ Finding or automatically creating inline database for ${userName}...`);
       const database = await retryOperation(() => findOrCreateCourseDatabase(notion, coursePage.id, userName), 3);
       
       // Step 3: Ensure database has correct schema with retry logic
@@ -725,9 +726,9 @@ exports.handler = async (event, context) => {
             message = `Lecture ${lectureNumber} already up to date - no changes needed`;
           } else if (wasUpdated) {
             message = `Lecture ${lectureNumber} updated with current app state`;
-          } else if (action === 'bulk_add') {
-            message = `Lecture ${lectureNumber} created successfully`;
-          }
+                  } else if (action === 'bulk_add') {
+          message = `Lecture ${lectureNumber} created successfully in automatically created inline database`;
+        }
           
           results.push({
             user: userName,
@@ -822,7 +823,7 @@ exports.handler = async (event, context) => {
         } else if ((result.skipped || 0) > 0) {
           message = `${targetUser}'s Notion database updated successfully (lecture already existed - duplicate prevented)`;
         } else if ((result.created || 0) > 0) {
-          message = `${targetUser}'s Notion database updated successfully (lecture added)`;
+          message = `${targetUser}'s Notion database updated successfully (lecture added to automatically created inline database)`;
         } else {
           message = `${targetUser}'s Notion database updated successfully`;
         }
