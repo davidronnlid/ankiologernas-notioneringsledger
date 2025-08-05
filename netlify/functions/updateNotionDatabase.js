@@ -33,16 +33,26 @@ async function getUserNotionConfig(userName) {
     const collection = database.collection("notion_user_configs");
     
     const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`;
-    console.log(`🔍 Looking up Notion config for ${userName} (${userEmail})`);
+    console.log(`🔍 Looking up Notion config for userName: "${userName}" -> email: "${userEmail}"`);
+    
+    // Debug: List all configs in database
+    const allConfigs = await collection.find({}).toArray();
+    console.log(`📋 All configs in database:`, allConfigs.map(c => ({ email: c.userEmail, hasToken: !!c.notionToken, hasDbId: !!c.databaseId })));
     
     const config = await collection.findOne({ userEmail });
     
     if (!config) {
-      console.log(`❌ No Notion config found for ${userName}`);
+      console.log(`❌ No Notion config found for userName: "${userName}" with email: "${userEmail}"`);
+      console.log(`🔍 Available emails in database:`, allConfigs.map(c => c.userEmail));
       return null;
     }
     
-    console.log(`✅ Found Notion config for ${userName}`);
+    console.log(`✅ Found Notion config for ${userName}:`, {
+      email: config.userEmail,
+      hasToken: !!config.notionToken,
+      hasDbId: !!config.databaseId,
+      tokenPrefix: config.notionToken ? config.notionToken.substring(0, 10) + '...' : 'NOT SET'
+    });
     return {
       notionToken: config.notionToken,
       databaseId: config.databaseId
@@ -582,6 +592,7 @@ exports.handler = async (event, context) => {
     let { lectureTitle, lectureNumber, subjectArea, selectedByUser, action, checkboxStates } = JSON.parse(event.body);
     
     // Handle special mapping for full names to short names
+    console.log(`🏷️ Original selectedByUser: "${selectedByUser}"`);
     if (selectedByUser) {
       if (selectedByUser.toLowerCase().includes('dronnlid') || selectedByUser.includes('David Rönnlid')) {
         console.log(`🔄 Mapping ${selectedByUser} to David for backend processing`);
@@ -594,6 +605,7 @@ exports.handler = async (event, context) => {
         selectedByUser = 'Mattias';
       }
     }
+    console.log(`🏷️ Final selectedByUser after mapping: "${selectedByUser}"`);
     
     console.log(`🎯 Notion database update: ${selectedByUser} ${action} lecture ${lectureNumber}: ${lectureTitle}`);
     console.log(`📊 Processing lecture update for user: ${selectedByUser}`);
