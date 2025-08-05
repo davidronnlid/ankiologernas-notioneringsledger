@@ -187,10 +187,17 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           setActiveStep(1); // Go to credentials step
         }
       } else {
-        setError(data.error || 'Failed to check setup status');
+        // If setup check fails, it means user hasn't configured Notion yet
+        // This is expected for new users, so proceed to token entry step
+        console.log('Setup check failed (expected for new users):', data.error);
+        setError(''); // Clear any error since this is expected for new users
+        setActiveStep(1); // Go directly to token entry step
       }
     } catch (err) {
-      setError('Failed to check Notion setup status');
+      // Network or other errors - also proceed to setup since user needs to configure
+      console.log('Setup check failed (expected for new users):', err);
+      setError(''); // Clear any error since this is expected for new users
+      setActiveStep(1); // Go directly to token entry step
     } finally {
       setIsLoading(false);
     }
