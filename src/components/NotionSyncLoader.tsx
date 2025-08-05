@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,11 +16,34 @@ import {
   alpha,
 } from '@mui/material';
 import { useNotionSync } from '../contexts/NotionSyncContext';
+import NotionSetupDialog from './NotionSetupDialog';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/types';
 
 const NotionSyncLoader: React.FC = () => {
   const theme = useTheme();
   const { isLoading, isRunningInBackground, currentOperation, progress, messages, error, cancelSync, continueInBackground } = useNotionSync();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showNotionSetup, setShowNotionSetup] = useState(false);
+  
+  // Get current user from Redux store
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  
+  // Map username to person (handles special cases like dronnlid -> David)
+  const mapUserNameToPerson = (fullName: string): string => {
+    const nameLower = fullName.toLowerCase();
+    
+    // Special mapping for dronnlid -> David
+    if (nameLower.includes('dronnlid')) {
+      return 'David';
+    }
+    
+    // Extract first name and capitalize
+    const firstName = fullName.split(" ")[0];
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  };
+  
+  const userName = currentUser?.full_name ? mapUserNameToPerson(currentUser.full_name) : "User";
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -200,6 +223,24 @@ const NotionSyncLoader: React.FC = () => {
       {/* Action Buttons */}
       <DialogActions sx={{ px: 4, pb: 3, gap: 1 }}>
         <Button 
+          onClick={() => setShowNotionSetup(true)}
+          variant="outlined"
+          color="secondary"
+          size="medium"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 'bold',
+            px: 3,
+            marginRight: 'auto',
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+            }
+          }}
+        >
+          Notion Config
+        </Button>
+        <Button 
           onClick={continueInBackground}
           variant="outlined"
           color="primary"
@@ -235,6 +276,26 @@ const NotionSyncLoader: React.FC = () => {
         </Button>
       </DialogActions>
     </Dialog>
+    
+    {/* Notion Setup Dialog */}
+    <NotionSetupDialog
+      open={showNotionSetup}
+      userName={userName}
+      onClose={() => {
+        setShowNotionSetup(false);
+        // If sync is running, also close the sync loader
+        if (isLoading) {
+          cancelSync();
+        }
+      }}
+      onSetupComplete={() => {
+        setShowNotionSetup(false);
+        // If sync is running, also close the sync loader
+        if (isLoading) {
+          cancelSync();
+        }
+      }}
+    />
   );
 };
 
