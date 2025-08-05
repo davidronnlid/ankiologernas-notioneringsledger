@@ -120,21 +120,28 @@ export default function Header() {
       // Check Notion setup status first
       console.log(`🔍 Checking Notion setup for ${userName}...`);
       
-      const setupResponse = await fetch('/api/notion-setup-check-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName })
-      });
+      // Get user's email for database lookup
+      const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`;
       
+      const setupResponse = await fetch(`/.netlify/functions/notion-user-config?userEmail=${encodeURIComponent(userEmail)}`);
       const setupData = await setupResponse.json();
       
-      if (!setupData.isSetup) {
+      if (!setupData.success || !setupData.config.isSetup) {
         console.log(`⚠️ ${userName} needs Notion setup`);
         
         // Show setup dialog directly without intermediate alert
         setShowNotionSetup(true);
         return;
       }
+
+      console.log(`✅ ${userName} has Notion setup configured`);
+      console.log(`🔑 Token: ${setupData.config.notionToken ? 'SET' : 'NOT SET'}`);
+      console.log(`📄 Database ID: ${setupData.config.databaseId || 'NOT SET'}`);
+
+      // Add user information to sync for better tracking
+      addMessage(`👤 Syncing for user: ${userName} (${userEmail})`);
+      addMessage(`🔑 Token status: ${setupData.config.notionToken ? 'Configured' : 'Missing'}`);
+      addMessage(`📄 Database ID: ${setupData.config.databaseId || 'Missing'}`);
 
       // Filter lectures for active course
       const activeCourseData = filterLecturesByActiveCourse(lectures);

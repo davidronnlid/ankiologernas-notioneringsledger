@@ -641,7 +641,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           Cancel
         </Button>
         
-        {/* Debug button for testing Netlify credentials */}
+        {/* Debug buttons temporarily hidden for cleaner UI
         <Button 
           onClick={testNetlifyCredentials}
           color="secondary"
@@ -650,33 +650,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         >
           Test Netlify API
         </Button>
-
-        {/* Debug button for testing Netlify health */}
-        <Button 
-          onClick={testNetlifyHealth}
-          color="secondary"
-          size="small"
-        >
-          Test Netlify Health
-        </Button>
-
-        {/* Debug button for testing Netlify API via function */}
-        <Button 
-          onClick={testNetlifyAPI}
-          color="secondary"
-          size="small"
-        >
-          Test Netlify API Func
-        </Button>
-
-        {/* Debug button for testing environment variable creation */}
-        <Button 
-          onClick={testEnvCreation}
-          color="secondary"
-          size="small"
-        >
-          Test Env Creation
-        </Button>
+        */}
         
         {activeStep === 1 && (
           <Button 
