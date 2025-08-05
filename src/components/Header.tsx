@@ -172,12 +172,12 @@ export default function Header() {
           if (success) {
             updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - synced`);
           } else {
-            updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - failed`);
+            updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - Check Notion DB to double-check if lecture was inserted.`);
           }
         },
         onLectureError: (lectureNumber, title, error, current, total) => {
           console.log(`❌ Lecture error callback: ${lectureNumber}. ${title} - error: ${error}`);
-          updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
+          updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - Check Notion DB to double-check if lecture was inserted.`);
         }
       }, isCancelledChecker);
 
