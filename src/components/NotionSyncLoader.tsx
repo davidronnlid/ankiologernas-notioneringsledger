@@ -276,7 +276,7 @@ const NotionSyncLoader: React.FC = () => {
         </Button>
       </DialogActions>
     </Dialog>
-    
+
     {/* Notion Setup Dialog */}
     <NotionSetupDialog
       open={showNotionSetup}
