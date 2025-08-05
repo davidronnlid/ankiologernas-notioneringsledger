@@ -185,7 +185,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                values: [{ value: value, context: 'all' }]
+                values: [{ 
+                  value: value, 
+                  context: 'production',
+                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
+                }]
               })
             }
           );
@@ -215,7 +219,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               },
               body: JSON.stringify({
                 key: key,
-                values: [{ value: value, context: 'all' }]
+                values: [{ 
+                  value: value, 
+                  context: 'production',
+                  scopes: ['builds', 'functions', 'runtime', 'post-processing']
+                }]
               })
             }
           );

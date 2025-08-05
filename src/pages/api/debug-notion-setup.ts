@@ -1,11 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
+  // Allow both GET and POST for testing
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { userName, notionToken, databaseId } = req.body;
+  // Use test data for GET requests, real data for POST
+  const { userName, notionToken, databaseId } = req.method === 'GET' 
+    ? { userName: 'Albin', notionToken: 'ntn_test123...', databaseId: 'test-page-id' }
+    : req.body;
 
   console.log('🔍 Debugging Notion setup save process...');
   console.log(`👤 User: ${userName}`);
@@ -67,10 +71,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       if (existingVar) {
         console.log(`🔄 Will UPDATE existing variable: ${key}`);
-        results.push({ key, action: 'update', exists: true });
+        results.push({ 
+          key, 
+          action: 'update', 
+          exists: true,
+          currentValue: existingVar.values?.[0]?.value?.substring(0, 10) + '...' || 'N/A'
+        });
       } else {
         console.log(`➕ Will CREATE new variable: ${key}`);
-        results.push({ key, action: 'create', exists: false });
+        results.push({ 
+          key, 
+          action: 'create', 
+          exists: false,
+          newFormat: {
+            key: key,
+            values: [{ 
+              value: value.substring(0, 10) + '...', 
+              context: 'production',
+              scopes: ['builds', 'functions', 'runtime', 'post-processing']
+            }]
+          }
+        });
       }
     }
 
