@@ -507,8 +507,8 @@ async function addLectureToDatabase(notion, databaseId, lectureTitle, lectureNum
         console.log(`✅ Created new lecture: ${lectureNumber}. ${lectureTitle} in ${subjectArea}`);
         return newLecture;
         
-      } else if (action === 'select' || action === 'unselect') {
-        // Auto-create lecture if it doesn't exist, then apply the selection
+      } else if (action === 'select' || action === 'unselect' || action === 'bulk_sync_with_checkboxes') {
+        // Auto-create lecture if it doesn't exist, then apply the selection/sync
         console.log(`📝 Lecture doesn't exist yet - creating it first before applying ${action}`);
         console.log(`🔧 Auto-creating lecture: ${lectureNumber}. ${lectureTitle}`);
         
