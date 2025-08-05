@@ -364,7 +364,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
                 <Typography variant="body2" component="span">
                   • Name:
                 </Typography>
-                <CopyableText text={`Ankiologernas Notioneringsledger - ${userName}`} />
+                <CopyableText text={`Ankiologernas NL - ${userName}`} />
               </Box>
               <Typography variant="body2" style={{ marginBottom: 4, marginLeft: 16 }}>
                 • Associated workspace: Välj din workspace
@@ -449,7 +449,7 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
                 <strong>4.</strong> Hitta och välj din integration:
               </Typography>
               <Box style={{ marginBottom: 8 }}>
-                <CopyableText text={`Ankiologernas Notioneringsledger - ${userName}`} />
+                <CopyableText text={`Ankiologernas NL - ${userName}`} />
               </Box>
               
               <Typography variant="body2" style={{ marginTop: 16 }}>

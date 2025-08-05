@@ -153,8 +153,9 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
 
   const steps = [
     'Check Current Setup',
-    'Get Notion Credentials', 
+    'Enter Notion Token', 
     'Test Connection',
+    'Enter Course Page ID',
     'Save Configuration'
   ];
 
@@ -196,8 +197,8 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
   };
 
   const testConnection = async () => {
-    if (!notionToken || !databaseId) {
-      setError('Please enter both token and database ID');
+    if (!notionToken) {
+      setError('Please enter notion token');
       return;
     }
 
@@ -212,8 +213,8 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         body: JSON.stringify({ 
           userName, 
           notionToken, 
-          databaseId, 
-          testConnection: true 
+          testConnection: true,
+          testTokenOnly: true  // New flag to only test token
         })
       });
       
@@ -221,19 +222,24 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
       
       if (data.success) {
         setTestResult(data);
-        setActiveStep(3);
+        setActiveStep(3); // Go to Course Page ID step
       } else {
-        setError(data.error || 'Connection test failed');
+        setError(data.error || 'Token test failed');
         setTestResult(data);
       }
     } catch (err) {
-      setError('Failed to test connection');
+      setError('Failed to test token');
     } finally {
       setIsLoading(false);
     }
   };
 
   const saveConfiguration = async () => {
+    if (!notionToken || !databaseId) {
+      setError('Please enter both token and page ID');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -245,7 +251,8 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           userName, 
           notionToken, 
           databaseId,
-          testConnection: false 
+          testConnection: false,
+          saveToNetlify: true  // New flag for automatic Netlify saving
         })
       });
       
@@ -255,10 +262,10 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         onSetupComplete();
         onClose();
       } else {
-        setError(data.error || 'Failed to save configuration');
+        setError(data.error || 'Failed to save configuration to Netlify');
       }
     } catch (err) {
-      setError('Failed to save configuration');
+      setError('Failed to save configuration to Netlify');
     } finally {
       setIsLoading(false);
     }
@@ -292,25 +299,25 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           </Box>
         );
 
-      case 1: // Get Notion Credentials
+      case 1: // Enter Notion Token
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Set Up Notion Integration for {userName}
+              Steg 1: Skaffa Notion Token för {userName}
             </Typography>
             
             <Box style={{ backgroundColor: '#2c2c2c', padding: 16, borderRadius: 8, marginBottom: 16 }}>
               <Typography variant="h6" style={{ color: 'white', marginBottom: 12 }}>
-                📋 Snabb setup-guide:
+                📋 Skapa Notion Integration:
               </Typography>
               <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
-                1. Gå till <Link href="https://notion.so/my-integrations" target="_blank" style={{ color: '#2196f3' }}>notion.so/my-integrations</Link> → skapa integration → kopiera token
+                1. Gå till <Link href="https://notion.so/my-integrations" target="_blank" style={{ color: '#2196f3' }}>notion.so/my-integrations</Link>
               </Typography>
               <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
-                2. Skapa ny sida i Notion → dela med din integration → kopiera sidans ID från URL
+                2. Klicka "New integration" och ge den ett namn (t.ex. "Ankiologernas NL - {userName}")
               </Typography>
               <Typography variant="body2" style={{ color: '#ccc' }}>
-                3. Fyll i fälten nedan och testa anslutningen
+                3. Kopiera "Internal Integration Token" och klistra in nedan
               </Typography>
             </Box>
 
@@ -325,10 +332,67 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
               variant="outlined"
               helperText="Kopiera från notion.so/my-integrations (börjar med 'secret_')"
             />
+          </Box>
+        );
+
+      case 2: // Test Connection
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Steg 2: Testa Notion Token
+            </Typography>
+            {isLoading && (
+              <Box display="flex" alignItems="center" style={{ gap: 16 }}>
+                <CircularProgress size={24} />
+                <Typography>Testar din Notion token...</Typography>
+              </Box>
+            )}
+            {testResult && (
+              <Box>
+                {testResult.success ? (
+                  <Alert severity="success" className={classes.successAlert}>
+                    ✅ Token test lyckades! Nu kan du ange din kurs-sida.
+                  </Alert>
+                ) : (
+                  <Alert severity="error" className={classes.errorAlert}>
+                    ❌ Token test misslyckades: {testResult.error}
+                  </Alert>
+                )}
+              </Box>
+            )}
+            {!testResult && !isLoading && (
+              <Alert severity="info" style={{ backgroundColor: '#1976d2' }}>
+                Klicka "Test Connection" för att verifiera din token.
+              </Alert>
+            )}
+          </Box>
+        );
+
+      case 3: // Enter Course Page ID
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Steg 3: Ange Course Page ID för {userName}
+            </Typography>
+            
+            <Box style={{ backgroundColor: '#2c2c2c', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+              <Typography variant="h6" style={{ color: 'white', marginBottom: 12 }}>
+                📋 Skapa Kurs-sida i Notion:
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
+                1. Skapa en ny sida i Notion för din kurs (t.ex. "Klinisk medicin 4")
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
+                2. Dela sidan med din integration (klicka "Share" → "Invite" → välj din integration)
+              </Typography>
+              <Typography variant="body2" style={{ color: '#ccc' }}>
+                3. Kopiera sidans ID från URL:en och klistra in nedan
+              </Typography>
+            </Box>
 
             <TextField
               fullWidth
-              label="Notion Page ID"
+              label="Notion Course Page ID"
               value={databaseId}
               onChange={(e) => setDatabaseId(e.target.value)}
               placeholder="a1b2c3d4e5f6789..."
@@ -340,35 +404,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           </Box>
         );
 
-      case 2: // Test Connection
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Testing Connection...
-            </Typography>
-            {isLoading && (
-              <Box display="flex" alignItems="center" style={{ gap: 16 }}>
-                <CircularProgress size={24} />
-                <Typography>Connecting to your Notion database...</Typography>
-              </Box>
-            )}
-            {testResult && (
-              <Box>
-                {testResult.success ? (
-                  <Alert severity="success" className={classes.successAlert}>
-                    ✅ Connection successful! Database is ready.
-                  </Alert>
-                ) : (
-                  <Alert severity="error" className={classes.errorAlert}>
-                    ❌ Connection failed: {testResult.error}
-                  </Alert>
-                )}
-              </Box>
-            )}
-          </Box>
-        );
-
-      case 3: // Save Configuration
+      case 4: // Save Configuration
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
@@ -451,21 +487,41 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         
         {activeStep === 1 && (
           <Button 
+            onClick={() => setActiveStep(2)}
+            disabled={!notionToken || isLoading}
+            className={classes.setupButton}
+          >
+            Nästa: Testa Token
+          </Button>
+        )}
+        
+        {activeStep === 2 && (
+          <Button 
             onClick={testConnection}
-            disabled={!notionToken || !databaseId || isLoading}
+            disabled={!notionToken || isLoading}
             className={classes.setupButton}
           >
             Test Connection
           </Button>
         )}
         
-        {activeStep === 3 && !setupStatus?.isSetupComplete && (
+        {activeStep === 3 && (
+          <Button 
+            onClick={() => setActiveStep(4)}
+            disabled={!databaseId || isLoading}
+            className={classes.setupButton}
+          >
+            Nästa: Spara Konfiguration
+          </Button>
+        )}
+        
+        {activeStep === 4 && !setupStatus?.isSetupComplete && (
           <Button 
             onClick={saveConfiguration}
             disabled={isLoading}
             className={classes.setupButton}
           >
-            Save Configuration
+            Spara till Netlify
           </Button>
         )}
         

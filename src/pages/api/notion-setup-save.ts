@@ -6,29 +6,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { userName, token, pageId } = req.body;
+    const { userName, notionToken, databaseId, testTokenOnly, saveToNetlify, testConnection } = req.body;
 
-    if (!userName || !token) {
+    if (!userName || !notionToken) {
       return res.status(400).json({
         success: false,
-        message: 'Användarnamn och token krävs'
+        message: 'Användarnamn och notion token krävs'
+      });
+    }
+
+    // If only testing token, do a basic validation and return
+    if (testTokenOnly) {
+      console.log(`🧪 Testing token only for ${userName}...`);
+      
+      // Basic token validation (check format)
+      if (!notionToken.startsWith('secret_')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Token måste börja med "secret_"'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Token format validerat',
+        tokenValid: true
       });
     }
 
     console.log(`💾 Saving Notion configuration for ${userName}...`);
 
-    // In development, just log the configuration but don't actually save
-    if (process.env.NODE_ENV === 'development') {
+    // Check if we should save to Netlify or just validate
+    if (!saveToNetlify && !testConnection) {
+      return res.status(400).json({
+        success: false,
+        message: 'Antingen saveToNetlify eller testConnection måste vara true'
+      });
+    }
+
+    // In development, just log the configuration but don't actually save to Netlify
+    if (process.env.NODE_ENV === 'development' && saveToNetlify) {
       console.log(`📝 Development mode - would save:`);
-      console.log(`   NOTION_TOKEN_${userName.toUpperCase()}=${token.substring(0, 20)}...`);
-      if (pageId) {
-        console.log(`   NOTION_COURSE_PAGE_${userName.toUpperCase()}=${pageId}`);
+      console.log(`   NOTION_TOKEN_${userName.toUpperCase()}=${notionToken.substring(0, 20)}...`);
+      if (databaseId) {
+        console.log(`   NOTION_COURSE_PAGE_${userName.toUpperCase()}=${databaseId}`);
       }
       
       // For development, let's simulate success but note it's not actually saved
       return res.status(200).json({
         success: true,
-        message: 'Konfiguration simulerad (development mode - inte faktiskt sparad)',
+        message: 'Konfiguration sparad till Netlify (simulerat i development mode)',
         development: true
       });
     }
@@ -82,11 +109,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Prepare environment variables to set
     const envVars: { [key: string]: string } = {
-      [`NOTION_TOKEN_${userName.toUpperCase()}`]: token
+      [`NOTION_TOKEN_${userName.toUpperCase()}`]: notionToken
     };
 
-    if (pageId) {
-      envVars[`NOTION_COURSE_PAGE_${userName.toUpperCase()}`] = pageId;
+    if (databaseId) {
+      envVars[`NOTION_COURSE_PAGE_${userName.toUpperCase()}`] = databaseId;
     }
 
     console.log(`🌐 Setting ${Object.keys(envVars).length} environment variables via Netlify API...`);
