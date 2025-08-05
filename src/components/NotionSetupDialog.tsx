@@ -58,8 +58,9 @@ const useStyles = makeStyles((theme) => ({
     '& .MuiDialog-paper': {
       backgroundColor: '#1a1a1a',
       color: 'white',
-      maxWidth: 600,
+      maxWidth: 700,
       width: '100%',
+      maxHeight: '80vh',
     },
   },
   dialogTitle: {
@@ -71,6 +72,8 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: '#1a1a1a',
     color: 'white',
     padding: theme.spacing(3),
+    maxHeight: '60vh',
+    overflowY: 'auto',
   },
   dialogActions: {
     backgroundColor: '#1a1a1a',
@@ -296,50 +299,20 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
               Set Up Notion Integration for {userName}
             </Typography>
             
-            <Accordion style={{ backgroundColor: '#2c2c2c', marginBottom: 16 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon style={{ color: 'white' }} />}>
-                <Typography>📋 Setup Instructions</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      1. Gå till <Link href="https://notion.so/my-integrations" target="_blank" style={{ color: '#2196f3' }}>notion.so/my-integrations</Link> och skapa en ny integration
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      2. Ge integrationen ett namn (t.ex. "Ankiologernas Notioneringsledger")
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      3. Kopiera "Internal Integration Token" (börjar med "secret_")
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      4. Skapa en ny sida i Notion för din kurs (t.ex. "Klinisk medicin 4")
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      5. Dela sidan med din integration (klicka "Share" → "Invite" → välj din integration)
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      6. Kopiera sidans ID från URL:en (den långa strängen efter sidans namn)
-                    </Typography>
-                  </div>
-                  <div className={classes.instructionStep}>
-                    <Typography variant="body2">
-                      7. Klistra in token och sid-ID i fälten nedan och klicka "Test Connection"
-                    </Typography>
-                  </div>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+            <Box style={{ backgroundColor: '#2c2c2c', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+              <Typography variant="h6" style={{ color: 'white', marginBottom: 12 }}>
+                📋 Snabb setup-guide:
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
+                1. Gå till <Link href="https://notion.so/my-integrations" target="_blank" style={{ color: '#2196f3' }}>notion.so/my-integrations</Link> → skapa integration → kopiera token
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
+                2. Skapa ny sida i Notion → dela med din integration → kopiera sidans ID från URL
+              </Typography>
+              <Typography variant="body2" style={{ color: '#ccc' }}>
+                3. Fyll i fälten nedan och testa anslutningen
+              </Typography>
+            </Box>
 
             <TextField
               fullWidth
