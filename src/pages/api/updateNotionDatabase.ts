@@ -665,7 +665,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           user: userName,
           success: true,
           pagesUpdated: 1,
-          created: action === 'bulk_add' && !wasExisting ? 1 : 0,
+          created: (action === 'bulk_add' || action === 'bulk_sync_with_checkboxes') && !wasExisting ? 1 : 0,
           skipped: wasSkipped ? 1 : 0,
           message: wasSkipped ? `Lecture ${lectureNumber} already exists - duplicate prevented` : 'Success'
         });

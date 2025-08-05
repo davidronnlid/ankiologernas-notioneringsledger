@@ -718,7 +718,7 @@ exports.handler = async (event, context) => {
             user: userName,
             success: true,
             pagesUpdated: wasUpdated ? 1 : 0,
-            created: action === 'bulk_add' && !wasExisting ? 1 : 0,
+            created: (action === 'bulk_add' || action === 'bulk_sync_with_checkboxes') && !wasExisting ? 1 : 0,
             updated: wasUpdated ? 1 : 0,
             skipped: wasSkipped ? 1 : 0,
             message: message
