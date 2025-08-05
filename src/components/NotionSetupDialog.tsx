@@ -333,6 +333,28 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     }
   };
 
+  const testNetlifyCredentials = async () => {
+    console.log(`🔍 Testing Netlify credentials...`);
+    
+    try {
+      const response = await fetch('/api/test-netlify-credentials');
+      const data = await response.json();
+      
+      console.log(`📡 Netlify credentials test:`, data);
+      
+      if (data.success) {
+        console.log(`✅ Netlify credentials are working`);
+        alert(`Netlify API fungerar! Site: ${data.site.name}`);
+      } else {
+        console.error(`❌ Netlify credentials failed:`, data);
+        alert(`Netlify API problem: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(`💥 Netlify credentials test error:`, err);
+      alert(`Netlify API test failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0: // Check Current Setup
@@ -545,6 +567,16 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
       <DialogActions className={classes.dialogActions}>
         <Button onClick={onClose} color="secondary">
           Cancel
+        </Button>
+        
+        {/* Debug button for testing Netlify credentials */}
+        <Button 
+          onClick={testNetlifyCredentials}
+          color="secondary"
+          size="small"
+          style={{ marginRight: 'auto' }}
+        >
+          Test Netlify API
         </Button>
         
         {activeStep === 1 && (

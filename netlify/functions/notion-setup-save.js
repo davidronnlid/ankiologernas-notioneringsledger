@@ -56,33 +56,22 @@ exports.handler = async function(event, context) {
     // Check if we have Netlify API credentials
     const netlifyApiToken = process.env.NETLIFY_API_TOKEN;
     const netlifySiteId = process.env.NETLIFY_SITE_ID;
-    const isProduction = process.env.NODE_ENV === 'production';
     const hasNetlifyCredentials = netlifyApiToken && netlifySiteId;
 
     console.log(`🔍 Environment: ${process.env.NODE_ENV || 'unknown'}`);
     console.log(`🔐 API Token exists: ${!!netlifyApiToken} (length: ${netlifyApiToken?.length || 0})`);
     console.log(`🏗️ Site ID: ${netlifySiteId}`);
-    console.log(`📦 Is Production: ${isProduction}`);
     console.log(`🔑 Has Netlify Credentials: ${hasNetlifyCredentials}`);
 
-    // In development or when missing credentials, simulate the save
-    if (!isProduction || !hasNetlifyCredentials) {
-      console.log(`📝 ${!isProduction ? 'Development mode' : 'Missing Netlify credentials'} - simulating save:`);
-      console.log(`   NOTION_TOKEN_${userName.toUpperCase()}=${notionToken.substring(0, 20)}...`);
-      if (databaseId) {
-        console.log(`   NOTION_COURSE_PAGE_${userName.toUpperCase()}=${databaseId}`);
-      }
-      
-      // For development/missing credentials, simulate success
+    // If missing credentials, return error instead of simulating
+    if (!hasNetlifyCredentials) {
+      console.error(`❌ Missing Netlify API credentials`);
       return {
-        statusCode: 200,
+        statusCode: 500,
         body: JSON.stringify({
-          success: true,
-          message: !isProduction 
-            ? 'Konfiguration sparad till Netlify (simulerat i development mode)'
-            : 'Konfiguration validerad (Netlify API ej konfigurerad)',
-          development: !isProduction,
-          simulated: true
+          success: false,
+          message: 'Netlify API credentials saknas. Kontakta administratör.',
+          error: 'Missing NETLIFY_API_TOKEN or NETLIFY_SITE_ID'
         })
       };
     }
