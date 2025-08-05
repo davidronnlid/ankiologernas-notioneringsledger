@@ -213,7 +213,11 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     setError('');
     setTestResult(null);
 
+    console.log(`🧪 Testing Notion token for ${userName}...`);
+    console.log(`🔑 Token starts with: ${notionToken.substring(0, 10)}...`);
+
     try {
+      // First try the Netlify Function
       const response = await fetch('/.netlify/functions/notion-setup-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,17 +229,56 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         })
       });
       
+      console.log(`📡 Response status: ${response.status}`);
+      console.log(`📡 Response ok: ${response.ok}`);
+      
       const data = await response.json();
+      console.log(`📄 Response data:`, data);
       
       if (data.success) {
+        console.log(`✅ Token test successful`);
         setTestResult(data);
         setActiveStep(3); // Go to Course Page ID step
       } else {
-        setError(data.error || 'Token test failed');
+        console.error(`❌ Token test failed:`, data);
+        const errorMessage = data.error || data.message || 'Token test failed';
+        setError(errorMessage);
         setTestResult(data);
       }
     } catch (err) {
-      setError('Failed to test token');
+      console.error(`💥 Netlify Function failed, trying simple endpoint:`, err);
+      
+      // Fallback to simple test endpoint
+      try {
+        const fallbackResponse = await fetch('/api/test-notion-setup-simple', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userName, 
+            notionToken, 
+            testTokenOnly: true
+          })
+        });
+        
+        console.log(`📡 Fallback response status: ${fallbackResponse.status}`);
+        
+        const fallbackData = await fallbackResponse.json();
+        console.log(`📄 Fallback response data:`, fallbackData);
+        
+        if (fallbackData.success) {
+          console.log(`✅ Fallback token test successful`);
+          setTestResult(fallbackData);
+          setActiveStep(3); // Go to Course Page ID step
+        } else {
+          console.error(`❌ Fallback token test failed:`, fallbackData);
+          const errorMessage = fallbackData.error || fallbackData.message || 'Token test failed';
+          setError(errorMessage);
+          setTestResult(fallbackData);
+        }
+      } catch (fallbackErr) {
+        console.error(`💥 Both endpoints failed:`, fallbackErr);
+        setError(`Failed to test token: ${err instanceof Error ? err.message : 'Network error'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -250,6 +293,10 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
     setIsLoading(true);
     setError('');
 
+    console.log(`💾 Saving Notion configuration for ${userName}...`);
+    console.log(`🔑 Token: ${notionToken.substring(0, 10)}...`);
+    console.log(`📄 Database ID: ${databaseId}`);
+
     try {
       const response = await fetch('/.netlify/functions/notion-setup-save', {
         method: 'POST',
@@ -263,16 +310,24 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         })
       });
       
+      console.log(`📡 Save response status: ${response.status}`);
+      console.log(`📡 Save response ok: ${response.ok}`);
+      
       const data = await response.json();
+      console.log(`📄 Save response data:`, data);
       
       if (data.success) {
+        console.log(`✅ Configuration saved successfully`);
         onSetupComplete();
         onClose();
       } else {
-        setError(data.error || 'Failed to save configuration to Netlify');
+        console.error(`❌ Failed to save configuration:`, data);
+        const errorMessage = data.error || data.message || 'Failed to save configuration to Netlify';
+        setError(errorMessage);
       }
     } catch (err) {
-      setError('Failed to save configuration to Netlify');
+      console.error(`💥 Network error during save:`, err);
+      setError(`Failed to save configuration: ${err instanceof Error ? err.message : 'Network error'}`);
     } finally {
       setIsLoading(false);
     }
