@@ -143,6 +143,47 @@ exports.handler = async (event, context) => {
         })
       };
 
+    } else if (event.httpMethod === "DELETE") {
+      // Delete user's Notion configuration
+      const { userEmail } = JSON.parse(event.body);
+      
+      if (!userEmail) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'userEmail is required'
+          })
+        };
+      }
+
+      console.log(`🗑️ Deleting config for user: ${userEmail}`);
+      
+      const deleteResult = await collection.deleteOne({ userEmail });
+      
+      if (deleteResult.deletedCount === 1) {
+        console.log(`✅ Successfully deleted config for ${userEmail}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'Notion configuration deleted successfully'
+          })
+        };
+      } else {
+        console.log(`⚠️ No config found to delete for ${userEmail}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'No configuration found to delete'
+          })
+        };
+      }
+
     } else {
       return {
         statusCode: 405,

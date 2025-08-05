@@ -151,6 +151,49 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
 
+  // Helper function to generate course-specific page ID name
+  const generateCourseSpecificPageId = (userName: string): string => {
+    const activeCourse = "Klinisk medicin 4";
+    const courseCode = "km4"; // Simplify course name for ID
+    return `notion_course_page_${userName.toLowerCase()}_${courseCode}`;
+  };
+
+  // Function to delete Notion configuration
+  const deleteNotionConfiguration = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const userEmail = `${userName.toLowerCase()}@psychedevs.gmail.com`;
+      
+      const response = await fetch('/.netlify/functions/notion-user-config', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userEmail })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setNotionToken('');
+        setDatabaseId('');
+        setSetupStatus(null);
+        setActiveStep(0);
+        setError('');
+        console.log('✅ Notion configuration deleted successfully');
+        // Close dialog after successful deletion
+        onClose();
+      } else {
+        setError(result.message || 'Failed to delete configuration');
+      }
+    } catch (error) {
+      console.error('❌ Error deleting Notion configuration:', error);
+      setError('Failed to delete configuration. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const steps = [
     'Check Current Setup',
     'Enter Notion Token', 
@@ -528,15 +571,15 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Steg 3: Ange Course Page ID för {userName}
+              Steg 3: Ange Course Page ID för {userName} - Klinisk medicin 4
             </Typography>
             
             <Box style={{ backgroundColor: '#2c2c2c', padding: 16, borderRadius: 8, marginBottom: 16 }}>
               <Typography variant="h6" style={{ color: 'white', marginBottom: 12 }}>
-                📋 Skapa Kurs-sida i Notion:
+                📋 Skapa Kurs-sida för Klinisk medicin 4:
               </Typography>
               <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
-                1. Skapa en ny sida i Notion för din kurs (t.ex. "Klinisk medicin 4")
+                1. Skapa en ny sida i Notion med namnet: <strong>{generateCourseSpecificPageId(userName)}</strong>
               </Typography>
               <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
                 2. Dela sidan med din integration (klicka "Share" → "Invite" → välj din integration)
@@ -548,7 +591,7 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
 
             <TextField
               fullWidth
-              label="Notion Course Page ID"
+              label={`Course Page ID - ${generateCourseSpecificPageId(userName)}`}
               value={databaseId}
               onChange={(e) => setDatabaseId(e.target.value)}
               placeholder="a1b2c3d4e5f6789..."
@@ -641,16 +684,21 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
           Cancel
         </Button>
         
-        {/* Debug buttons temporarily hidden for cleaner UI
-        <Button 
-          onClick={testNetlifyCredentials}
-          color="secondary"
-          size="small"
-          style={{ marginRight: 'auto' }}
-        >
-          Test Netlify API
-        </Button>
-        */}
+        {/* Delete configuration button - only show if setup exists */}
+        {setupStatus?.isSetupComplete && (
+          <Button 
+            onClick={deleteNotionConfiguration}
+            disabled={isLoading}
+            style={{ 
+              marginRight: 'auto',
+              color: '#f44336',
+              border: '1px solid #f44336',
+              background: 'transparent'
+            }}
+          >
+            {isLoading ? <CircularProgress size={20} /> : 'Delete Notion Config'}
+          </Button>
+        )}
         
         {activeStep === 1 && (
           <Button 
