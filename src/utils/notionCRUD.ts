@@ -603,8 +603,29 @@ export const syncAllLecturesToNotionPages = async (
       console.log(`🔍 Success check: result.success = ${result.success}, message = "${result.message}"`);
       console.log(`🔍 Message contains 'synced successfully': ${result.message?.includes('synced successfully')}`);
       console.log(`🔍 Message contains 'updated successfully': ${result.message?.includes('updated successfully')}`);
+      console.log(`🔍 Message contains 'database synced': ${result.message?.includes('database synced')}`);
+      console.log(`🔍 Message contains 'lectures updated': ${result.message?.includes('lectures updated')}`);
+      console.log(`🔍 Message contains 'lecture added': ${result.message?.includes('lecture added')}`);
+      console.log(`🔍 Message contains 'lecture created': ${result.message?.includes('lecture created')}`);
       
-      if (result.success || (result.message && (result.message.includes('updated successfully') || result.message.includes('lecture added') || result.message.includes('lecture created') || result.message.includes('synced successfully')))) {
+      // More comprehensive success detection
+      const successIndicators = [
+        'synced successfully',
+        'updated successfully', 
+        'database synced',
+        'lectures updated',
+        'lecture added',
+        'lecture created',
+        'successfully',
+        'synced'
+      ];
+      
+      const isSuccess = result.success || (result.message && successIndicators.some(indicator => result.message.toLowerCase().includes(indicator.toLowerCase())));
+      
+      console.log(`🔍 Final success determination: ${isSuccess ? 'SUCCESS' : 'FAILURE'}`);
+      console.log(`🔍 Result object:`, JSON.stringify(result, null, 2));
+      
+      if (isSuccess) {
         successCount++;
         console.log(`✅ Successfully synced: ${lecture.title}`);
         results.push({
