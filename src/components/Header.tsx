@@ -54,7 +54,7 @@ export default function Header() {
   const { theme } = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
-  const { startSync, addMessage, finishSync, setError, isCancelled, isLoading, isRunningInBackground, showSyncUI, getCancellationChecker } = useNotionSync();
+  const { startSync, addMessage, updateProgress, finishSync, setError, isCancelled, isLoading, isRunningInBackground, showSyncUI, getCancellationChecker } = useNotionSync();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -165,19 +165,19 @@ export default function Header() {
       const results = await syncAllLecturesToNotionPages(activeCourseLectures, {
         onLectureStart: (lectureNumber, title, current, total) => {
           console.log(`🔄 Lecture start callback: ${lectureNumber}. ${title} (${current}/${total})`);
-          addMessage(`${current}/${total}: Syncing ${lectureNumber}. ${title}...`);
+          updateProgress(current, `${current}/${total}: Syncing ${lectureNumber}. ${title}...`);
         },
         onLectureComplete: (lectureNumber, title, success, current, total) => {
           console.log(`📊 Lecture complete callback: ${lectureNumber}. ${title} - success: ${success}`);
           if (success) {
-            addMessage(`${current}/${total}: ${lectureNumber}. ${title} - synced`);
+            updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - synced`);
           } else {
-            addMessage(`${current}/${total}: ${lectureNumber}. ${title} - failed`);
+            updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - failed`);
           }
         },
         onLectureError: (lectureNumber, title, error, current, total) => {
           console.log(`❌ Lecture error callback: ${lectureNumber}. ${title} - error: ${error}`);
-          addMessage(`${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
+          updateProgress(current, `${current}/${total}: ${lectureNumber}. ${title} - Error: ${error}`);
         }
       }, isCancelledChecker);
 
