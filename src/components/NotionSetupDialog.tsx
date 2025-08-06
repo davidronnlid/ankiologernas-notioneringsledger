@@ -519,6 +519,15 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
                 3. Kopiera "Internal Integration Token" och klistra in nedan
               </Typography>
             </Box>
+            
+            <Box style={{ backgroundColor: '#ff9800', padding: 12, borderRadius: 8, marginBottom: 16, border: '1px solid #f57c00' }}>
+              <Typography variant="body2" style={{ color: 'white', fontWeight: 'bold', marginBottom: 4 }}>
+                💡 Kom ihåg:
+              </Typography>
+              <Typography variant="body2" style={{ color: 'white' }}>
+                Du kommer också behöva lägga till denna integration till din kurs-sida i Notion för att den ska fungera. Detta förklaras i steg 3.
+              </Typography>
+            </Box>
 
             <TextField
               fullWidth
@@ -582,7 +591,19 @@ const NotionSetupDialog: React.FC<NotionSetupDialogProps> = ({
                 1. Skapa en ny sida i Notion med namnet: <strong>{generateCourseSpecificPageId(userName)}</strong>
               </Typography>
               <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc' }}>
-                2. Dela sidan med din integration (klicka "Share" → "Invite" → välj din integration)
+                2. <strong>VIKTIGT:</strong> Du måste lägga till din integration till sidan INNAN integrationen fungerar:
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc', marginLeft: 16 }}>
+                • Öppna sidan du just skapade
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc', marginLeft: 16 }}>
+                • Klicka på "Share" (dela) knappen i övre högra hörnet
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc', marginLeft: 16 }}>
+                • Klicka "Invite" och sök efter din integration: <strong>"Ankiologernas NL - {userName}"</strong>
+              </Typography>
+              <Typography variant="body2" style={{ marginBottom: 6, color: '#ccc', marginLeft: 16 }}>
+                • Välj din integration och klicka "Invite"
               </Typography>
               <Typography variant="body2" style={{ color: '#ccc' }}>
                 3. Kopiera sidans ID från URL:en och klistra in nedan

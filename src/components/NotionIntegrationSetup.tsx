@@ -452,8 +452,15 @@ const NotionIntegrationSetup: React.FC<NotionIntegrationSetupProps> = ({
                 <CopyableText text={`Ankiologernas NL - ${userName}`} />
               </Box>
               
-              <Typography variant="body2" style={{ marginTop: 16 }}>
+              <Typography variant="body2" style={{ marginBottom: 8 }}>
                 <strong>5.</strong> Klicka "Allow access" för att ge integrationen behörighet
+              </Typography>
+              
+              <Typography variant="body2" style={{ marginTop: 16, color: '#ff9800', fontWeight: 'bold' }}>
+                ⚠️ VIKTIGT: Du måste lägga till integrationen till sidan INNAN integrationen fungerar!
+              </Typography>
+              <Typography variant="body2" style={{ marginTop: 8, color: '#ccc' }}>
+                Om du inte lägger till integrationen till sidan kommer appen inte att kunna synkronisera data till Notion.
               </Typography>
             </Box>
           </Box>
