@@ -814,8 +814,8 @@ const ClientPdfViewer: React.FC = () => {
 
       console.log('📤 Sending sync data:', syncData);
 
-      // Fallback to synchronous function on current plan
-      const endpoint = '/.netlify/functions/syncFlashcardsToNotion';
+      // Prefer Next API route for better reliability on current plan
+      const endpoint = '/api/syncFlashcardsToNotion';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
