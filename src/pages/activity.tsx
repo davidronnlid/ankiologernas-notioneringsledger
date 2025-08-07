@@ -28,7 +28,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import NoteAddIcon from '@material-ui/icons/NoteAdd';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { getProfilePicUrl } from '@/utils/profilePicMapper';
+import { getProfilePicUrl } from 'utils/profilePicMapper';
 
 type ActivityItem = {
   id: string;

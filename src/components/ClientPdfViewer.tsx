@@ -859,7 +859,17 @@ const ClientPdfViewer: React.FC = () => {
             ...syncData,
             mode: 'text-only',
             dryRun: true,
-            flashcardGroups: flashcardGroups.slice(0, 1).map(g => ({ id: g.id, question: g.question, pages: g.pages.map(p => ({ pageNumber: p.pageNumber, textContent: p.textContent })), summary: g.summary }))
+            flashcardGroups: flashcardGroups.slice(0, 1).map((g: any) => ({
+              id: g.id,
+              question: g.question,
+              pages: (g.pages as Array<{ pageNumber: number; textContent: string }>).map(
+                (p: { pageNumber: number; textContent: string }) => ({
+                  pageNumber: p.pageNumber,
+                  textContent: p.textContent,
+                })
+              ),
+              summary: g.summary,
+            }))
           });
           console.log('🧪 Retrying in dry-run (text-only, 1 group) to fetch detailed logs...');
           const diagResp = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });

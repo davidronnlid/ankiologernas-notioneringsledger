@@ -510,12 +510,7 @@ export default function Header() {
                     }
                   }}
                 >
-                  <MenuItem onClick={() => { router.push('/calendar'); handleCloseMenu(); }}>
-                    <ListItemIcon>
-                      <EventNoteIcon style={{ color: '#90caf9' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Kalender" />
-                  </MenuItem>
+                  
                   <MenuItem onClick={() => { router.push('/activity'); handleCloseMenu(); }}>
                     <ListItemIcon>
                       <EventNoteIcon style={{ color: '#81c784' }} />
@@ -528,11 +523,11 @@ export default function Header() {
                     </ListItemIcon>
                     <ListItemText primary="Dokumentation" />
                   </MenuItem>
-                  <MenuItem onClick={() => { router.push('/generate-ankiz'); handleCloseMenu(); }}>
+                  <MenuItem onClick={() => { router.push('/pdf-to-notion'); handleCloseMenu(); }}>
                     <ListItemIcon>
                       <TextFieldsIcon style={{ color: '#4caf50' }} />
                     </ListItemIcon>
-                    <ListItemText primary="Generate Ankiz" />
+                    <ListItemText primary="Skapa Notionmall från PDF" />
                   </MenuItem>
                   <MenuItem onClick={handleOpenPreferences}>
                     <ListItemIcon>
