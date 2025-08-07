@@ -122,6 +122,31 @@ const useStyles = makeStyles((muiTheme: Theme) =>
       textAlign: "center" as const,
       marginBottom: muiTheme.spacing(4),
     },
+    weekPreviewWrapper: {
+      margin: "0 auto",
+      maxWidth: 1100,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12,
+      padding: muiTheme.spacing(2),
+      background: "rgba(0,0,0,0.15)",
+      color: "white",
+    },
+    weekPreviewHeader: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: muiTheme.spacing(1),
+    },
+    weekLectureRow: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: muiTheme.spacing(1.25),
+      borderRadius: 8,
+      background: "linear-gradient(135deg, rgba(44,44,44,0.9), rgba(26,26,26,0.9))",
+      border: "1px solid #404040",
+      marginBottom: muiTheme.spacing(1),
+    },
     statsSection: {
       marginBottom: muiTheme.spacing(6),
     },
@@ -1378,6 +1403,25 @@ export default function Index() {
   const activeCourse = getActiveCourse();
   const availableWeeks = getAvailableWeeks();
 
+  // Toggle: show/hide this week's lectures under the title
+  const [showWeekPreview, setShowWeekPreview] = useState<boolean>(true);
+
+  // Compute this week's lectures for preview (Mon–Sun)
+  const currentWeekLectures: Lecture[] = useMemo(() => {
+    const now = new Date();
+    const start = startOfWeek(now, { weekStartsOn: 1 });
+    const end = endOfWeek(now, { weekStartsOn: 1 });
+    const all = km4Weeks.flatMap((w) => w.lectures || []);
+    return all.filter((lec) => {
+      try {
+        const d = parseISO(lec.date);
+        return isWithinInterval(d, { start, end });
+      } catch {
+        return false;
+      }
+    });
+  }, [km4Weeks]);
+
   // Filter lectures based on search term and selected filter - simplified
   const filteredWeeks = (() => {
     return km4Weeks
@@ -1978,6 +2022,42 @@ export default function Index() {
               {getDisplayCourseTitle(courseTitle)}
             </Typography>
           </div>
+
+          {/* This Week Preview (toggleable) */}
+          <Box className={classes.weekPreviewWrapper} style={{ marginBottom: 24 }}>
+            <Box className={classes.weekPreviewHeader}>
+              <Typography variant="h6" style={{ color: "white", fontWeight: 600 }}>
+                Veckans föreläsningar
+              </Typography>
+              <Chip
+                label={showWeekPreview ? "Dölj" : "Visa"}
+                onClick={() => setShowWeekPreview(!showWeekPreview)}
+                style={{ background: "#2c2c2c", color: "white", cursor: "pointer" }}
+              />
+            </Box>
+            {showWeekPreview && (
+              <>
+                {currentWeekLectures.length === 0 && (
+                  <Typography variant="body2" style={{ color: "#ccc" }}>
+                    Inga föreläsningar denna vecka.
+                  </Typography>
+                )}
+                {currentWeekLectures.map((lec) => (
+                  <Box key={`week-${lec.id}`} className={classes.weekLectureRow}>
+                    <Box style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <Typography variant="body2" style={{ color: "#ccc", minWidth: 64 }}>
+                        {lec.time?.split("-")[0] || "--:--"}
+                      </Typography>
+                      <Typography variant="body1" style={{ color: "white", fontWeight: 500 }}>
+                        {lec.lectureNumber}. {lec.title}
+                      </Typography>
+                    </Box>
+                    <Box />
+                  </Box>
+                ))}
+              </>
+            )}
+          </Box>
 
 
 

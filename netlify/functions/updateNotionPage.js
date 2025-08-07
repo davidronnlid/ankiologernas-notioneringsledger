@@ -275,7 +275,7 @@ async function addLectureToDatabase(notion, database, lectureTitle, lectureNumbe
     console.log(`📊 Found ${existingPages.results.length} exact matches for: "${lectureIdentifier}"`);
 
     // Get the first exact match (should be 0 or 1 due to exact matching)
-    const existingLecture = existingPages.results.length > 0 ? existingPages.results[0] : null;
+    let existingLecture = existingPages.results.length > 0 ? existingPages.results[0] : null;
 
     if (existingLecture) {
       console.log(`✅ Found existing lecture with exact title match: "${lectureIdentifier}"`);
