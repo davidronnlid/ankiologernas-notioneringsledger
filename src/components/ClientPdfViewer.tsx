@@ -788,17 +788,42 @@ const ClientPdfViewer: React.FC = () => {
       const currentResult = result;
       console.log('📋 Processing result:', currentResult);
 
+      // Optional pre-upload of images to shrink payload size
+      const uploadImage = async (dataUrl: string): Promise<string | null> => {
+        try {
+          const resp = await fetch('/.netlify/functions/storeImage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageDataUrl: dataUrl })
+          });
+          if (!resp.ok) return null;
+          const { url } = await resp.json();
+          return url || null;
+        } catch (e) {
+          console.warn('Pre-upload image failed:', e);
+          return null;
+        }
+      };
+
       // Prepare flashcard groups for sync
-      const flashcardGroups = currentResult.groupedContent.map(group => ({
-        id: group.id,
-        question: group.aiQuestion,
-        pages: group.pages.map(page => (
-          includeImages
-            ? { pageNumber: page.pageNumber, textContent: page.textContent, imageDataUrl: page.imageUrl }
-            : { pageNumber: page.pageNumber, textContent: page.textContent }
-        )),
-        summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
-      }));
+      const flashcardGroups: any[] = [];
+      for (const group of currentResult.groupedContent) {
+        const pages: any[] = [];
+        for (const page of group.pages) {
+          if (includeImages) {
+            const uploadedUrl = await uploadImage(page.imageUrl);
+            pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl || undefined });
+          } else {
+            pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
+          }
+        }
+        flashcardGroups.push({
+          id: group.id,
+          question: group.aiQuestion,
+          pages,
+          summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
+        });
+      }
 
       // Get current user from Redux store
       const user = currentUser?.full_name || 'David Rönnlid';

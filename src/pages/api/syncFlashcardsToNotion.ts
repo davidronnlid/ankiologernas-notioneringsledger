@@ -192,23 +192,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const baseUrl = `${baseProto}://${host}`;
           for (const group of flashcardGroups) {
             const children: any[] = [];
-            // Summary paragraph
-            children.push({
-              object: 'block',
-              type: 'paragraph',
-              paragraph: {
-                rich_text: [
-                  { type: 'text', text: { content: group.summary }, annotations: { italic: true, color: 'gray' } }
-                ]
-              }
-            });
-            // Per-page content
+            // Per-page content: only extracted text (and optional image), no headings or summary
             for (const page of group.pages) {
-              children.push({
-                object: 'block',
-                type: 'heading_3',
-                heading_3: { rich_text: [{ type: 'text', text: { content: `📄 Sida ${page.pageNumber}` } }] }
-              });
               children.push({
                 object: 'block',
                 type: 'paragraph',
@@ -216,7 +201,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               });
               if (mode === 'full') {
                 try {
-                  if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
+                  let externalUrl: string | null = null;
+                  if ((page as any).imageUrl) {
+                    externalUrl = (page as any).imageUrl as string;
+                    logs.push(`🖼️ Using pre-uploaded image URL`);
+                  } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
                     const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
                     const storeResp = await fetch(storeUrl, {
                       method: 'POST',
@@ -225,25 +214,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     if (storeResp.ok) {
                       const { url } = await storeResp.json();
-                      if (url) {
-                        children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
-                      }
+                      if (url) externalUrl = url;
                     } else {
                       const txt = await storeResp.text();
                       logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
                     }
+                  }
+                  if (externalUrl) {
+                    children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
                   }
                 } catch (imgErr: any) {
                   logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);
                 }
               }
             }
-            // Add a divider at the end of each group
-            children.push({ object: 'block', type: 'divider', divider: {} });
             blocks.push({
               object: 'block',
               type: 'toggle',
-              toggle: { rich_text: [{ type: 'text', text: { content: `❓ ${group.question}` } }], children }
+              toggle: { rich_text: [{ type: 'text', text: { content: `${group.question}` } }], children }
             });
           }
           return blocks;
