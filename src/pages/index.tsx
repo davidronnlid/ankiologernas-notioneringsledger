@@ -93,6 +93,8 @@ import {
   isAfter,
   isSameDay,
 } from "date-fns";
+import { sv } from "date-fns/locale";
+import { format } from "date-fns";
 
 type PersonStats = {
   [key: string]: { selected: number; hours: number };
@@ -2042,19 +2044,43 @@ export default function Index() {
                     Inga föreläsningar denna vecka.
                   </Typography>
                 )}
-                {currentWeekLectures.map((lec) => (
-                  <Box key={`week-${lec.id}`} className={classes.weekLectureRow}>
-                    <Box style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Typography variant="body2" style={{ color: "#ccc", minWidth: 64 }}>
-                        {lec.time?.split("-")[0] || "--:--"}
+                {/* Group by weekday (Mon-Fri) */}
+                {(() => {
+                  const days: { [key: string]: typeof currentWeekLectures } = {};
+                  currentWeekLectures
+                    .slice()
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .forEach((lec) => {
+                      const d = parseISO(lec.date);
+                      const key = format(d, "EEEE d MMMM", { locale: sv });
+                      if (!days[key]) days[key] = [] as any;
+                      (days[key] as any).push(lec);
+                    });
+                  return Object.entries(days).map(([dayLabel, lectures]) => (
+                    <Box key={dayLabel} style={{ marginTop: 8 }}>
+                      <Typography variant="subtitle1" style={{ color: "#ddd", margin: "8px 4px" }}>
+                        {dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}
                       </Typography>
-                      <Typography variant="body1" style={{ color: "white", fontWeight: 500 }}>
-                        {lec.lectureNumber}. {lec.title}
-                      </Typography>
+                      {lectures.map((lec) => (
+                        <Box key={`week-${lec.id}`} className={classes.weekLectureRow}>
+                          <Box style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <Typography variant="body2" style={{ color: "#ccc", minWidth: 64 }}>
+                              {lec.time?.split("-")[0] || "--:--"}
+                            </Typography>
+                            <Typography variant="body1" style={{ color: "white", fontWeight: 500 }}>
+                              {lec.lectureNumber}. {lec.title}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            {lec.subjectArea && (
+                              <Chip size="small" label={lec.subjectArea} style={{ color: "white" }} />
+                            )}
+                          </Box>
+                        </Box>
+                      ))}
                     </Box>
-                    <Box />
-                  </Box>
-                ))}
+                  ));
+                })()}
               </>
             )}
           </Box>

@@ -33,15 +33,9 @@ exports.handler = async (event) => {
     });
     await client.close();
 
-    // Trigger background function with the same payload plus jobId
-    const bgUrl = `${process.env.URL || ''}/.netlify/functions/syncFlashcardsToNotion-background`;
-    await fetch(bgUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, jobId }),
-    });
-
-    return { statusCode: 202, headers, body: JSON.stringify({ success: true, jobId }) };
+    // Do NOT trigger a background function (plan limitation). Client will
+    // call the synchronous sync function and poll progress using this jobId.
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, jobId }) };
   } catch (error) {
     console.error('startFlashcardSync error:', error);
     return { statusCode: 500, headers, body: JSON.stringify({ success: false, error: error.message || 'Server error' }) };

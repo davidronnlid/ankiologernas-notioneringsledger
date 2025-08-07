@@ -814,51 +814,19 @@ const ClientPdfViewer: React.FC = () => {
 
       console.log('📤 Sending sync data:', syncData);
 
-      // Start background job
-      const startEndpoint = '/.netlify/functions/startFlashcardSync';
-      const startRes = await fetch(startEndpoint, {
+      // Fallback to synchronous function on current plan
+      const endpoint = '/.netlify/functions/syncFlashcardsToNotion';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(syncData),
       });
-      const { success: startOk, jobId } = await startRes.json();
-      if (!startOk || !jobId) {
-        throw new Error('Failed to start sync job');
-      }
 
-      // Poll progress
-      const progressEndpoint = '/.netlify/functions/progressFlashcardSync';
-      const pollIntervalMs = 1500;
-      const controller = new AbortController();
-      let finished = false;
-
-      const poll = async () => {
-        try {
-          const res = await fetch(`${progressEndpoint}?jobId=${encodeURIComponent(jobId)}`, { signal: controller.signal });
-          if (!res.ok) return;
-          const job = await res.json();
-          const total = job.totalGroups || 0;
-          const processed = job.processedGroups || 0;
-          const status = job.status || 'running';
-          const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
-
-          // Live UI feedback
-          setSyncResult({ success: status !== 'failed', message: `Synkar: ${processed}/${total} grupper (${pct}%) - ${status}` });
-
-          if (status === 'completed') {
-            finished = true;
-            setSyncResult({ success: true, message: job.result?.message || 'Sync completed' });
-          } else if (status === 'failed') {
-            finished = true;
-            setSyncResult({ success: false, message: job.error || 'Sync failed' });
-          }
-        } catch {}
-      };
-
-      await poll();
-      while (!finished) {
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-        await poll();
+      const syncResponse = await response.json();
+      if (syncResponse.success) {
+        setSyncResult({ success: true, message: syncResponse.message });
+      } else {
+        setSyncResult({ success: false, message: syncResponse.message || 'Sync failed' });
       }
 
     } catch (error) {
