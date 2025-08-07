@@ -791,7 +791,10 @@ const ClientPdfViewer: React.FC = () => {
       // Optional pre-upload of images to shrink payload size
       const uploadImage = async (dataUrl: string): Promise<string | null> => {
         try {
-          const resp = await fetch('/.netlify/functions/storeImage', {
+          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          const isNetlify = typeof window !== 'undefined' && window.location.host.includes('netlify.app');
+          const storeUrl = `${origin}/.netlify/functions/storeImage`;
+          const resp = await fetch(storeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageDataUrl: dataUrl })
@@ -809,8 +812,10 @@ const ClientPdfViewer: React.FC = () => {
       const flashcardGroups: any[] = [];
       for (const group of currentResult.groupedContent) {
         const pages: any[] = [];
-        for (const page of group.pages) {
+        for (let i = 0; i < group.pages.length; i++) {
+          const page = group.pages[i];
           if (includeImages) {
+            console.log(`🖼️ Uploading image ${i + 1}/${group.pages.length} for group ${group.id}...`);
             const uploadedUrl = await uploadImage(page.imageUrl);
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl || undefined });
           } else {
@@ -844,12 +849,17 @@ const ClientPdfViewer: React.FC = () => {
       console.log(`📦 Payload size: ~${(payloadStr.length / 1024).toFixed(1)} KB`);
 
       // Prefer Next API route for better reliability on current plan
-      const endpoint = '/api/syncFlashcardsToNotion';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payloadStr,
-      });
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const nextEndpoint = `${origin}/api/syncFlashcardsToNotion`;
+      const netlifyEndpoint = `${origin}/.netlify/functions/syncFlashcardsToNotion`;
+
+      const doRequest = async (url: string) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payloadStr });
+
+      let response = await doRequest(nextEndpoint);
+      if (!response.ok && (response.type === 'opaque' || response.status === 0)) {
+        console.warn('⚠️ Next API route blocked/redirected. Retrying via Netlify Functions endpoint...');
+        response = await doRequest(netlifyEndpoint);
+      }
       if (!response.ok) {
         const raw = await response.text();
         console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
@@ -872,7 +882,10 @@ const ClientPdfViewer: React.FC = () => {
             }))
           });
           console.log('🧪 Retrying in dry-run (text-only, 1 group) to fetch detailed logs...');
-          const diagResp = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
+          let diagResp = await fetch(nextEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
+          if (!diagResp.ok && (diagResp.type === 'opaque' || diagResp.status === 0)) {
+            diagResp = await fetch(netlifyEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
+          }
           const diagJson = await diagResp.json().catch(() => ({}));
           console.groupCollapsed('🧪 Dry-run diagnostic response');
           console.log(diagJson);
