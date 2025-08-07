@@ -28,6 +28,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SyncIcon from "@mui/icons-material/Sync";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 
 import UserPreferencesDialog from "./UserPreferencesDialog";
 import { useTheme } from "../contexts/ThemeContext";
@@ -509,6 +510,12 @@ export default function Header() {
                     }
                   }}
                 >
+                  <MenuItem onClick={() => { router.push('/calendar'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <EventNoteIcon style={{ color: '#90caf9' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Kalender" />
+                  </MenuItem>
                   <MenuItem onClick={handleDocsClick}>
                     <ListItemIcon>
                       <MenuBookIcon style={{ color: '#ff9800' }} />

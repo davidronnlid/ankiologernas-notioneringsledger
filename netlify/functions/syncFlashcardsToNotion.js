@@ -192,23 +192,22 @@ exports.handler = async (event, context) => {
               }
             });
 
-            // Add page image (if available)
-            if (page.imageDataUrl) {
-              // Convert data URL to base64
-              const base64Data = page.imageDataUrl.split(',')[1];
-              if (base64Data) {
-                flashcardBlocks.push({
-                  object: 'block',
-                  type: 'image',
-                  image: {
-                    type: 'external',
-                    external: {
-                      url: `data:image/png;base64,${base64Data}`
+            // Notion API cannot accept data URLs for images; requires a public URL or file upload via Notion API (not supported here).
+            // Add a hint paragraph instead to prevent 400 errors.
+            flashcardBlocks.push({
+              object: 'block',
+              type: 'paragraph',
+              paragraph: {
+                rich_text: [
+                  {
+                    type: 'text',
+                    text: {
+                      content: '🖼️ Skärmdump av sidan finns i appen (bilder kan inte bäddas in utan publik URL).'
                     }
                   }
-                });
+                ]
               }
-            }
+            });
           }
 
           // Add separator between groups

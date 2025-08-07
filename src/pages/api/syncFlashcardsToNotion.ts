@@ -204,23 +204,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             });
 
-            // Add page image (if available)
-            if (page.imageDataUrl) {
-              // Convert data URL to base64
-              const base64Data = page.imageDataUrl.split(',')[1];
-              if (base64Data) {
-                flashcardBlocks.push({
-                  object: 'block',
-                  type: 'image',
-                  image: {
-                    type: 'external',
-                    external: {
-                      url: `data:image/png;base64,${base64Data}`
+            // Note: Notion API does not accept data URLs for images.
+            // To avoid 400/500 errors ("string did not match the expected pattern"),
+            // we skip adding inline images here until we have public URLs.
+            // Instead, add a small notice so users know images are available in the app.
+            flashcardBlocks.push({
+              object: 'block',
+              type: 'paragraph',
+              paragraph: {
+                rich_text: [
+                  {
+                    type: 'text',
+                    text: {
+                      content: '🖼️ Skärmdump av sidan finns i appen (bilder kan inte bäddas in utan publik URL).'
                     }
                   }
-                });
+                ]
               }
-            }
+            });
           }
 
           // Add separator between groups
