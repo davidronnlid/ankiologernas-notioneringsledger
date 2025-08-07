@@ -34,6 +34,9 @@ interface SyncFlashcardsRequest {
   };
   flashcardGroups: FlashcardGroup[];
   user: string;
+  // Optional flags to control behavior
+  mode?: 'text-only' | 'full';
+  dryRun?: boolean;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -42,12 +45,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { selectedLecture, flashcardGroups, user }: SyncFlashcardsRequest = req.body;
+    const { selectedLecture, flashcardGroups, user, mode = 'full', dryRun = false }: SyncFlashcardsRequest = req.body;
 
     console.log('🎯 Syncing flashcards to Notion:', {
       lecture: `${selectedLecture.lectureNumber}. ${selectedLecture.title}`,
       groups: flashcardGroups.length,
-      user
+      user,
+      mode,
+      dryRun
     });
 
     // Validate required fields
@@ -70,12 +75,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const results = [];
+    const results: any[] = [];
     const configuredUsers = Object.keys(NOTION_TOKENS).filter(userName => 
       NOTION_TOKENS[userName] && COURSE_PAGE_IDS[userName]
     );
 
     console.log(`🎯 Processing for users: ${configuredUsers.join(', ')}`);
+
+    // Helper: extract the title string regardless of database title property name
+    const extractTitleFromProperties = (properties: any): string => {
+      if (!properties) return '';
+      // Find the title property dynamically
+      for (const key of Object.keys(properties)) {
+        const prop = properties[key];
+        if (prop && prop.type === 'title') {
+          const content = prop.title?.map((t: any) => t?.plain_text ?? t?.text?.content ?? '').join('');
+          if (content) return content;
+        }
+      }
+      // Fallback to common names
+      const common = properties['Föreläsning']?.title?.[0]?.text?.content
+        || properties['title']?.title?.[0]?.text?.content
+        || '';
+      return common;
+    };
+
+    // Helper: find the lecture page either by search or by querying the database on the course page
+    const findLecturePageForUser = async (notion: Client, userName: string, lectureTitle: string, logs: string[]) => {
+      logs.push(`🔍 Searching for lecture page: "${lectureTitle}"`);
+      const searchResponse = await notion.search({
+        query: lectureTitle,
+        filter: { property: 'object', value: 'page' },
+        page_size: 25
+      });
+
+      for (const page of searchResponse.results as any[]) {
+        const title = extractTitleFromProperties((page as any).properties);
+        if (title === lectureTitle) {
+          logs.push(`✅ Found exact match in search: "${title}"`);
+          return page as any;
+        }
+      }
+
+      logs.push('⚠️ No exact match from search. Falling back to database query on the course page...');
+      const coursePageId = COURSE_PAGE_IDS[userName]!;
+      const children = await notion.blocks.children.list({ block_id: coursePageId });
+      const databases = (children.results as any[]).filter((b) => (b as any).type === 'child_database');
+      if (databases.length === 0) {
+        logs.push('❌ No child databases found on the course page');
+        return null;
+      }
+
+      for (const db of databases) {
+        const dbId = (db as any).id;
+        const dbInfo = await notion.databases.retrieve({ database_id: dbId });
+        // Determine the title property name
+        const titlePropName = Object.entries<any>(dbInfo.properties).find(([, v]) => (v as any).type === 'title')?.[0] as string | undefined;
+        if (!titlePropName) continue;
+        logs.push(`📚 Querying DB ${dbId} with title property "${titlePropName}"`);
+        const q = await notion.databases.query({
+          database_id: dbId,
+          filter: { property: titlePropName, title: { equals: lectureTitle } },
+          page_size: 5
+        });
+        if (q.results.length > 0) {
+          logs.push(`✅ Found lecture page in database ${dbId}`);
+          return q.results[0] as any;
+        }
+      }
+
+      logs.push('❌ Lecture page not found in any database');
+      return null;
+    };
 
     for (const userName of configuredUsers) {
       try {
@@ -83,162 +154,112 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const pageId = COURSE_PAGE_IDS[userName]!;
         
         console.log(`📊 Processing for ${userName} with page ID: ${pageId}`);
+        const logs: string[] = [];
         
         // Get the course page
         const coursePage = await notion.pages.retrieve({ page_id: pageId });
-        console.log(`✅ Found course page for ${userName}`);
+        logs.push(`✅ Found course page for ${userName}`);
         
         // Find the lecture page by matching the title
         const lectureTitle = `${selectedLecture.lectureNumber}. ${selectedLecture.title}`;
-        console.log(`🔍 Searching for lecture page: "${lectureTitle}"`);
-        
-        // Search for pages with the lecture title
-        const searchResponse = await notion.search({
-          query: lectureTitle,
-          filter: {
-            property: 'object',
-            value: 'page'
-          },
-          page_size: 10
-        });
-
-        let lecturePage = null;
-        
-        // Look for exact title match in search results
-        for (const page of searchResponse.results as any[]) {
-          const pageTitle = (page as any).properties?.title?.title?.[0]?.text?.content || '';
-          if (pageTitle === lectureTitle) {
-            lecturePage = page;
-            console.log(`✅ Found exact match for lecture: "${lectureTitle}"`);
-            break;
-          }
-        }
+        let lecturePage = await findLecturePageForUser(notion, userName, lectureTitle, logs);
 
         if (!lecturePage) {
           console.log(`❌ No lecture page found for: "${lectureTitle}"`);
           results.push({
             user: userName,
             success: false,
-            error: `Lecture page not found: ${lectureTitle}`
+            error: `Lecture page not found: ${lectureTitle}`,
+            logs
           });
           continue;
         }
 
-        // Add flashcard content to the lecture page
-        console.log(`📝 Adding ${flashcardGroups.length} flashcard groups to lecture page`);
-        
-        // Get existing blocks to append to
-        const existingBlocks = await notion.blocks.children.list({
-          block_id: (lecturePage as any).id
-        });
-
-        // Create flashcard content blocks
-        const flashcardBlocks: any[] = [];
-        
-        for (const group of flashcardGroups) {
-          // Add group header
-          flashcardBlocks.push({
-            object: 'block',
-            type: 'heading_2',
-            heading_2: {
-              rich_text: [
-                {
-                  type: 'text',
-                  text: {
-                    content: `📋 ${group.question}`
-                  }
-                }
-              ]
-            }
-          });
-
-          // Add summary
-          flashcardBlocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [
-                {
-                  type: 'text',
-                  text: { content: group.summary },
-                  annotations: { italic: true, color: 'gray' }
-                }
-              ]
-            }
-          });
-
-          // Add extracted text for each page
-          for (const page of group.pages) {
-            flashcardBlocks.push({
-              object: 'block',
-              type: 'heading_3',
-              heading_3: {
-                rich_text: [
-                  {
-                    type: 'text',
-                    text: {
-                      content: `📄 Sida ${page.pageNumber} - Extraherad text`
-                    }
-                  }
-                ]
-              }
-            });
-
-            flashcardBlocks.push({
+        // Build toggle blocks: toggle title is the question; body contains summary, text, and optionally images
+        const buildBlocks = async (): Promise<any[]> => {
+          const blocks: any[] = [];
+          const baseProto = (req.headers['x-forwarded-proto'] as string) || 'https';
+          const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
+          const baseUrl = `${baseProto}://${host}`;
+          for (const group of flashcardGroups) {
+            const children: any[] = [];
+            // Summary paragraph
+            children.push({
               object: 'block',
               type: 'paragraph',
               paragraph: {
                 rich_text: [
-                  {
-                    type: 'text',
-                    text: {
-                      content: page.textContent
-                    }
-                  }
+                  { type: 'text', text: { content: group.summary }, annotations: { italic: true, color: 'gray' } }
                 ]
               }
             });
-
-            // Upload image to Netlify+Mongo and attach as external image in Notion
-            try {
-              if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
-                const storeResp = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/.netlify/functions/storeImage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
-                });
-                if (storeResp.ok) {
-                  const { url } = await storeResp.json();
-                  if (url) {
-                    flashcardBlocks.push({
-                      object: 'block',
-                      type: 'image',
-                      image: { type: 'external', external: { url } }
-                    } as any);
+            // Per-page content
+            for (const page of group.pages) {
+              children.push({
+                object: 'block',
+                type: 'heading_3',
+                heading_3: { rich_text: [{ type: 'text', text: { content: `📄 Sida ${page.pageNumber}` } }] }
+              });
+              children.push({
+                object: 'block',
+                type: 'paragraph',
+                paragraph: { rich_text: [{ type: 'text', text: { content: page.textContent } }] }
+              });
+              if (mode === 'full') {
+                try {
+                  if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
+                    const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
+                    const storeResp = await fetch(storeUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
+                    });
+                    if (storeResp.ok) {
+                      const { url } = await storeResp.json();
+                      if (url) {
+                        children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
+                      }
+                    } else {
+                      const txt = await storeResp.text();
+                      logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
+                    }
                   }
+                } catch (imgErr: any) {
+                  logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);
                 }
               }
-            } catch (imgErr) {
-              console.warn('Image store failed (API route); continuing without image:', imgErr);
+            }
+            // Add a divider at the end of each group
+            children.push({ object: 'block', type: 'divider', divider: {} });
+            blocks.push({
+              object: 'block',
+              type: 'toggle',
+              toggle: { rich_text: [{ type: 'text', text: { content: `❓ ${group.question}` } }], children }
+            });
+          }
+          return blocks;
+        };
+
+        if (!dryRun) {
+          const blocks = await buildBlocks();
+          logs.push(`🧱 Prepared ${blocks.length} toggle blocks`);
+          // Notion limits append to 100 children per request
+          const BATCH_SIZE = 90;
+          for (let i = 0; i < blocks.length; i += BATCH_SIZE) {
+            const batch = blocks.slice(i, i + BATCH_SIZE);
+            try {
+              await notion.blocks.children.append({
+                block_id: (lecturePage as any).id,
+                children: batch as any
+              });
+              logs.push(`✅ Appended batch ${i / BATCH_SIZE + 1} (${batch.length} blocks)`);
+            } catch (appendErr: any) {
+              logs.push(`💥 Append error: ${appendErr?.body ? JSON.stringify(appendErr.body) : appendErr?.message || String(appendErr)}`);
+              throw appendErr;
             }
           }
-
-          // Add separator between groups
-          flashcardBlocks.push({
-            object: 'block',
-            type: 'divider',
-            divider: {}
-          });
-        }
-
-        // Append flashcard blocks to the lecture page
-        if (flashcardBlocks.length > 0) {
-          await notion.blocks.children.append({
-            block_id: (lecturePage as any).id,
-            children: flashcardBlocks as any
-          });
-          
-          console.log(`✅ Successfully added ${flashcardBlocks.length} blocks to lecture page`);
+        } else {
+          logs.push('🧪 Dry run enabled – not appending to Notion');
         }
 
         results.push({
@@ -246,7 +267,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           success: true,
           lectureTitle,
           groupsAdded: flashcardGroups.length,
-          blocksAdded: flashcardBlocks.length
+          blocksAdded: dryRun ? 0 : flashcardGroups.length,
+          logs
         });
 
       } catch (error) {

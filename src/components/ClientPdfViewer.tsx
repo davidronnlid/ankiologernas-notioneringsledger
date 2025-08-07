@@ -81,6 +81,7 @@ const ClientPdfViewer: React.FC = () => {
   const [selectedPage, setSelectedPage] = useState<PageScreenshot | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
+  const [includeImages, setIncludeImages] = useState<boolean>(false);
   
   // Lecture selector state
   const [selectedLecture, setSelectedLecture] = useState<LectureWithCourse | null>(null);
@@ -812,17 +813,44 @@ const ClientPdfViewer: React.FC = () => {
         user
       };
 
-      console.log('📤 Sending sync data:', syncData);
+      console.log('📤 Sending sync data:', { ...syncData, mode: includeImages ? 'full' : 'text-only' });
 
       // Prefer Next API route for better reliability on current plan
       const endpoint = '/api/syncFlashcardsToNotion';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(syncData),
+        body: JSON.stringify({ ...syncData, mode: includeImages ? 'full' : 'text-only' }),
       });
+      if (!response.ok) {
+        const raw = await response.text();
+        console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
+        setSyncResult({ success: false, message: `HTTP ${response.status}: ${response.statusText}` });
+        return;
+      }
 
-      const syncResponse = await response.json();
+      let syncResponse: any = null;
+      try {
+        syncResponse = await response.json();
+      } catch (parseErr) {
+        console.error('❌ Failed to parse sync response JSON:', parseErr);
+        setSyncResult({ success: false, message: 'Invalid JSON in response' });
+        return;
+      }
+
+      // Client-side verbose logging instead of relying on Netlify logs
+      console.groupCollapsed('🧾 Notion sync response');
+      console.log(syncResponse);
+      if (Array.isArray(syncResponse.results)) {
+        syncResponse.results.forEach((r: any) => {
+          console.groupCollapsed(`Result for ${r.user} (${r.success ? 'success' : 'fail'})`);
+          if (r.logs) r.logs.forEach((line: string) => console.log(line));
+          if (r.error) console.error('Error:', r.error);
+          console.groupEnd();
+        });
+      }
+      console.groupEnd();
+
       if (syncResponse.success) {
         setSyncResult({ success: true, message: syncResponse.message });
       } else {
@@ -1010,7 +1038,15 @@ const ClientPdfViewer: React.FC = () => {
             <Typography variant="h5">
               📸 Generated {result.totalPages} Screenshots
             </Typography>
-            <Box style={{ display: 'flex', gap: 8 }}>
+            <Box style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={includeImages}
+                  onChange={(e) => setIncludeImages(e.target.checked)}
+                />
+                <span style={{ color: '#555' }}>Include images</span>
+              </label>
               {selectedLecture && (
                 <Button
                   variant="contained"
