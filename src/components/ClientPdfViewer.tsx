@@ -16,6 +16,7 @@ import {
   Paper,
   TextField,
   Chip,
+  Alert,
 } from '@material-ui/core';
 import {
   CloudUpload as UploadIcon,
@@ -25,6 +26,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   TextFields as TextIcon,
+  CloudUpload as CloudUploadIcon,
 } from '@material-ui/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from 'store/types';
@@ -84,6 +86,8 @@ const ClientPdfViewer: React.FC = () => {
   // Lecture selector state
   const [selectedLecture, setSelectedLecture] = useState<LectureWithCourse | null>(null);
   const [lectureSearchTerm, setLectureSearchTerm] = useState<string>('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -739,6 +743,90 @@ const ClientPdfViewer: React.FC = () => {
     return [...new Set(words)].slice(0, 10); // Top 10 unique keywords
   };
 
+  // Sync flashcards to Notion
+  const syncFlashcardsToNotion = async () => {
+    if (!selectedLecture || !processingResult) {
+      console.error('❌ Cannot sync: No lecture selected or no processing result');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncResult(null);
+
+    try {
+      console.log('🔄 Starting flashcard sync to Notion...');
+      console.log('📋 Selected lecture:', selectedLecture);
+      console.log('📋 Processing result:', processingResult);
+
+      // Prepare flashcard groups for sync
+      const flashcardGroups = processingResult.groupedContent.map(group => ({
+        id: group.id,
+        question: group.aiQuestion,
+        pages: group.pages.map(page => ({
+          pageNumber: page.pageNumber,
+          textContent: page.textContent,
+          imageDataUrl: page.imageUrl // This is already a data URL
+        })),
+        summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
+      }));
+
+      // Get current user from Redux store
+      const currentUser = useSelector((state: RootState) => state.auth.user);
+      const user = currentUser?.full_name || 'David Rönnlid';
+
+      const syncData = {
+        selectedLecture: {
+          title: selectedLecture.title,
+          lectureNumber: selectedLecture.lectureNumber,
+          course: selectedLecture.course
+        },
+        flashcardGroups,
+        user
+      };
+
+      console.log('📤 Sending sync data:', syncData);
+
+      // Call the sync API
+      const endpoint = process.env.NODE_ENV === 'development' 
+        ? '/api/syncFlashcardsToNotion'
+        : '/.netlify/functions/syncFlashcardsToNotion';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(syncData)
+      });
+
+      const result = await response.json();
+      console.log('📥 Sync response:', result);
+
+      if (result.success) {
+        setSyncResult({
+          success: true,
+          message: result.message
+        });
+        console.log('✅ Flashcards synced successfully to Notion');
+      } else {
+        setSyncResult({
+          success: false,
+          message: result.message || 'Sync failed'
+        });
+        console.error('❌ Flashcard sync failed:', result.message);
+      }
+
+    } catch (error) {
+      console.error('❌ Error during flashcard sync:', error);
+      setSyncResult({
+        success: false,
+        message: `Sync error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <Box style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       {/* Header */}
@@ -910,13 +998,26 @@ const ClientPdfViewer: React.FC = () => {
             <Typography variant="h5">
               📸 Generated {result.totalPages} Screenshots
             </Typography>
-            <Button
-              variant="outlined"
-              onClick={downloadAllImages}
-              startIcon={<DownloadIcon />}
-            >
-              Download All
-            </Button>
+            <Box style={{ display: 'flex', gap: 8 }}>
+              {selectedLecture && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={syncFlashcardsToNotion}
+                  disabled={isSyncing}
+                  startIcon={isSyncing ? <CircularProgress size={16} /> : <CloudUploadIcon />}
+                >
+                  {isSyncing ? 'Syncing...' : 'Sync to Notion'}
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                onClick={downloadAllImages}
+                startIcon={<DownloadIcon />}
+              >
+                Download All
+              </Button>
+            </Box>
           </Box>
 
           {/* Processing Stats */}
@@ -927,6 +1028,27 @@ const ClientPdfViewer: React.FC = () => {
               <strong> Processing Time:</strong> {result.processingTime.toFixed(2)}s
             </Typography>
           </Box>
+
+          {/* Sync Result Display */}
+          {syncResult && (
+            <Box style={{ marginBottom: 24 }}>
+              <Alert 
+                severity={syncResult.success ? 'success' : 'error'}
+                onClose={() => setSyncResult(null)}
+              >
+                {syncResult.message}
+              </Alert>
+            </Box>
+          )}
+
+          {/* No Lecture Selected Warning */}
+          {result && !selectedLecture && (
+            <Box style={{ marginBottom: 24 }}>
+              <Alert severity="warning">
+                ⚠️ Välj en föreläsning ovanför för att kunna synka flashcards till Notion.
+              </Alert>
+            </Box>
+          )}
 
                     {/* Grouped Content List */}
           <Box>
