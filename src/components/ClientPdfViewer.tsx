@@ -770,7 +770,7 @@ const ClientPdfViewer: React.FC = () => {
     return [...new Set(words)].slice(0, 10); // Top 10 unique keywords
   };
 
-  // Sync flashcards to Notion
+  // Sync flashcards to Notion (with background job + progress polling)
   const syncFlashcardsToNotion = async () => {
     if (!selectedLecture || !result) {
       console.error('❌ Cannot sync: No lecture selected or no processing result');
@@ -814,34 +814,51 @@ const ClientPdfViewer: React.FC = () => {
 
       console.log('📤 Sending sync data:', syncData);
 
-      // Call the sync API
-      const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/syncFlashcardsToNotion'
-        : '/.netlify/functions/syncFlashcardsToNotion';
-
-      const response = await fetch(endpoint, {
+      // Start background job
+      const startEndpoint = '/.netlify/functions/startFlashcardSync';
+      const startRes = await fetch(startEndpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(syncData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(syncData),
       });
+      const { success: startOk, jobId } = await startRes.json();
+      if (!startOk || !jobId) {
+        throw new Error('Failed to start sync job');
+      }
 
-      const syncResponse = await response.json();
-      console.log('📥 Sync response:', syncResponse);
+      // Poll progress
+      const progressEndpoint = '/.netlify/functions/progressFlashcardSync';
+      const pollIntervalMs = 1500;
+      const controller = new AbortController();
+      let finished = false;
 
-      if (syncResponse.success) {
-        setSyncResult({
-          success: true,
-          message: syncResponse.message
-        });
-        console.log('✅ Flashcards synced successfully to Notion');
-      } else {
-        setSyncResult({
-          success: false,
-          message: syncResponse.message || 'Sync failed'
-        });
-        console.error('❌ Flashcard sync failed:', syncResponse.message);
+      const poll = async () => {
+        try {
+          const res = await fetch(`${progressEndpoint}?jobId=${encodeURIComponent(jobId)}`, { signal: controller.signal });
+          if (!res.ok) return;
+          const job = await res.json();
+          const total = job.totalGroups || 0;
+          const processed = job.processedGroups || 0;
+          const status = job.status || 'running';
+          const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+          // Live UI feedback
+          setSyncResult({ success: status !== 'failed', message: `Synkar: ${processed}/${total} grupper (${pct}%) - ${status}` });
+
+          if (status === 'completed') {
+            finished = true;
+            setSyncResult({ success: true, message: job.result?.message || 'Sync completed' });
+          } else if (status === 'failed') {
+            finished = true;
+            setSyncResult({ success: false, message: job.error || 'Sync failed' });
+          }
+        } catch {}
+      };
+
+      await poll();
+      while (!finished) {
+        await new Promise((r) => setTimeout(r, pollIntervalMs));
+        await poll();
       }
 
     } catch (error) {

@@ -1195,10 +1195,7 @@ export default function Index() {
               newAcc[person].FL += 1;
               newAcc[person].hours += duration;
             }
-            if (lecture.checkboxState?.[person]?.unwish) {
-              console.log(`❌ ${person} unwished lecture: ${lecture.title}`);
-              newAcc[person].wishedHours += duration;
-            }
+            // unwish removed
           });
         });
 
@@ -1768,7 +1765,6 @@ export default function Index() {
       [userName]: {
         ...lecture.checkboxState?.[userName],
         confirm: newState,
-        unwish: false, // Clear unwish when selecting
       },
     };
 
@@ -2221,7 +2217,6 @@ export default function Index() {
                   const getPersonStatus = (person: string) => {
                     const state = lecture.checkboxState?.[person];
                     if (state?.confirm) return "confirmed";
-                    if (state?.unwish) return "unwished";
                     return "neutral";
                   };
 

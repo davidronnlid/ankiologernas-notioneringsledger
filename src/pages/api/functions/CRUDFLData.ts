@@ -132,7 +132,7 @@ const mockLectureData = [
         checkboxState: {
           Mattias: { confirm: true, unwish: false },
           Albin: { confirm: false, unwish: false },
-          David: { confirm: false, unwish: true },
+          David: { confirm: false, unwish: false },
         },
       },
     ],
@@ -162,7 +162,7 @@ const mockLectureData = [
         time: "14:00-16:00",
         subjectArea: "Öron-Näsa-Hals",
         checkboxState: {
-          Mattias: { confirm: false, unwish: true },
+          Mattias: { confirm: false, unwish: false },
           Albin: { confirm: true, unwish: false },
           David: { confirm: false, unwish: false },
         },
@@ -236,7 +236,7 @@ const mockLectureData = [
         date: "2025-08-11",
         time: "10:00-12:00",
         checkboxState: {
-          Mattias: { confirm: false, unwish: true },
+          Mattias: { confirm: false, unwish: false },
           Albin: { confirm: false, unwish: false },
           David: { confirm: false, unwish: false },
         },
@@ -262,7 +262,7 @@ const mockLectureData = [
         checkboxState: {
           Mattias: { confirm: false, unwish: false },
           Albin: { confirm: true, unwish: false },
-          David: { confirm: false, unwish: true },
+          David: { confirm: false, unwish: false },
         },
       },
       {

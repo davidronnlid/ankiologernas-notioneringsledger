@@ -122,11 +122,10 @@ function formatSvDate(dateStr: string): string {
 function getLectureStatusForPerson(
   lecture: Lecture,
   person: string | null
-): "confirmed" | "unwish" | "unassigned" {
+): "confirmed" | "unassigned" {
   if (!person) return "unassigned";
   const state = lecture.checkboxState?.[person];
   if (state?.confirm) return "confirmed";
-  if (state?.unwish) return "unwish";
   return "unassigned";
 }
 
@@ -140,9 +139,6 @@ export default function CalendarView() {
   const currentUser = useSelector((s: RootState) => s.auth.user);
 
   const me = mapUserNameToPerson(currentUser?.full_name);
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(me);
-  const [selectedSubjects, setSelectedSubjects] = useState<Set<SubjectArea>>(new Set());
-  const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
   const [nowTs, setNowTs] = useState<number>(() => Date.now());
   const hasAutoScrolledRef = useRef<boolean>(false);
 
@@ -150,22 +146,7 @@ export default function CalendarView() {
     return (weekData || []).flatMap((w) => (w.lectures || []).map((lec) => ({ ...lec, course: w.course })));
   }, [weekData]);
 
-  // Unique values available for filters
-  const availableSubjects = useMemo(() => {
-    const present = new Set<SubjectArea>();
-    flatLectures.forEach((l) => {
-      if (l.subjectArea) present.add(l.subjectArea);
-    });
-    return SUBJECT_AREAS.filter((s) => present.has(s));
-  }, [flatLectures]);
-
-  const availableCourses = useMemo(() => {
-    const s = new Set<string>();
-    flatLectures.forEach((l) => {
-      if (l.course) s.add(l.course);
-    });
-    return Array.from(s);
-  }, [flatLectures]);
+  // (Filters removed) – show only the active week
 
   // Only show lectures within the active week (Mon–Sun containing 'nowTs')
   const upcoming: FlatLecture[] = useMemo<FlatLecture[]>(() => {
@@ -186,13 +167,10 @@ export default function CalendarView() {
     }) as FlatLecture[];
   }, [flatLectures, nowTs]);
 
+  // No extra filtering – use week data directly
   const filtered: FlatLecture[] = useMemo<FlatLecture[]>(() => {
-    return (upcoming as FlatLecture[]).filter((l) => {
-      const subjectOk = selectedSubjects.size === 0 || (l.subjectArea && selectedSubjects.has(l.subjectArea));
-      const courseOk = selectedCourses.size === 0 || (l.course && selectedCourses.has(l.course));
-      return subjectOk && courseOk;
-    }) as FlatLecture[];
-  }, [upcoming, selectedSubjects, selectedCourses]);
+    return upcoming as FlatLecture[];
+  }, [upcoming]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, FlatLecture[]>();
@@ -242,34 +220,25 @@ export default function CalendarView() {
     }
   }, [nextUpcomingLectureId]);
 
-  const statusColor = (status: "confirmed" | "unwish" | "unassigned") => {
+  const statusColor = (status: "confirmed" | "unassigned") => {
     switch (status) {
       case "confirmed":
         return "#2e7d32"; // green
-      case "unwish":
-        return "#c62828"; // red
       default:
         return "#757575"; // grey
     }
   };
 
-  const toggleSubject = (s: SubjectArea) => {
-    setSelectedSubjects((prev) => {
-      const next = new Set(prev);
-      if (next.has(s)) next.delete(s);
-      else next.add(s);
-      return next;
-    });
+  // Overall status: if anyone confirmed -> green; else grey
+  const getOverallStatus = (lecture: Lecture): "confirmed" | "unassigned" => {
+    for (const p of PERSONS) {
+      const st = getLectureStatusForPerson(lecture, p);
+      if (st === "confirmed") return "confirmed";
+    }
+    return "unassigned";
   };
 
-  const toggleCourse = (c: string) => {
-    setSelectedCourses((prev) => {
-      const next = new Set(prev);
-      if (next.has(c)) next.delete(c);
-      else next.add(c);
-      return next;
-    });
-  };
+  // (Filter handlers removed)
 
   const navigateToLecture = (lectureId: string) => {
     router.push(`/#lecture-${lectureId}`);
@@ -283,82 +252,13 @@ export default function CalendarView() {
         </Typography>
         <Box className={classes.legend}>
           <span className={classes.statusDot} style={{ background: statusColor("confirmed") }} />
-          <Typography variant="body2" style={{ color: "#ccc" }}>Vald person: Bekräftad</Typography>
-          <span className={classes.statusDot} style={{ background: statusColor("unwish") }} />
-          <Typography variant="body2" style={{ color: "#ccc" }}>Vald person: Unwish</Typography>
+          <Typography variant="body2" style={{ color: "#ccc" }}>Bekräftad</Typography>
           <span className={classes.statusDot} style={{ background: statusColor("unassigned") }} />
-          <Typography variant="body2" style={{ color: "#ccc" }}>Vald person: Oassignerad</Typography>
+          <Typography variant="body2" style={{ color: "#ccc" }}>Oassignerad</Typography>
         </Box>
       </Box>
 
-      {/* Person filter */}
-      <Box className={classes.filtersRow}>
-        {PERSONS.map((p) => (
-          <Chip
-            key={p}
-            label={p === me ? `${p} (Jag)` : p}
-            color={selectedPerson === p ? "primary" : undefined}
-            onClick={() => setSelectedPerson(p)}
-            style={{ color: "white" }}
-          />
-        ))}
-        <Chip
-          label="Visa utan person"
-          onClick={() => setSelectedPerson(null)}
-          variant={selectedPerson === null ? "default" : "outlined"}
-          style={{ color: "#ccc" }}
-        />
-      </Box>
-
-      {/* Subject filters */}
-      {availableSubjects.length > 0 && (
-        <Box className={classes.filtersRow}>
-          <MuiTooltip title="Filtrera ämnen">
-            <Typography variant="subtitle2" style={{ color: "#ccc" }}>
-              Ämnen:
-            </Typography>
-          </MuiTooltip>
-          {availableSubjects.map((s) => (
-            <Chip
-              key={s}
-              label={s}
-              onClick={() => toggleSubject(s)}
-              color={selectedSubjects.has(s) ? "primary" : undefined}
-              style={{ color: "white" }}
-            />
-          ))}
-          {selectedSubjects.size > 0 && (
-            <Button onClick={() => setSelectedSubjects(new Set())} size="small" style={{ color: "#ccc" }}>
-              Rensa ämnen
-            </Button>
-          )}
-        </Box>
-      )}
-
-      {/* Course filters */}
-      {availableCourses.length > 0 && (
-        <Box className={classes.filtersRow}>
-          <MuiTooltip title="Filtrera kurs">
-            <Typography variant="subtitle2" style={{ color: "#ccc" }}>
-              Kurs:
-            </Typography>
-          </MuiTooltip>
-          {availableCourses.map((c) => (
-            <Chip
-              key={c}
-              label={c}
-              onClick={() => toggleCourse(c)}
-              color={selectedCourses.has(c) ? "primary" : undefined}
-              style={{ color: "white" }}
-            />
-          ))}
-          {selectedCourses.size > 0 && (
-            <Button onClick={() => setSelectedCourses(new Set())} size="small" style={{ color: "#ccc" }}>
-              Rensa kurser
-            </Button>
-          )}
-        </Box>
-      )}
+      {/* Filters removed */}
 
       <Divider style={{ borderColor: "#404040", margin: "8px 0 16px" }} />
 
@@ -372,8 +272,7 @@ export default function CalendarView() {
             .slice()
             .sort((a, b) => a.time.localeCompare(b.time))
             .map((lec) => {
-              const status = getLectureStatusForPerson(lec, selectedPerson);
-              const dotColor = statusColor(status);
+              const dotColor = statusColor(getOverallStatus(lec));
               const [start] = lec.time.split("-");
               return (
                 <Paper
@@ -392,6 +291,20 @@ export default function CalendarView() {
                     </Typography>
                   </Box>
                   <Box className={classes.tags}>
+                    {/* Who selected so far (per person) */}
+                    {PERSONS.map((p) => {
+                      const st = getLectureStatusForPerson(lec, p);
+                      const bg = statusColor(st);
+                      const textColor = st === "unassigned" ? "#eee" : "#fff";
+                      return (
+                        <Chip
+                          key={`${lec.id}-${p}`}
+                          size="small"
+                          label={p.charAt(0)}
+                          style={{ backgroundColor: bg, color: textColor }}
+                        />
+                      );
+                    })}
                     {lec.subjectArea && (
                       <Chip size="small" label={lec.subjectArea} style={{ color: "white" }} />
                     )}
