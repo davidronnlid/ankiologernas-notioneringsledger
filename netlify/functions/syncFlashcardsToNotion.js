@@ -14,6 +14,32 @@ const COURSE_PAGE_IDS = {
   'Mattias': process.env.NOTION_COURSE_PAGE_MATTIAS
 };
 
+// Extract title from a Notion page result regardless of title property name
+function extractPageTitle(page) {
+  try {
+    const props = page.properties || {};
+    // Common cases: 'title' or 'Föreläsning'
+    const candidates = [props.title, props['Föreläsning'], ...Object.values(props)];
+    for (const prop of candidates) {
+      if (prop && prop.type === 'title' && Array.isArray(prop.title) && prop.title[0]?.text?.content) {
+        return prop.title[0].text.content;
+      }
+    }
+  } catch {}
+  return '';
+}
+
+async function getCourseDatabaseId(notion, coursePageId) {
+  try {
+    const blocks = await notion.blocks.children.list({ block_id: coursePageId });
+    const dbBlock = blocks.results.find((b) => b.type === 'child_database');
+    return dbBlock?.id || null;
+  } catch (e) {
+    console.warn('Could not get course database id:', e?.message || e);
+    return null;
+  }
+}
+
 exports.handler = async (event, context) => {
   console.log('syncFlashcardsToNotion invoked', {
     hasBody: !!event.body,
@@ -84,25 +110,34 @@ exports.handler = async (event, context) => {
         const lectureTitle = `${selectedLecture.lectureNumber}. ${selectedLecture.title}`;
         console.log(`🔍 Searching for lecture page: "${lectureTitle}"`);
         
-        // Search for pages with the lecture title
-        const searchResponse = await notion.search({
-          query: lectureTitle,
-          filter: {
-            property: 'object',
-            value: 'page'
-          },
-          page_size: 10
-        });
+        // Search for pages with the lecture title (workspace-wide)
+        const searchResponse = await notion.search({ query: lectureTitle, filter: { property: 'object', value: 'page' }, page_size: 25 });
 
         let lecturePage = null;
         
-        // Look for exact title match in search results
+        // Look for exact title match in search results (supports DB title prop)
         for (const page of searchResponse.results) {
-          const pageTitle = page.properties && page.properties.title && page.properties.title.title && page.properties.title.title[0] && page.properties.title.title[0].text ? page.properties.title.title[0].text.content : '';
+          const pageTitle = extractPageTitle(page);
           if (pageTitle === lectureTitle) {
             lecturePage = page;
-            console.log(`✅ Found exact match for lecture: "${lectureTitle}"`);
+            console.log(`✅ Found exact match for lecture in search: "${lectureTitle}"`);
             break;
+          }
+        }
+
+        // If still not found, try querying the course database directly
+        if (!lecturePage) {
+          const databaseId = await getCourseDatabaseId(notion, pageId);
+          if (databaseId) {
+            const dbQuery = await notion.databases.query({
+              database_id: databaseId,
+              filter: { property: 'Föreläsning', title: { equals: lectureTitle } },
+              page_size: 1,
+            });
+            if (dbQuery.results && dbQuery.results[0]) {
+              lecturePage = dbQuery.results[0];
+              console.log(`✅ Found exact match for lecture in database query: "${lectureTitle}"`);
+            }
           }
         }
 
@@ -242,10 +277,12 @@ exports.handler = async (event, context) => {
 
         // Append flashcard blocks to the lecture page
         if (flashcardBlocks.length > 0) {
-          await notion.blocks.children.append({
-            block_id: lecturePage.id,
-            children: flashcardBlocks
-          });
+          try {
+            await notion.blocks.children.append({ block_id: lecturePage.id, children: flashcardBlocks });
+          } catch (appendErr) {
+            console.error('Append blocks error:', appendErr?.body || appendErr?.message || appendErr);
+            throw appendErr;
+          }
           
           console.log(`✅ Successfully added ${flashcardBlocks.length} blocks to lecture page`);
         }
