@@ -168,7 +168,7 @@ export default function CalendarView() {
   }, [flatLectures]);
 
   // Only show lectures within the active week (Mon–Sun containing 'nowTs')
-  const upcoming = useMemo(() => {
+  const upcoming: FlatLecture[] = useMemo<FlatLecture[]>(() => {
     const now = new Date(nowTs);
     const day = now.getDay(); // 0 Sun .. 6 Sat
     const diffToMonday = (day + 6) % 7; // days since Monday
@@ -183,15 +183,15 @@ export default function CalendarView() {
     return flatLectures.filter((l) => {
       const lectureDate = new Date(l.date);
       return lectureDate >= weekStart && lectureDate <= weekEnd;
-    });
+    }) as FlatLecture[];
   }, [flatLectures, nowTs]);
 
-  const filtered = useMemo(() => {
-    return upcoming.filter((l) => {
+  const filtered: FlatLecture[] = useMemo<FlatLecture[]>(() => {
+    return (upcoming as FlatLecture[]).filter((l) => {
       const subjectOk = selectedSubjects.size === 0 || (l.subjectArea && selectedSubjects.has(l.subjectArea));
       const courseOk = selectedCourses.size === 0 || (l.course && selectedCourses.has(l.course));
       return subjectOk && courseOk;
-    });
+    }) as FlatLecture[];
   }, [upcoming, selectedSubjects, selectedCourses]);
 
   const byDay = useMemo(() => {
@@ -207,11 +207,10 @@ export default function CalendarView() {
     return Array.from(map.entries());
   }, [filtered]);
 
-  const nextUpcomingLectureId = useMemo(() => {
-    // Find the lecture with the earliest start time among filtered that is >= now
+  const nextUpcoming: { id: string; ts: number } | null = useMemo<{ id: string; ts: number } | null>(() => {
     let best: { id: string; ts: number } | null = null;
     const now = new Date(nowTs).getTime();
-    (filtered as FlatLecture[]).forEach((l) => {
+    (filtered as FlatLecture[]).forEach((l: FlatLecture) => {
       const [startStr] = (l.time || "").split("-");
       const [h, m] = (startStr || "").split(":").map((n: string) => parseInt(n, 10));
       const d = new Date(l.date);
@@ -221,8 +220,10 @@ export default function CalendarView() {
         if (!best || ts < best.ts) best = { id: l.id, ts };
       }
     });
-    return best?.id || null;
+    return best as { id: string; ts: number } | null;
   }, [filtered, nowTs]);
+
+  const nextUpcomingLectureId: string | null = nextUpcoming ? nextUpcoming.id : null;
 
   // Real-time clock tick (every minute)
   useEffect(() => {
