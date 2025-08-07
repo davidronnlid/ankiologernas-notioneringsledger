@@ -15,6 +15,10 @@ const COURSE_PAGE_IDS = {
 };
 
 exports.handler = async (event, context) => {
+  console.log('syncFlashcardsToNotion invoked', {
+    hasBody: !!event.body,
+    bodyLen: event.body ? event.body.length : 0,
+  });
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -195,25 +199,32 @@ exports.handler = async (event, context) => {
             // Persist image to MongoDB (via Netlify function) and add image block with external URL
             try {
               if (page.imageDataUrl && typeof page.imageDataUrl === 'string' && page.imageDataUrl.startsWith('data:image/')) {
-                const storeResp = await fetch(`${process.env.URL || ''}/.netlify/functions/storeImage`, {
+                const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers.host)) || '';
+                const base = process.env.URL || (host ? `https://${host}` : null);
+                const storeUrl = base ? `${base}/.netlify/functions/storeImage` : null;
+                if (!storeUrl) {
+                  console.warn('No base URL available for storeImage; skipping image upload');
+                } else {
+                  const storeResp = await fetch(storeUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
-                });
-                if (storeResp.ok) {
-                  const { url } = await storeResp.json();
-                  if (url) {
-                    flashcardBlocks.push({
-                      object: 'block',
-                      type: 'image',
-                      image: {
-                        type: 'external',
-                        external: { url }
-                      }
-                    });
+                  });
+                  if (storeResp.ok) {
+                    const { url } = await storeResp.json();
+                    if (url) {
+                      flashcardBlocks.push({
+                        object: 'block',
+                        type: 'image',
+                        image: {
+                          type: 'external',
+                          external: { url }
+                        }
+                      });
+                    }
+                  } else {
+                    console.warn('storeImage failed with status', storeResp.status);
                   }
-                } else {
-                  console.warn('storeImage failed with status', storeResp.status);
                 }
               }
             } catch (imgErr) {
