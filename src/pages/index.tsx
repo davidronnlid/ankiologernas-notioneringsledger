@@ -2075,6 +2075,11 @@ export default function Index() {
                             <Typography variant="body1" style={{ color: "white", fontWeight: 500 }}>
                               {lec.lectureNumber}. {lec.title}
                             </Typography>
+                            <Chip
+                              size="small"
+                              label={`${calculateDuration(lec.time).toFixed(1)} h`}
+                              style={{ color: "white", background: "#333" }}
+                            />
                           </Box>
                           <Box>
                             {lec.subjectArea && (

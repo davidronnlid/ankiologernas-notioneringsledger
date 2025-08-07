@@ -1,6 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@notionhq/client';
 
+// Increase body size limit to handle grouped text and optional images
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '12mb',
+    },
+  },
+};
+
 // Notion API tokens for each user
 const NOTION_TOKENS: Record<string, string | undefined> = {
   'David': process.env.NOTION_TOKEN_DAVID,
@@ -21,7 +30,7 @@ interface FlashcardGroup {
   pages: {
     pageNumber: number;
     textContent: string;
-    imageDataUrl: string;
+    imageDataUrl?: string;
   }[];
   summary: string;
 }

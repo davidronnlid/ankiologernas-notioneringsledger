@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 import Lecture, { SubjectArea } from "types/lecture";
+import { calculateDuration } from "utils/processLectures";
 import { SUBJECT_AREAS } from "utils/subjectAreas";
 import {
   Box,
@@ -75,6 +76,10 @@ const useStyles = makeStyles((theme: Theme) =>
       color: "#ccc",
       fontWeight: 600,
       minWidth: 80,
+    },
+    durationChip: {
+      background: "#333",
+      color: "white",
     },
     title: {
       color: "white",
@@ -289,6 +294,11 @@ export default function CalendarView() {
                     <Typography variant="body1" className={classes.title}>
                       {lec.lectureNumber}. {lec.title}
                     </Typography>
+                    <Chip
+                      size="small"
+                      label={`${calculateDuration(lec.time).toFixed(1)} h`}
+                      className={classes.durationChip}
+                    />
                   </Box>
                   <Box className={classes.tags}>
                     {/* Who selected so far (per person) */}

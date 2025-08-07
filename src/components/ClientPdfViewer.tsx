@@ -792,11 +792,11 @@ const ClientPdfViewer: React.FC = () => {
       const flashcardGroups = currentResult.groupedContent.map(group => ({
         id: group.id,
         question: group.aiQuestion,
-        pages: group.pages.map(page => ({
-          pageNumber: page.pageNumber,
-          textContent: page.textContent,
-          imageDataUrl: page.imageUrl // This is already a data URL
-        })),
+        pages: group.pages.map(page => (
+          includeImages
+            ? { pageNumber: page.pageNumber, textContent: page.textContent, imageDataUrl: page.imageUrl }
+            : { pageNumber: page.pageNumber, textContent: page.textContent }
+        )),
         summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
       }));
 
@@ -813,18 +813,41 @@ const ClientPdfViewer: React.FC = () => {
         user
       };
 
-      console.log('📤 Sending sync data:', { ...syncData, mode: includeImages ? 'full' : 'text-only' });
+      const payload = { ...syncData, mode: includeImages ? 'full' : 'text-only' };
+      const payloadStr = JSON.stringify(payload);
+      console.log('📤 Sending sync data:', { ...payload, flashcardGroups: `Array(${flashcardGroups.length})` });
+      console.log(`📦 Payload size: ~${(payloadStr.length / 1024).toFixed(1)} KB`);
 
       // Prefer Next API route for better reliability on current plan
       const endpoint = '/api/syncFlashcardsToNotion';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...syncData, mode: includeImages ? 'full' : 'text-only' }),
+        body: payloadStr,
       });
       if (!response.ok) {
         const raw = await response.text();
         console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
+        // Auto-fallback: send a tiny dry-run request (no append) with text-only and 1 group for diagnostics
+        try {
+          const diagPayload = JSON.stringify({
+            ...syncData,
+            mode: 'text-only',
+            dryRun: true,
+            flashcardGroups: flashcardGroups.slice(0, 1).map(g => ({ id: g.id, question: g.question, pages: g.pages.map(p => ({ pageNumber: p.pageNumber, textContent: p.textContent })), summary: g.summary }))
+          });
+          console.log('🧪 Retrying in dry-run (text-only, 1 group) to fetch detailed logs...');
+          const diagResp = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
+          const diagJson = await diagResp.json().catch(() => ({}));
+          console.groupCollapsed('🧪 Dry-run diagnostic response');
+          console.log(diagJson);
+          if (Array.isArray(diagJson.results)) {
+            diagJson.results.forEach((r: any) => { if (r.logs) r.logs.forEach((line: string) => console.log(line)); });
+          }
+          console.groupEnd();
+        } catch (diagErr) {
+          console.warn('Dry-run diagnostic failed:', diagErr);
+        }
         setSyncResult({ success: false, message: `HTTP ${response.status}: ${response.statusText}` });
         return;
       }

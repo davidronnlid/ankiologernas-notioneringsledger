@@ -516,6 +516,12 @@ export default function Header() {
                     </ListItemIcon>
                     <ListItemText primary="Kalender" />
                   </MenuItem>
+                  <MenuItem onClick={() => { router.push('/activity'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <EventNoteIcon style={{ color: '#81c784' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Aktivitetsflöde" />
+                  </MenuItem>
                   <MenuItem onClick={handleDocsClick}>
                     <ListItemIcon>
                       <MenuBookIcon style={{ color: '#ff9800' }} />
