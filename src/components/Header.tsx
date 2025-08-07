@@ -27,6 +27,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SyncIcon from "@mui/icons-material/Sync";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
 
 import UserPreferencesDialog from "./UserPreferencesDialog";
 import { useTheme } from "../contexts/ThemeContext";
@@ -513,6 +514,12 @@ export default function Header() {
                       <MenuBookIcon style={{ color: '#ff9800' }} />
                     </ListItemIcon>
                     <ListItemText primary="Dokumentation" />
+                  </MenuItem>
+                  <MenuItem onClick={() => { router.push('/generate-ankiz'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <TextFieldsIcon style={{ color: '#4caf50' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Generate Ankiz" />
                   </MenuItem>
                   <MenuItem onClick={handleOpenPreferences}>
                     <ListItemIcon>
