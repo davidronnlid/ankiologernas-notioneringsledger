@@ -141,6 +141,9 @@ const ClientPdfViewer: React.FC = () => {
     }
   };
 
+  // Get lectures data from Redux store
+  const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
+  
   // Load data on component mount
   useEffect(() => {
     if (!lecturesData || lecturesData.length === 0) {
@@ -150,9 +153,6 @@ const ClientPdfViewer: React.FC = () => {
       console.log("✅ ClientPdfViewer: Lectures data already available:", lecturesData.length, "weeks");
     }
   }, [lecturesData]);
-
-  // Get lectures data from Redux store
-  const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
   
   // Get current date for active course determination
   const currentDate = new Date();
