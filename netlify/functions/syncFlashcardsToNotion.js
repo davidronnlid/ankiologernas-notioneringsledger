@@ -74,7 +74,7 @@ exports.handler = async (event, context) => {
         
         // Get the course page
         const coursePage = await notion.pages.retrieve({ page_id: pageId });
-        console.log(`✅ Found course page for ${userName}: ${coursePage.properties?.title?.title?.[0]?.text?.content || 'Untitled'}`);
+        console.log(`✅ Found course page for ${userName}`);
         
         // Find the lecture page by matching the title
         const lectureTitle = `${selectedLecture.lectureNumber}. ${selectedLecture.title}`;
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
         
         // Look for exact title match in search results
         for (const page of searchResponse.results) {
-          const pageTitle = page.properties?.title?.title?.[0]?.text?.content || '';
+          const pageTitle = page.properties && page.properties.title && page.properties.title.title && page.properties.title.title[0] && page.properties.title.title[0].text ? page.properties.title.title[0].text.content : '';
           if (pageTitle === lectureTitle) {
             lecturePage = page;
             console.log(`✅ Found exact match for lecture: "${lectureTitle}"`);

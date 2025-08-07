@@ -80,7 +80,7 @@ const ClientPdfViewer: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [selectedPage, setSelectedPage] = useState<PageScreenshot | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [expandedPages, setExpandedPages] = useState<Set<number>>(new Set());
+  const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
   
   // Lecture selector state
   const [selectedLecture, setSelectedLecture] = useState<LectureWithCourse | null>(null);
@@ -143,6 +143,8 @@ const ClientPdfViewer: React.FC = () => {
 
   // Get lectures data from Redux store
   const lecturesData = useSelector((state: RootState) => state.lectures.lectures);
+  // Current user (used when syncing to Notion)
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   
   // Load data on component mount
   useEffect(() => {
@@ -416,12 +418,12 @@ const ClientPdfViewer: React.FC = () => {
     });
   };
 
-  const togglePageText = (pageNumber: number) => {
+  const togglePageText = (groupId: string) => {
     const newExpandedPages = new Set(expandedPages);
-    if (newExpandedPages.has(pageNumber)) {
-      newExpandedPages.delete(pageNumber);
+    if (newExpandedPages.has(groupId)) {
+      newExpandedPages.delete(groupId);
     } else {
-      newExpandedPages.add(pageNumber);
+      newExpandedPages.add(groupId);
     }
     setExpandedPages(newExpandedPages);
   };
@@ -744,7 +746,7 @@ const ClientPdfViewer: React.FC = () => {
 
   // Sync flashcards to Notion
   const syncFlashcardsToNotion = async () => {
-    if (!selectedLecture || !processingResult) {
+    if (!selectedLecture || !result) {
       console.error('❌ Cannot sync: No lecture selected or no processing result');
       return;
     }
@@ -755,10 +757,12 @@ const ClientPdfViewer: React.FC = () => {
     try {
       console.log('🔄 Starting flashcard sync to Notion...');
       console.log('📋 Selected lecture:', selectedLecture);
-      console.log('📋 Processing result:', processingResult);
+      // Use current processing result from state
+      const currentResult = result;
+      console.log('📋 Processing result:', currentResult);
 
       // Prepare flashcard groups for sync
-      const flashcardGroups = processingResult.groupedContent.map(group => ({
+      const flashcardGroups = currentResult.groupedContent.map(group => ({
         id: group.id,
         question: group.aiQuestion,
         pages: group.pages.map(page => ({
@@ -770,7 +774,6 @@ const ClientPdfViewer: React.FC = () => {
       }));
 
       // Get current user from Redux store
-      const currentUser = useSelector((state: RootState) => state.auth.user);
       const user = currentUser?.full_name || 'David Rönnlid';
 
       const syncData = {
@@ -798,21 +801,21 @@ const ClientPdfViewer: React.FC = () => {
         body: JSON.stringify(syncData)
       });
 
-      const result = await response.json();
-      console.log('📥 Sync response:', result);
+      const syncResponse = await response.json();
+      console.log('📥 Sync response:', syncResponse);
 
-      if (result.success) {
+      if (syncResponse.success) {
         setSyncResult({
           success: true,
-          message: result.message
+          message: syncResponse.message
         });
         console.log('✅ Flashcards synced successfully to Notion');
       } else {
         setSyncResult({
           success: false,
-          message: result.message || 'Sync failed'
+          message: syncResponse.message || 'Sync failed'
         });
-        console.error('❌ Flashcard sync failed:', result.message);
+        console.error('❌ Flashcard sync failed:', syncResponse.message);
       }
 
     } catch (error) {
@@ -861,8 +864,7 @@ const ClientPdfViewer: React.FC = () => {
                   padding: 12,
                   borderBottom: index < filteredLectures.slice(0, 10).length - 1 ? '1px solid #f0f0f0' : 'none',
                   cursor: 'pointer',
-                  backgroundColor: selectedLecture?.id === lecture.id ? '#f5f5f5' : 'transparent',
-                  ':hover': { backgroundColor: '#f5f5f5' }
+                  backgroundColor: selectedLecture?.id === lecture.id ? '#f5f5f5' : 'transparent'
                 }}
               >
                 <Typography variant="body1" style={{ fontWeight: 'bold' }}>

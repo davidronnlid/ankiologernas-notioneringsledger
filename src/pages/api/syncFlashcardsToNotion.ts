@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         // Get the course page
         const coursePage = await notion.pages.retrieve({ page_id: pageId });
-        console.log(`✅ Found course page for ${userName}: ${coursePage.properties?.title?.title?.[0]?.text?.content || 'Untitled'}`);
+        console.log(`✅ Found course page for ${userName}`);
         
         // Find the lecture page by matching the title
         const lectureTitle = `${selectedLecture.lectureNumber}. ${selectedLecture.title}`;
@@ -105,8 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let lecturePage = null;
         
         // Look for exact title match in search results
-        for (const page of searchResponse.results) {
-          const pageTitle = page.properties?.title?.title?.[0]?.text?.content || '';
+        for (const page of searchResponse.results as any[]) {
+          const pageTitle = (page as any).properties?.title?.title?.[0]?.text?.content || '';
           if (pageTitle === lectureTitle) {
             lecturePage = page;
             console.log(`✅ Found exact match for lecture: "${lectureTitle}"`);
@@ -129,11 +129,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         // Get existing blocks to append to
         const existingBlocks = await notion.blocks.children.list({
-          block_id: lecturePage.id
+          block_id: (lecturePage as any).id
         });
 
         // Create flashcard content blocks
-        const flashcardBlocks = [];
+        const flashcardBlocks: any[] = [];
         
         for (const group of flashcardGroups) {
           // Add group header
@@ -234,8 +234,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Append flashcard blocks to the lecture page
         if (flashcardBlocks.length > 0) {
           await notion.blocks.children.append({
-            block_id: lecturePage.id,
-            children: flashcardBlocks
+            block_id: (lecturePage as any).id,
+            children: flashcardBlocks as any
           });
           
           console.log(`✅ Successfully added ${flashcardBlocks.length} blocks to lecture page`);
