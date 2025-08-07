@@ -160,13 +160,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               rich_text: [
                 {
                   type: 'text',
-                  text: {
-                    content: group.summary,
-                    annotations: {
-                      italic: true,
-                      color: 'gray'
-                    }
-                  }
+                  text: { content: group.summary },
+                  annotations: { italic: true, color: 'gray' }
                 }
               ]
             }
@@ -204,24 +199,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             });
 
-            // Note: Notion API does not accept data URLs for images.
-            // To avoid 400/500 errors ("string did not match the expected pattern"),
-            // we skip adding inline images here until we have public URLs.
-            // Instead, add a small notice so users know images are available in the app.
-            flashcardBlocks.push({
-              object: 'block',
-              type: 'paragraph',
-              paragraph: {
-                rich_text: [
-                  {
-                    type: 'text',
-                    text: {
-                      content: '🖼️ Skärmdump av sidan finns i appen (bilder kan inte bäddas in utan publik URL).'
-                    }
+            // Upload image to Netlify+Mongo and attach as external image in Notion
+            try {
+              if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
+                const storeResp = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/.netlify/functions/storeImage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
+                });
+                if (storeResp.ok) {
+                  const { url } = await storeResp.json();
+                  if (url) {
+                    flashcardBlocks.push({
+                      object: 'block',
+                      type: 'image',
+                      image: { type: 'external', external: { url } }
+                    } as any);
                   }
-                ]
+                }
               }
-            });
+            } catch (imgErr) {
+              console.warn('Image store failed (API route); continuing without image:', imgErr);
+            }
           }
 
           // Add separator between groups

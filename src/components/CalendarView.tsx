@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "store/types";
 import Lecture, { SubjectArea } from "types/lecture";
@@ -61,6 +61,10 @@ const useStyles = makeStyles((theme: Theme) =>
         transform: "translateY(-2px)",
         boxShadow: "0 6px 16px rgba(0,0,0,0.3)",
       },
+    },
+    nextHighlight: {
+      border: "2px solid #90caf9",
+      boxShadow: "0 0 0 3px rgba(144,202,249,0.2)",
     },
     leftMeta: {
       display: "flex",
@@ -139,6 +143,8 @@ export default function CalendarView() {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(me);
   const [selectedSubjects, setSelectedSubjects] = useState<Set<SubjectArea>>(new Set());
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
+  const hasAutoScrolledRef = useRef<boolean>(false);
 
   const flatLectures: FlatLecture[] = useMemo(() => {
     return (weekData || []).flatMap((w) => (w.lectures || []).map((lec) => ({ ...lec, course: w.course })));
@@ -161,11 +167,24 @@ export default function CalendarView() {
     return Array.from(s);
   }, [flatLectures]);
 
+  // Only show lectures within the active week (Mon–Sun containing 'nowTs')
   const upcoming = useMemo(() => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    return flatLectures.filter((l) => new Date(l.date) >= startOfToday);
-  }, [flatLectures]);
+    const now = new Date(nowTs);
+    const day = now.getDay(); // 0 Sun .. 6 Sat
+    const diffToMonday = (day + 6) % 7; // days since Monday
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - diffToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    weekEnd.setMilliseconds(-1);
+
+    return flatLectures.filter((l) => {
+      const lectureDate = new Date(l.date);
+      return lectureDate >= weekStart && lectureDate <= weekEnd;
+    });
+  }, [flatLectures, nowTs]);
 
   const filtered = useMemo(() => {
     return upcoming.filter((l) => {
@@ -187,6 +206,40 @@ export default function CalendarView() {
       });
     return Array.from(map.entries());
   }, [filtered]);
+
+  const nextUpcomingLectureId = useMemo(() => {
+    // Find the lecture with the earliest start time among filtered that is >= now
+    let best: { id: string; ts: number } | null = null;
+    const now = new Date(nowTs).getTime();
+    (filtered as FlatLecture[]).forEach((l) => {
+      const [startStr] = (l.time || "").split("-");
+      const [h, m] = (startStr || "").split(":").map((n: string) => parseInt(n, 10));
+      const d = new Date(l.date);
+      d.setHours(isNaN(h) ? 0 : h, isNaN(m) ? 0 : m, 0, 0);
+      const ts = d.getTime();
+      if (ts >= now) {
+        if (!best || ts < best.ts) best = { id: l.id, ts };
+      }
+    });
+    return best?.id || null;
+  }, [filtered, nowTs]);
+
+  // Real-time clock tick (every minute)
+  useEffect(() => {
+    const i = setInterval(() => setNowTs(Date.now()), 60_000);
+    return () => clearInterval(i);
+  }, []);
+
+  // Auto-scroll to next upcoming once on mount
+  useEffect(() => {
+    if (hasAutoScrolledRef.current) return;
+    if (!nextUpcomingLectureId) return;
+    const el = document.getElementById(`calendar-lecture-${nextUpcomingLectureId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      hasAutoScrolledRef.current = true;
+    }
+  }, [nextUpcomingLectureId]);
 
   const statusColor = (status: "confirmed" | "unwish" | "unassigned") => {
     switch (status) {
@@ -324,7 +377,8 @@ export default function CalendarView() {
               return (
                 <Paper
                   key={lec.id}
-                  className={classes.lectureItem}
+                  id={`calendar-lecture-${lec.id}`}
+                  className={`${classes.lectureItem} ${nextUpcomingLectureId === lec.id ? classes.nextHighlight : ""}`}
                   onClick={() => navigateToLecture(lec.id)}
                 >
                   <Box className={classes.leftMeta}>

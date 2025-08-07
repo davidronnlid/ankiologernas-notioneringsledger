@@ -140,7 +140,7 @@ exports.handler = async (event, context) => {
             }
           });
 
-          // Add summary
+          // Add summary (fix annotations placement)
           flashcardBlocks.push({
             object: 'block',
             type: 'paragraph',
@@ -149,11 +149,11 @@ exports.handler = async (event, context) => {
                 {
                   type: 'text',
                   text: {
-                    content: group.summary,
-                    annotations: {
-                      italic: true,
-                      color: 'gray'
-                    }
+                    content: group.summary
+                  },
+                  annotations: {
+                    italic: true,
+                    color: 'gray'
                   }
                 }
               ]
@@ -192,22 +192,33 @@ exports.handler = async (event, context) => {
               }
             });
 
-            // Notion API cannot accept data URLs for images; requires a public URL or file upload via Notion API (not supported here).
-            // Add a hint paragraph instead to prevent 400 errors.
-            flashcardBlocks.push({
-              object: 'block',
-              type: 'paragraph',
-              paragraph: {
-                rich_text: [
-                  {
-                    type: 'text',
-                    text: {
-                      content: '🖼️ Skärmdump av sidan finns i appen (bilder kan inte bäddas in utan publik URL).'
-                    }
+            // Persist image to MongoDB (via Netlify function) and add image block with external URL
+            try {
+              if (page.imageDataUrl && typeof page.imageDataUrl === 'string' && page.imageDataUrl.startsWith('data:image/')) {
+                const storeResp = await fetch(`${process.env.URL || ''}/.netlify/functions/storeImage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
+                });
+                if (storeResp.ok) {
+                  const { url } = await storeResp.json();
+                  if (url) {
+                    flashcardBlocks.push({
+                      object: 'block',
+                      type: 'image',
+                      image: {
+                        type: 'external',
+                        external: { url }
+                      }
+                    });
                   }
-                ]
+                } else {
+                  console.warn('storeImage failed with status', storeResp.status);
+                }
               }
-            });
+            } catch (imgErr) {
+              console.warn('Image store failed; continuing without image:', imgErr);
+            }
           }
 
           // Add separator between groups

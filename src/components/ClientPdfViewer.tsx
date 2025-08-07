@@ -239,23 +239,49 @@ const ClientPdfViewer: React.FC = () => {
     return result;
   }, [allLectures, activeCourses]);
   
-  // Filter lectures based on search term
+  // Normalize helper for robust matching
+  const normalize = (s: string): string =>
+    s
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/[._:-]/g, ' ')
+      .trim();
+
+  // Filter lectures based on search term, supporting Notion-style ("77. Titel")
   const filteredLectures: LectureWithCourse[] = React.useMemo(() => {
     console.log('🔍 Debug: activeLectures count:', activeLectures.length);
     console.log('🔍 Debug: lectureSearchTerm:', lectureSearchTerm);
-    
+
     if (!lectureSearchTerm) {
       console.log('✅ Debug: No search term, returning all active lectures');
       return activeLectures;
     }
-    
-    const result = activeLectures.filter(lecture =>
-      lecture.title?.toLowerCase().includes(lectureSearchTerm.toLowerCase()) ||
-      lecture.subjectArea?.toLowerCase().includes(lectureSearchTerm.toLowerCase()) ||
-      lecture.lecturer?.toLowerCase().includes(lectureSearchTerm.toLowerCase()) ||
-      lecture.lectureNumber?.toString().includes(lectureSearchTerm)
-    );
-    
+
+    const q = normalize(lectureSearchTerm);
+
+    const result = activeLectures.filter((lecture) => {
+      const numStr = String(lecture.lectureNumber ?? '');
+      const title = lecture.title ?? '';
+      const subject = lecture.subjectArea ?? '';
+      const lecturer = lecture.lecturer ?? '';
+
+      // Build alternative formats
+      const notionStyle = `${numStr}. ${title}`; // e.g., "77. Fall och frakturer"
+      const legacyStyle = `Föreläsning ${numStr}: ${title}`;
+
+      // Normalize all strings once
+      const fields = [
+        title,
+        subject,
+        lecturer,
+        numStr,
+        notionStyle,
+        legacyStyle,
+      ].map((s) => normalize(s));
+
+      return fields.some((f) => f.includes(q));
+    });
+
     console.log('✅ Debug: Filtered lectures found:', result.length);
     return result;
   }, [activeLectures, lectureSearchTerm]);
@@ -868,7 +894,7 @@ const ClientPdfViewer: React.FC = () => {
                 }}
               >
                 <Typography variant="body1" style={{ fontWeight: 'bold' }}>
-                  Föreläsning {lecture.lectureNumber}: {lecture.title}
+                  {lecture.lectureNumber}. {lecture.title}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   {lecture.date} • {lecture.time} • {lecture.subjectArea || 'Inget ämnesområde'}
@@ -885,7 +911,7 @@ const ClientPdfViewer: React.FC = () => {
         {selectedLecture && (
           <Box style={{ marginTop: 16 }}>
             <Chip
-              label={`Vald föreläsning: ${selectedLecture.lectureNumber} - ${selectedLecture.title}`}
+              label={`Vald föreläsning: ${selectedLecture.lectureNumber}. ${selectedLecture.title}`}
               color="primary"
               onDelete={() => setSelectedLecture(null)}
               style={{ marginRight: 8 }}
