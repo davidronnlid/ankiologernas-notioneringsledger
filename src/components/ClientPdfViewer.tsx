@@ -16,7 +16,6 @@ import {
   Paper,
   TextField,
   Chip,
-  Alert,
 } from '@material-ui/core';
 import {
   CloudUpload as UploadIcon,
@@ -1032,21 +1031,57 @@ const ClientPdfViewer: React.FC = () => {
           {/* Sync Result Display */}
           {syncResult && (
             <Box style={{ marginBottom: 24 }}>
-              <Alert 
-                severity={syncResult.success ? 'success' : 'error'}
-                onClose={() => setSyncResult(null)}
+              <Paper 
+                style={{ 
+                  padding: 16, 
+                  backgroundColor: syncResult.success ? '#e8f5e8' : '#ffebee',
+                  border: `1px solid ${syncResult.success ? '#4caf50' : '#f44336'}`,
+                  borderRadius: 4
+                }}
               >
-                {syncResult.message}
-              </Alert>
+                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography 
+                    variant="body1" 
+                    style={{ 
+                      color: syncResult.success ? '#2e7d32' : '#c62828',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {syncResult.success ? '✅ ' : '❌ '}{syncResult.message}
+                  </Typography>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setSyncResult(null)}
+                    style={{ color: syncResult.success ? '#2e7d32' : '#c62828' }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Box>
+              </Paper>
             </Box>
           )}
 
           {/* No Lecture Selected Warning */}
           {result && !selectedLecture && (
             <Box style={{ marginBottom: 24 }}>
-              <Alert severity="warning">
-                ⚠️ Välj en föreläsning ovanför för att kunna synka flashcards till Notion.
-              </Alert>
+              <Paper 
+                style={{ 
+                  padding: 16, 
+                  backgroundColor: '#fff3e0',
+                  border: '1px solid #ff9800',
+                  borderRadius: 4
+                }}
+              >
+                <Typography 
+                  variant="body1" 
+                  style={{ 
+                    color: '#e65100',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ⚠️ Välj en föreläsning ovanför för att kunna synka flashcards till Notion.
+                </Typography>
+              </Paper>
             </Box>
           )}
 
