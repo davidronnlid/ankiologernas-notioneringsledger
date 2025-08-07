@@ -2062,7 +2062,12 @@ export default function Index() {
                         {dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}
                       </Typography>
                       {lectures.map((lec) => (
-                        <Box key={`week-${lec.id}`} className={classes.weekLectureRow}>
+                        <Box
+                          key={`week-${lec.id}`}
+                          className={classes.weekLectureRow}
+                          onClick={() => handleCardClick(lec)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <Box style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <Typography variant="body2" style={{ color: "#ccc", minWidth: 64 }}>
                               {lec.time?.split("-")[0] || "--:--"}
