@@ -224,8 +224,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     if (storeResp.ok) {
                       const storeJson = await storeResp.json();
-                      const { url } = storeJson || {};
-                      if (url) externalUrl = url;
+                      const { url, prettyUrl } = storeJson || {};
+                      if (prettyUrl && /^https:\/\//i.test(prettyUrl)) externalUrl = prettyUrl;
+                      else if (url && /^https:\/\//i.test(url)) externalUrl = url;
                     } else {
                       const txt = await storeResp.text();
                       logs.push(`⚠️ Server-side image store failed: ${storeResp.status} ${txt.slice(0,300)}`);
