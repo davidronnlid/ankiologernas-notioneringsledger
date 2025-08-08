@@ -22,6 +22,18 @@ async function getDb() {
 }
 
 exports.handler = async (event) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    };
+  }
+
   try {
     let id = event.queryStringParameters && event.queryStringParameters.id;
     // Support pretty URLs: /.netlify/functions/getImage/:id(.ext)
@@ -42,7 +54,10 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers: {
         'Content-Type': doc.mimeType || 'image/png',
-        'Cache-Control': 'public, max-age=31536000, immutable'
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
       },
       body: (doc.data && Buffer.isBuffer(doc.data) ? doc.data : Buffer.from(doc.data?.buffer || doc.data)).toString('base64'),
       isBase64Encoded: true,
