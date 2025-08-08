@@ -223,6 +223,19 @@ const useStyles = makeStyles((theme: Theme) =>
 
 // Simple derived feed from current lectures – in real usage, back this with a server log.
 const deriveActivityFromState = (state: RootState): ActivityItem[] => {
+  // Mock: shift timestamps into September to make charts/UX more illustrative
+  // (does not affect stored data, only the derived feed)
+  const toSeptember = (dateStr: string, seed: number = 0): string => {
+    // Use current year, September (month index 8). Clamp day 1..28 and spread hours a bit
+    const base = new Date(dateStr);
+    const year = new Date().getFullYear();
+    const day = Math.max(1, Math.min(28, isNaN(base.getTime()) ? (1 + (seed % 28)) : base.getUTCDate()));
+    const hour = seed % 24;
+    const dt = new Date(Date.UTC(year, 8 /* Sep */, day, hour, 0, 0));
+    return dt.toISOString();
+  };
+
+  let counter = 0;
   const items: ActivityItem[] = [];
   const weeks = state.lectures.lectures || [];
   weeks.forEach((w) => {
@@ -236,7 +249,7 @@ const deriveActivityFromState = (state: RootState): ActivityItem[] => {
             lectureId: lec.id,
             lectureTitle: lec.title,
             person,
-            timestamp: lec.date, // best-effort – replace with real event time if available
+            timestamp: toSeptember(lec.date, counter++),
           });
         } else {
           items.push({
@@ -245,7 +258,7 @@ const deriveActivityFromState = (state: RootState): ActivityItem[] => {
             lectureId: lec.id,
             lectureTitle: lec.title,
             person,
-            timestamp: lec.date,
+            timestamp: toSeptember(lec.date, counter++),
           });
         }
       });
@@ -265,7 +278,7 @@ const deriveActivityFromState = (state: RootState): ActivityItem[] => {
       lectureId: n.lectureId,
       lectureTitle: n.lectureTitle,
       person: n.fromUser,
-      timestamp: new Date(n.timestamp).toISOString(),
+      timestamp: toSeptember(n.timestamp, counter++),
     });
   });
   // Sort newest first
@@ -333,72 +346,7 @@ export default function ActivityPage() {
     return Array.from(map.entries());
   }, [filtered]);
 
-  // Heatmap preparation (last 26 weeks, Mon–Sun)
-  const heatmap = useMemo(() => {
-    const WEEKS = 26;
-    const today = new Date();
-    const weekday = getDay(today); // 0 Sun .. 6 Sat
-    const diffToMonday = (weekday + 6) % 7; // days since Monday
-    const end = startOfDay(today);
-    const start = subDays(end, WEEKS * 7 + diffToMonday - 1);
-
-    const days: Date[] = [];
-    let cur = start;
-    while (cur <= end) {
-      days.push(cur);
-      cur = addDays(cur, 1);
-    }
-
-    // Aggregate by person and count per day
-    const persons = ['Mattias', 'Albin', 'David'];
-    const counts = new Map<string, number>();
-    const byPerson: Record<string, Map<string, number>> = {
-      Mattias: new Map(),
-      Albin: new Map(),
-      David: new Map(),
-    };
-    filtered.forEach((a) => {
-      const dayKey = startOfDay(parseISO(a.timestamp)).toISOString();
-      counts.set(dayKey, (counts.get(dayKey) || 0) + 1);
-      const p = a.person && persons.includes(a.person) ? a.person : undefined;
-      if (p) {
-        const map = byPerson[p];
-        map.set(dayKey, (map.get(dayKey) || 0) + 1);
-      }
-    });
-
-    const colorFor = (n: number): string => {
-      if (!n) return '#2a2a2a';
-      if (n === 1) return '#1b5e20';
-      if (n === 2) return '#2e7d32';
-      if (n === 3) return '#43a047';
-      return '#66bb6a';
-    };
-
-    // Build columns of 7 days
-    const columns: { date: Date; count: number; color: string; per: Record<string, number> }[][] = [];
-    for (let i = 0; i < days.length; i += 7) {
-      const col: { date: Date; count: number; color: string; per: Record<string, number> }[] = [];
-      for (let r = 0; r < 7 && i + r < days.length; r++) {
-        const d = days[i + r];
-        const key = startOfDay(d).toISOString();
-        const c = counts.get(key) || 0;
-        col.push({
-          date: d,
-          count: c,
-          color: colorFor(c),
-          per: {
-            Mattias: byPerson.Mattias.get(key) || 0,
-            Albin: byPerson.Albin.get(key) || 0,
-            David: byPerson.David.get(key) || 0,
-          },
-        });
-      }
-      columns.push(col);
-    }
-
-    return { columns, total: filtered.length };
-  }, [filtered]);
+  // Heatmap removed from UI (kept intentionally empty)
 
   // Distribution chart data (per action/person per day) – span limited to active course window
   const threeDData = useMemo(() => {
@@ -473,44 +421,7 @@ export default function ActivityPage() {
           </Tooltip>
         </Box>
 
-        {/* Heatmap overview */}
-        <Box className={classes.heatmapWrap}>
-          <Box className={classes.heatmapHeader}>
-            <span>Aktivitet senaste 26 veckorna</span>
-            <Box className={classes.heatmapLegend}>
-              <span style={{ marginRight: 6 }}>Färre</span>
-              {[0, 1, 2, 3, 4].map((lvl) => (
-                <span key={lvl} className={classes.heatmapCell as any} style={{ background: ['#2a2a2a','#1b5e20','#2e7d32','#43a047','#66bb6a'][lvl] }} />
-              ))}
-              <span style={{ marginLeft: 6 }}>Fler</span>
-            </Box>
-          </Box>
-          <Box className={classes.heatmapGrid}>
-            {heatmap.columns.map((col, ci) => (
-              <Box key={ci} className={classes.heatmapCol}>
-                {col.map((cell, ri) => {
-                  const tip = `${format(cell.date, 'EEE d MMM', { locale: sv })}: ${cell.count} händelse(r)\nMattias: ${cell.per.Mattias || 0}\nAlbin: ${cell.per.Albin || 0}\nDavid: ${cell.per.David || 0}`;
-                  return (
-                    <Tooltip key={`${ci}-${ri}`} title={<span style={{ whiteSpace: 'pre-line' }}>{tip}</span>}>
-                      <span className={classes.heatmapCell} style={{ background: cell.color }}>
-                        {/* micro-bands to indicate per-user presence */}
-                        {cell.per.Mattias ? (
-                          <span className={classes.userDot} style={{ top: 2, background: '#42a5f5' }} />
-                        ) : null}
-                        {cell.per.Albin ? (
-                          <span className={classes.userDot} style={{ top: 5, background: '#ab47bc' }} />
-                        ) : null}
-                        {cell.per.David ? (
-                          <span className={classes.userDot} style={{ top: 8, background: '#ff7043' }} />
-                        ) : null}
-                      </span>
-                    </Tooltip>
-                  );
-                })}
-              </Box>
-            ))}
-          </Box>
-        </Box>
+        {/* Heatmap removed by request */}
 
         {/* Distribution chart: clearer small multiples */}
         <Box className={classes.threeDWrap}>

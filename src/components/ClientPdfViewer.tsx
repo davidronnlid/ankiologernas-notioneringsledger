@@ -840,6 +840,11 @@ const ClientPdfViewer: React.FC = () => {
       const uploadImage = async (dataUrl: string): Promise<string | null> => {
         try {
           const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          // Notion requires a public URL; skip uploads entirely on localhost to avoid invalid URLs
+          if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            pushProgress('Skipping image upload in development (localhost) – Notion kräver publik URL.');
+            return null;
+          }
           const isNetlify = typeof window !== 'undefined' && window.location.host.includes('netlify.app');
           const storeUrl = `${origin}/.netlify/functions/storeImage`;
           const resp = await fetch(storeUrl, {
@@ -858,15 +863,20 @@ const ClientPdfViewer: React.FC = () => {
 
       // Prepare flashcard groups for sync
       const flashcardGroups: any[] = [];
-      for (const group of currentResult.groupedContent) {
+        for (const group of currentResult.groupedContent) {
         const pages: any[] = [];
         for (let i = 0; i < group.pages.length; i++) {
           const page = group.pages[i];
           if (includeImages) {
             console.log(`🖼️ Uploading image ${i + 1}/${group.pages.length} for group ${group.id}...`);
             pushProgress(`Uploading image ${i + 1}/${group.pages.length} for group ${group.id}…`);
-            const uploadedUrl = await uploadImage(page.imageUrl);
-            pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl || undefined });
+              const uploadedUrl = await uploadImage(page.imageUrl);
+              if (uploadedUrl) {
+                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl });
+              } else {
+                // Fall back to text-only when no public URL is available
+                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
+              }
           } else {
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
           }

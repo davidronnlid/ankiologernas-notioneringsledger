@@ -206,7 +206,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     externalUrl = (page as any).imageUrl as string;
                     logs.push(`🖼️ Using pre-uploaded image URL`);
                   } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
-                    const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
+                    // Skip in development where base is localhost; Notion requires public URL
+                    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+                      logs.push('Skipping image upload (localhost) – Notion kräver publik URL');
+                    } else {
+                      const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
                     const storeResp = await fetch(storeUrl, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -218,6 +222,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     } else {
                       const txt = await storeResp.text();
                       logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
+                    }
                     }
                   }
                   // Notion requires a fully-qualified, publicly accessible URL
