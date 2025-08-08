@@ -472,7 +472,8 @@ const ClientPdfViewer: React.FC = () => {
   // Generate intelligent, Swedish medical-school questions for a page
   const generateAIQuestion = (textContent: string, pageNumber: number): string => {
     if (!textContent || textContent.trim().length === 0) {
-      return 'Vad visar denna sida?';
+      // Important: Never refer to the page explicitly
+      return 'Vilken är den viktigaste kliniska frågan här och hur påverkar den diagnostik eller behandling?';
     }
 
     // Normalize Swedish text
@@ -523,10 +524,10 @@ const ClientPdfViewer: React.FC = () => {
 
     // Special modalities
     if (containsAny(sectionSignals.ekg)) {
-      return 'Tolka EKG‑fynden: vilka diagnostiska kriterier och akuta åtgärder är relevanta i detta fall?';
+      return 'Tolka EKG‑fynden: vilka diagnostiska kriterier och akuta åtgärder är relevanta?';
     }
     if (containsAny(sectionSignals.imaging)) {
-      return 'Vilka bilddiagnostiska fynd förväntas här och hur påverkar de handläggning och vidare utredning?';
+      return 'Vilka bilddiagnostiska fynd förväntas och hur påverkar de handläggning och vidare utredning?';
     }
 
     // Section‑driven templates (prioritized)
@@ -566,7 +567,7 @@ const ClientPdfViewer: React.FC = () => {
       if (containsAny(['fysiologi','patofysiologi'])) {
         return 'Förklara de centrala fysiologiska och patofysiologiska förändringarna vid graviditet och deras kliniska betydelse.';
       }
-      return 'Vilka är de viktigaste kliniska prioriteringarna och röda flaggorna vid graviditet i detta sammanhang?';
+      return 'Vilka är de viktigaste kliniska prioriteringarna och röda flaggorna vid graviditet?';
     }
     if (containsAny(['hjärta','kardiologi','ischemi','infarkt','svikt','klaff','arytmi'])) {
       return 'Redogör för patofysiologi, typiska symtom/status samt diagnostik och initial handläggning i kardiologiskt fokus.';
@@ -580,10 +581,10 @@ const ClientPdfViewer: React.FC = () => {
 
     // Numeric thresholds or long lists suggest enumeration questions
     if (hasNumbers) {
-      return 'Vilka centrala gränsvärden, kriterier eller målvärden gäller här och hur påverkar de diagnos respektive behandling?';
+      return 'Vilka centrala gränsvärden, kriterier eller målvärden gäller och hur påverkar de diagnos respektive behandling?';
     }
     if (looksLikeList) {
-      return 'Nämn de viktigaste punkterna i listan och förklara varför de är kliniskt relevanta.';
+      return 'Nämn de viktigaste punkterna och förklara varför de är kliniskt relevanta.';
     }
 
     // Knowledge‑backed generic fallbacks
@@ -599,8 +600,8 @@ const ClientPdfViewer: React.FC = () => {
       return `Förklara huvuddragen i ${topicsList} och ange hur det omsätts i praktisk handläggning.`;
     }
 
-    // Last‑resort
-    return 'Vad är den viktigaste kliniska lärdomen från denna sida och hur påverkar den diagnostik eller behandling?';
+    // Last‑resort (avoid explicit page references)
+    return 'Vad är den viktigaste kliniska lärdomen och hur påverkar den diagnostik eller behandling?';
   };
 
   // Extract medical terms from text (Swedish, broad med‑school set)
