@@ -49,7 +49,10 @@ export default async (request, context) => {
       cacheControl: 'public, max-age=31536000, immutable'
     });
 
-    const publicUrl = store.getPublicUrl(blobKey);
+    // Provide a stable public URL served by our function since getPublicUrl is not available
+    const base = new URL(request.url);
+    const origin = `${base.protocol}//${base.host}`;
+    const publicUrl = `${origin}/.netlify/functions/getBlobImage/${encodeURIComponent(blobKey)}`;
     const response = { success: true, storage: 'blobs', key: blobKey, url: publicUrl, prettyUrl: publicUrl };
     return new Response(JSON.stringify(response), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   } catch (error) {
