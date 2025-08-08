@@ -517,19 +517,19 @@ export default function Header() {
                     <ListItemIcon>
                       <PictureAsPdfIcon style={{ color: '#4caf50' }} />
                     </ListItemIcon>
-                    <ListItemText primary="Skapa Notionmall från PDF" />
-                  </MenuItem>
-                  <MenuItem onClick={() => { router.push('/activity'); handleCloseMenu(); }}>
-                    <ListItemIcon>
-                      <EventNoteIcon style={{ color: '#81c784' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Aktivitetsflöde" />
+                    <ListItemText primary="Skapa Notiondoc från PDF" />
                   </MenuItem>
                   <MenuItem onClick={() => { router.push('/study-dashboard'); handleCloseMenu(); }}>
                     <ListItemIcon>
                       <EventNoteIcon style={{ color: '#64b5f6' }} />
                     </ListItemIcon>
                     <ListItemText primary="Pomodoro" />
+                  </MenuItem>
+                  <MenuItem onClick={() => { router.push('/activity'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <EventNoteIcon style={{ color: '#81c784' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Aktivitetsflöde" />
                   </MenuItem>
                   <MenuItem onClick={handleDocsClick}>
                     <ListItemIcon>

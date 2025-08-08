@@ -44,11 +44,19 @@ exports.handler = async (event) => {
     await client.close();
 
     const id = insertResult.insertedId.toString();
-    // Prefer Netlify-provided site URL; fall back to request headers for absolute URL (needed by Notion)
+    // Build a stable, public HTTPS base URL. Notion requires a publicly accessible https URL.
+    const envBase = process.env.PUBLIC_IMAGE_BASE_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || '';
     const proto = (event.headers && (event.headers['x-forwarded-proto'] || event.headers['X-Forwarded-Proto'])) || 'https';
     const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers['X-Forwarded-Host'] || event.headers.host)) || '';
-    const baseFromHeaders = host ? `${proto}://${host}` : '';
-    const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || baseFromHeaders;
+    const headerBase = host ? `${proto}://${host}` : '';
+    let siteUrl = envBase || headerBase;
+    // If running locally or protocol is not https, prefer env base or coerce to https
+    if (!siteUrl || /localhost|127\.0\.0\.1/i.test(siteUrl)) {
+      siteUrl = headerBase && !/localhost|127\.0\.0\.1/i.test(headerBase) ? headerBase : envBase;
+    }
+    if (siteUrl && siteUrl.startsWith('http://')) {
+      siteUrl = siteUrl.replace('http://', 'https://');
+    }
     const publicUrl = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
 
     return {

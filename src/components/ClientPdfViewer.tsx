@@ -845,7 +845,6 @@ const ClientPdfViewer: React.FC = () => {
             pushProgress('Skipping image upload in development (localhost) – Notion kräver publik URL.');
             return null;
           }
-          const isNetlify = typeof window !== 'undefined' && window.location.host.includes('netlify.app');
           const storeUrl = `${origin}/.netlify/functions/storeImage`;
           const resp = await fetch(storeUrl, {
             method: 'POST',
@@ -854,6 +853,9 @@ const ClientPdfViewer: React.FC = () => {
           });
           if (!resp.ok) return null;
           const { url } = await resp.json();
+          if (url && /^http:\/\//i.test(url)) {
+            return url.replace('http://', 'https://');
+          }
           return url || null;
         } catch (e) {
           console.warn('Pre-upload image failed:', e);

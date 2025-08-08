@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@/components/Layout';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store/types';
-import { Box, Chip, IconButton, InputAdornment, MenuItem, Paper, Select, TextField, Typography } from '@material-ui/core';
+import { Box, Chip, IconButton, InputAdornment, MenuItem, Paper, Select, TextField, Typography, Button } from '@material-ui/core';
 import { addDays, endOfWeek, format, isAfter, isBefore, isSameWeek, parseISO, startOfWeek } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import SearchIcon from '@mui/icons-material/Search';
@@ -151,6 +151,31 @@ export default function StudyDashboardPage() {
     return () => clearInterval(iv);
   }, [running, isStudy, selectedLectureId]);
 
+  // Manual tracking additions
+  const [manualMinutes, setManualMinutes] = useState<number>(5);
+  const addManualTime = () => {
+    if (!selectedLectureId) return;
+    const addSec = Math.max(0, Math.round((Number(manualMinutes) || 0) * 60));
+    if (addSec === 0) return;
+    setTracked((prev) => ({ ...prev, [selectedLectureId]: (prev[selectedLectureId] || 0) + addSec }));
+  };
+
+  // Summary across visible lectures
+  const summary = useMemo(() => {
+    const ids = selectedLectures.map((l) => l.id);
+    let totalSec = 0;
+    let nonZero = 0;
+    ids.forEach((id) => {
+      const sec = tracked[id] || 0;
+      totalSec += sec;
+      if (sec > 0) nonZero += 1;
+    });
+    const totalMin = Math.round(totalSec / 60);
+    const totalHours = Math.round((totalSec / 3600) * 10) / 10;
+    const avgMin = ids.length > 0 ? Math.round(totalMin / ids.length) : 0;
+    return { totalMin, totalHours, avgMin, totalLectures: ids.length, nonZero };
+  }, [tracked, selectedLectures]);
+
   return (
     <Layout title="Pomodoro" description="Pomodoro med Notion-spårning" keywords="pomodoro, notion, plan">
       <Box style={{ maxWidth: 1100, margin: '24px auto', padding: '0 16px' }}>
@@ -181,6 +206,22 @@ export default function StudyDashboardPage() {
               inputProps={{ min: 1 }}
               style={{ width: 160, marginLeft: 8, background: '#1f1f1f' }}
             />
+          </Box>
+
+          {/* Manual addition */}
+          <Box display="flex" alignItems="center" gridGap={12 as any} mt={2 as any}>
+            <TextField
+              label="Lägg till minuter manuellt"
+              type="number"
+              variant="outlined"
+              value={manualMinutes}
+              onChange={(e) => setManualMinutes(Math.max(0, Number(e.target.value || 0)))}
+              inputProps={{ min: 0 }}
+              style={{ width: 220, background: '#1f1f1f' }}
+            />
+            <Button variant="contained" color="primary" onClick={addManualTime} disabled={!selectedLectureId}>
+              Lägg till på vald föreläsning
+            </Button>
           </Box>
         </Paper>
 
@@ -265,6 +306,19 @@ export default function StudyDashboardPage() {
               Spårar tid för föreläsning: {selectedLectures.find((l) => l.id === selectedLectureId)?.title || selectedLectureId} — totalt Notionerat {Math.floor((tracked[selectedLectureId] || 0) / 60)} min
             </Typography>
           )}
+        </Box>
+
+        {/* Overall Notionerat summary for visible lectures */}
+        <Box mt={3}>
+          <Paper style={{ padding: 16, background: '#2c2c2c', border: '1px solid #404040', borderRadius: 12 }}>
+            <Typography variant="h6" style={{ color: 'white', marginBottom: 8 }}>Sammanfattning</Typography>
+            <Typography variant="body2" style={{ color: '#ccc' }}>
+              Totalt Notionerat: <strong>{summary.totalMin} min</strong> ({summary.totalHours} h)
+            </Typography>
+            <Typography variant="body2" style={{ color: '#ccc' }}>
+              Genomsnitt per föreläsning: <strong>{summary.avgMin} min</strong> över {summary.totalLectures} föreläsningar ({summary.nonZero} med &gt; 0 min)
+            </Typography>
+          </Paper>
         </Box>
       </Box>
     </Layout>
