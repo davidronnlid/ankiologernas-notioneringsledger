@@ -9,6 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
+import { coursePeriods } from 'utils/coursePeriods';
 
 // A simple Pomodoro timer with adjustable study/rest durations
 function usePomodoro(defaultStudyMin: number = 25, defaultRestMin: number = 5) {
@@ -76,13 +77,33 @@ export default function StudyDashboardPage() {
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }, [currentUser]);
 
-  // Build lecture list for last week and coming weeks where this user selected (confirm=true)
+  // Build lecture list for last/coming weeks or whole course where this user selected (confirm=true)
   const [query, setQuery] = useState('');
-  const [rangeWeeks, setRangeWeeks] = useState<number>(3); // how many future weeks to show
+  const [weeksBack, setWeeksBack] = useState<number>(1);
+  const [weeksForward, setWeeksForward] = useState<number>(3);
+  const [scope, setScope] = useState<'custom' | 'course'>('custom');
 
   const now = new Date();
-  const start = startOfWeek(addDays(now, -7), { weekStartsOn: 1 }); // last week Monday
-  const end = endOfWeek(addDays(now, rangeWeeks * 7), { weekStartsOn: 1 }); // coming weeks
+  const activeCourse = useMemo(() => {
+    return coursePeriods.find((c) => {
+      const s = parseISO(c.startDate);
+      const e = parseISO(c.endDate);
+      return (isAfter(now, s) || isSameWeek(now, s, { weekStartsOn: 1 })) && (isBefore(now, e) || isSameWeek(now, e, { weekStartsOn: 1 }));
+    });
+  }, [now]);
+
+  const { start, end } = useMemo(() => {
+    if (scope === 'course' && activeCourse) {
+      return {
+        start: startOfWeek(parseISO(activeCourse.startDate), { weekStartsOn: 1 }),
+        end: endOfWeek(parseISO(activeCourse.endDate), { weekStartsOn: 1 })
+      };
+    }
+    return {
+      start: startOfWeek(addDays(now, -weeksBack * 7), { weekStartsOn: 1 }),
+      end: endOfWeek(addDays(now, weeksForward * 7), { weekStartsOn: 1 })
+    };
+  }, [scope, activeCourse, weeksBack, weeksForward, now]);
 
   const selectedLectures = useMemo(() => {
     const results: { id: string; title: string; date: string; time?: string; weekLabel: string }[] = [];
@@ -104,6 +125,31 @@ export default function StudyDashboardPage() {
       .filter((r) => !q || r.title.toLowerCase().includes(q))
       .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
   }, [weeks, personName, start, end, query]);
+
+  // Temporary selection: choose one lecture to attribute study time to
+  const [selectedLectureId, setSelectedLectureId] = useState<string | null>(null);
+
+  // Time tracking per lecture (localStorage persistence)
+  const [tracked, setTracked] = useState<Record<string, number>>(() => {
+    try {
+      const raw = localStorage.getItem('studyTimeByLecture');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('studyTimeByLecture', JSON.stringify(tracked)); } catch {}
+  }, [tracked]);
+
+  // Accumulate time while timer is running in study mode for the selected lecture
+  useEffect(() => {
+    if (!running || !isStudy || !selectedLectureId) return;
+    const iv = setInterval(() => {
+      setTracked((prev) => ({ ...prev, [selectedLectureId]: (prev[selectedLectureId] || 0) + 1 }));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [running, isStudy, selectedLectureId]);
 
   return (
     <Layout title="Studiepanel" description="Personlig studiepanel" keywords="studie, pomodoro, plan">
@@ -139,7 +185,7 @@ export default function StudyDashboardPage() {
         </Paper>
 
         {/* Filters */}
-        <Box display="grid" gridTemplateColumns="1fr 160px" gridGap={8} style={{ marginBottom: 12 }}>
+        <Box display="grid" gridTemplateColumns="1fr 160px 160px 180px" gridGap={8} style={{ marginBottom: 12 }}>
           <TextField
             variant="outlined"
             placeholder="Sök föreläsning…"
@@ -148,13 +194,27 @@ export default function StudyDashboardPage() {
             InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon style={{ color: '#ccc' }}/></InputAdornment>) }}
             style={{ background: '#2c2c2c' }}
           />
+          <Select value={scope} onChange={(e) => setScope(e.target.value as any)} variant="outlined" style={{ color: 'white', background: '#2c2c2c' }}>
+            <MenuItem value="custom" style={{ color: 'white' }}>Anpassat intervall</MenuItem>
+            <MenuItem value="course" style={{ color: 'white' }}>Hela kursen</MenuItem>
+          </Select>
           <Select
-            value={rangeWeeks}
-            onChange={(e) => setRangeWeeks(Number(e.target.value))}
+            value={weeksBack}
+            onChange={(e) => setWeeksBack(Number(e.target.value))}
             variant="outlined"
+            disabled={scope === 'course'}
             style={{ color: 'white', background: '#2c2c2c' }}
           >
-            {[1,2,3,4,6,8].map((n) => (<MenuItem key={n} value={n} style={{ color: 'white' }}>{n} v framåt</MenuItem>))}
+            {[0,1,2,3,4,6,8,12].map((n) => (<MenuItem key={n} value={n} style={{ color: 'white' }}>{n} v bakåt</MenuItem>))}
+          </Select>
+          <Select
+            value={weeksForward}
+            onChange={(e) => setWeeksForward(Number(e.target.value))}
+            variant="outlined"
+            disabled={scope === 'course'}
+            style={{ color: 'white', background: '#2c2c2c' }}
+          >
+            {[0,1,2,3,4,6,8,12].map((n) => (<MenuItem key={n} value={n} style={{ color: 'white' }}>{n} v framåt</MenuItem>))}
           </Select>
         </Box>
 
@@ -164,18 +224,33 @@ export default function StudyDashboardPage() {
             <Box p={2}><Typography style={{ color: '#ccc' }}>Inga valda föreläsningar inom intervallet.</Typography></Box>
           ) : (
             selectedLectures.map((lec) => (
-              <Box key={lec.id} display="flex" alignItems="center" justifyContent="space-between" p={2} borderBottom="1px solid #333">
+              <Box key={lec.id} display="flex" alignItems="center" justifyContent="space-between" p={2} borderBottom="1px solid #333" onClick={() => setSelectedLectureId(lec.id)} style={{ cursor: 'pointer', background: selectedLectureId === lec.id ? '#313131' : undefined }}>
                 <Box>
                   <Typography style={{ color: 'white' }}>{lec.title}</Typography>
                   <Typography variant="body2" style={{ color: '#aaa' }}>
                     {format(parseISO(lec.date), 'EEE d MMM HH:mm', { locale: sv })} {lec.time ? `• ${lec.time}` : ''}
                   </Typography>
                 </Box>
-                <Chip label="vald" size="small" style={{ background: '#4caf50', color: 'white' }} />
+                <Box display="flex" alignItems="center" gridGap={8 as any}>
+                  {selectedLectureId === lec.id && (
+                    <Chip label="spårar" size="small" style={{ background: '#64b5f6', color: 'white' }} />
+                  )}
+                  <Chip label={`studerat ${Math.floor((tracked[lec.id] || 0) / 60)} min`} size="small" style={{ background: '#424242', color: 'white' }} />
+                  <Chip label="vald" size="small" style={{ background: '#4caf50', color: 'white' }} />
+                </Box>
               </Box>
             ))
           )}
         </Paper>
+
+        {/* Current selection summary under timer */}
+        <Box mt={1}>
+          {selectedLectureId && (
+            <Typography variant="body2" style={{ color: '#9aa' }}>
+              Spårar tid för föreläsning: {selectedLectures.find((l) => l.id === selectedLectureId)?.title || selectedLectureId} — totalt {Math.floor((tracked[selectedLectureId] || 0) / 60)} min
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Layout>
   );
