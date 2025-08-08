@@ -184,33 +184,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           continue;
         }
 
-        // Build toggle blocks: toggle title is the question; body contains summary, text, and optionally images
-        const buildBlocks = async (): Promise<any[]> => {
-          const blocks: any[] = [];
+        // Build parent toggle blocks (no children yet)
+        const buildParentBlocks = (): any[] => {
+          return flashcardGroups.map((group) => ({
+            object: 'block',
+            type: 'toggle',
+            toggle: { rich_text: [{ type: 'text', text: { content: `${group.question}` } }] }
+          }));
+        };
+
+        // Build children for a specific group (paragraph + optional image per page)
+        const buildChildrenForGroup = async (group: any, logs: string[]): Promise<any[]> => {
+          const children: any[] = [];
           const baseProto = (req.headers['x-forwarded-proto'] as string) || 'https';
           const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
           const baseUrl = `${baseProto}://${host}`;
-          for (const group of flashcardGroups) {
-            const children: any[] = [];
-            // Per-page content: only extracted text (and optional image), no headings or summary
-            for (const page of group.pages) {
-              children.push({
-                object: 'block',
-                type: 'paragraph',
-                paragraph: { rich_text: [{ type: 'text', text: { content: page.textContent } }] }
-              });
-              if (mode === 'full') {
-                try {
-                  let externalUrl: string | null = null;
-                  if ((page as any).imageUrl) {
-                    externalUrl = (page as any).imageUrl as string;
-                    logs.push(`🖼️ Using pre-uploaded image URL`);
-                  } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
-                    // Skip in development where base is localhost; Notion requires public URL
-                    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-                      logs.push('Skipping image upload (localhost) – Notion kräver publik URL');
-                    } else {
-                      const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
+          for (const page of group.pages) {
+            children.push({
+              object: 'block',
+              type: 'paragraph',
+              paragraph: { rich_text: [{ type: 'text', text: { content: page.textContent } }] }
+            });
+            if (mode === 'full') {
+              try {
+                let externalUrl: string | null = null;
+                if ((page as any).imageUrl) {
+                  externalUrl = (page as any).imageUrl as string;
+                  logs.push(`🖼️ Using pre-uploaded image URL`);
+                } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
+                  if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+                    logs.push('Skipping image upload (localhost) – Notion kräver publik URL');
+                  } else {
+                    const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
                     const storeResp = await fetch(storeUrl, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -228,45 +233,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                       const txt = await storeResp.text();
                       logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
                     }
-                    }
                   }
-                  // Notion requires a fully-qualified, publicly accessible URL
-                   if (externalUrl && /^https:\/\//i.test(externalUrl)) {
-                    logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
-                    children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
-                  } else if (externalUrl) {
-                    logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
-                  }
-                } catch (imgErr: any) {
-                  logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);
                 }
+                if (externalUrl && /^https:\/\//i.test(externalUrl)) {
+                  logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
+                  children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
+                } else if (externalUrl) {
+                  logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
+                }
+              } catch (imgErr: any) {
+                logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);
               }
             }
-            blocks.push({
-              object: 'block',
-              type: 'toggle',
-              toggle: { rich_text: [{ type: 'text', text: { content: `${group.question}` } }], children }
-            });
           }
-          return blocks;
+          return children;
         };
 
         if (!dryRun) {
-          const blocks = await buildBlocks();
-          logs.push(`🧱 Prepared ${blocks.length} toggle blocks`);
-          // Notion limits append to 100 children per request
+          const parentBlocks = buildParentBlocks();
+          logs.push(`🧱 Prepared ${parentBlocks.length} toggle blocks`);
+          // Append parent toggles first (batch)
           const BATCH_SIZE = 90;
-          for (let i = 0; i < blocks.length; i += BATCH_SIZE) {
-            const batch = blocks.slice(i, i + BATCH_SIZE);
+          const createdParentIds: string[] = [];
+          for (let i = 0; i < parentBlocks.length; i += BATCH_SIZE) {
+            const batch = parentBlocks.slice(i, i + BATCH_SIZE);
             try {
-              await notion.blocks.children.append({
+              const resp = await notion.blocks.children.append({
                 block_id: (lecturePage as any).id,
                 children: batch as any
               });
-              logs.push(`✅ Appended batch ${i / BATCH_SIZE + 1} (${batch.length} blocks)`);
+              // Collect created ids in order
+              (resp as any).results.forEach((b: any) => createdParentIds.push(b.id));
+              logs.push(`✅ Appended parent batch ${i / BATCH_SIZE + 1} (${batch.length} toggles)`);
             } catch (appendErr: any) {
-              logs.push(`💥 Append error: ${appendErr?.body ? JSON.stringify(appendErr.body) : appendErr?.message || String(appendErr)}`);
+              logs.push(`💥 Append error (parents): ${appendErr?.body ? JSON.stringify(appendErr.body) : appendErr?.message || String(appendErr)}`);
               throw appendErr;
+            }
+          }
+
+          // Append children to each created toggle in order
+          for (let gi = 0; gi < flashcardGroups.length; gi++) {
+            const parentId = createdParentIds[gi];
+            if (!parentId) continue;
+            const children = await buildChildrenForGroup(flashcardGroups[gi], logs);
+            if (children.length === 0) continue;
+            try {
+              await notion.blocks.children.append({ block_id: parentId, children: children as any });
+              logs.push(`✅ Appended ${children.length} child blocks to toggle #${gi + 1}`);
+            } catch (childErr: any) {
+              logs.push(`💥 Append error (children for group ${gi + 1}): ${childErr?.body ? JSON.stringify(childErr.body) : childErr?.message || String(childErr)}`);
             }
           }
         } else {

@@ -369,7 +369,7 @@ export default function ActivityPage() {
   const threeDData = useMemo(() => {
     const persons = ['Mattias', 'Albin', 'David'] as const;
     const actions = ['selected', 'unselected', 'completed'] as const;
-    // Derive min/max from the filtered events to ensure all mock data shows
+    // Derive a rolling window based on recent activity
     let start = startOfDay(new Date());
     let end = startOfDay(new Date());
     const times = filtered
@@ -378,13 +378,16 @@ export default function ActivityPage() {
       })
       .filter((t) => typeof t === 'number') as number[];
     if (times.length > 0) {
-      start = new Date(Math.min(...times));
+      const minDate = new Date(Math.min(...times));
       end = new Date(Math.max(...times));
-      // If range is very small, extend to 28 days to make bars visible
+      // Rolling window (e.g. last 60 days)
+      const ROLLING_DAYS = 60;
+      const rollingStart = addDays(end, -ROLLING_DAYS);
+      // Clamp to the later of (oldest event) and (rollingStart)
+      start = rollingStart > minDate ? rollingStart : startOfDay(minDate);
+      // Ensure at least 28 days so bars don’t collapse on sparse data
       const daysSpan = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
-      if (daysSpan < 28) {
-        end = addDays(start, 28);
-      }
+      if (daysSpan < 28) end = addDays(start, 28);
     } else {
       // No data → show last 28 days
       start = addDays(startOfDay(new Date()), -28);
