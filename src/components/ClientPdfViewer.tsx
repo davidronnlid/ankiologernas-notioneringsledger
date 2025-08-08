@@ -846,7 +846,7 @@ const ClientPdfViewer: React.FC = () => {
             return null;
           }
           const storeUrl = `${origin}/.netlify/functions/storeImage`;
-          pushProgress('⬆️ Laddar upp bild till MongoDB…');
+          pushProgress(`⬆️ Laddar upp bild till MongoDB… (${storeUrl})`);
           const resp = await fetch(storeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -873,7 +873,8 @@ const ClientPdfViewer: React.FC = () => {
 
       // Prepare flashcard groups for sync
       const flashcardGroups: any[] = [];
-        for (const group of currentResult.groupedContent) {
+      let hadUploadError = false;
+      for (const group of currentResult.groupedContent) {
         const pages: any[] = [];
         for (let i = 0; i < group.pages.length; i++) {
           const page = group.pages[i];
@@ -884,8 +885,9 @@ const ClientPdfViewer: React.FC = () => {
               if (uploadedUrl) {
                 pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl });
               } else {
-                // Fall back to server-side upload using original data URL
-                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageDataUrl: page.imageUrl });
+                hadUploadError = true;
+                // Fall back to text-only for this page
+                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
               }
           } else {
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
@@ -902,12 +904,12 @@ const ClientPdfViewer: React.FC = () => {
       // Get current user from Redux store
       const user = currentUser?.full_name || 'David Rönnlid';
 
-      // Decide mode: disable images automatically on localhost to prevent Notion errors
+      // Decide mode: disable images automatically on localhost or if uploads failed
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-      const effectiveMode: 'text-only' | 'full' = includeImages && !isLocal ? 'full' : 'text-only';
-      if (includeImages && isLocal) {
-        pushProgress('⚠️ Images disabled automatically on localhost. Switching to text-only mode.');
+      const effectiveMode: 'text-only' | 'full' = includeImages && !isLocal && !hadUploadError ? 'full' : 'text-only';
+      if (includeImages && (isLocal || hadUploadError)) {
+        pushProgress('⚠️ Images disabled (local env or upload errors). Switching to text-only mode.');
       }
 
       const syncData = {

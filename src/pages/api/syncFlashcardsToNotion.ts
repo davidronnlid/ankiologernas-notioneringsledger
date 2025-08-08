@@ -199,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const baseProto = (req.headers['x-forwarded-proto'] as string) || 'https';
           const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
           const baseUrl = `${baseProto}://${host}`;
-          for (const page of group.pages) {
+            for (const page of group.pages) {
             children.push({
               object: 'block',
               type: 'paragraph',
@@ -223,15 +223,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     if (storeResp.ok) {
                       const storeJson = await storeResp.json();
-                      const { url, prettyUrl } = storeJson || {};
-                      if (prettyUrl && /^https:\/\//i.test(prettyUrl)) {
-                        externalUrl = prettyUrl;
-                      } else if (url) {
-                        externalUrl = url;
-                      }
+                      const { url } = storeJson || {};
+                      if (url) externalUrl = url;
                     } else {
                       const txt = await storeResp.text();
-                      logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
+                      logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,300)}`);
                     }
                   }
                 }
