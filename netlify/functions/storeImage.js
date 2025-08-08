@@ -44,7 +44,12 @@ exports.handler = async (event) => {
     await client.close();
 
     const id = insertResult.insertedId.toString();
-    const publicUrl = `${process.env.URL || ''}/.netlify/functions/getImage?id=${id}`;
+    // Prefer Netlify-provided site URL; fall back to request headers for absolute URL (needed by Notion)
+    const proto = (event.headers && (event.headers['x-forwarded-proto'] || event.headers['X-Forwarded-Proto'])) || 'https';
+    const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers['X-Forwarded-Host'] || event.headers.host)) || '';
+    const baseFromHeaders = host ? `${proto}://${host}` : '';
+    const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || baseFromHeaders;
+    const publicUrl = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
 
     return {
       statusCode: 200,

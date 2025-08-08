@@ -220,8 +220,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                       logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
                     }
                   }
-                  if (externalUrl) {
+                  // Notion requires a fully-qualified, publicly accessible URL
+                  if (externalUrl && /^https?:\/\//i.test(externalUrl)) {
                     children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
+                  } else if (externalUrl) {
+                    logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
                   }
                 } catch (imgErr: any) {
                   logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);

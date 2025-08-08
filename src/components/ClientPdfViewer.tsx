@@ -469,143 +469,169 @@ const ClientPdfViewer: React.FC = () => {
     setExpandedPages(newExpandedPages);
   };
 
-  // Generate intelligent medical learning questions
+  // Generate intelligent, Swedish medical-school questions for a page
   const generateAIQuestion = (textContent: string, pageNumber: number): string => {
     if (!textContent || textContent.trim().length === 0) {
       return 'Vad visar denna sida?';
     }
 
-    const text = textContent.toLowerCase();
-    const words = text.split(' ');
-    const keyWords = words.filter(word => 
-      word.length > 3 && 
-      !['och', 'den', 'det', 'som', 'är', 'var', 'för', 'med', 'till', 'av', 'på', 'i', 'en', 'ett'].includes(word)
-    );
+    // Normalize Swedish text
+    const text = textContent
+      .replace(/\s+/g, ' ')
+      .replace(/[\u00AD]/g, '')
+      .toLowerCase();
 
-    if (keyWords.length === 0) {
-      return 'Vad innehåller denna sida?';
+    // Quick utilities
+    const containsAny = (arr: string[]) => arr.some((t) => text.includes(t));
+    const match = (re: RegExp) => re.test(text);
+
+    // Domain signals
+    const sectionSignals: Record<string, string[]> = {
+      definition: ['definition', 'vad är', 'karaktäriseras av'],
+      epidemiology: ['epidemiologi', 'incidens', 'prevalens'],
+      etiology: ['etiologi', 'orsak', 'orsaker', 'patogenes'],
+      risk: ['riskfaktor', 'riskfaktorer'],
+      symptoms: ['symtom', 'symptom', 'klinisk bild'],
+      status: ['status', 'fynd vid status'],
+      diagnostics: ['diagnostik', 'diagnos', 'kriterier', 'utredning'],
+      labs: ['prover', 'lab', 'laboratorie', 'blodprov'],
+      imaging: ['röntgen', 'rtg', 'ultraljud', 'ulj', 'ct', 'mr', 'mri', 'angiografi', 'doppler'],
+      ekg: ['ekg', 'qrs', 'st-höjning', 'st-sänkning', 't-våg', 'avledning'],
+      treatment: ['behandling', 'handläggning', 'terapi', 'åtgärd', 'intervention'],
+      complications: ['komplikation', 'följd', 'biverkning'],
+      followup: ['uppföljning', 'kontroll', 'monitorering'],
+      ddx: ['ddx', 'differentialdiagnos', 'differentialdiagnoser']
+    };
+
+    const systems = [
+      'kardiologi','pneumologi','endokrinologi','gastroenterologi','nefrologi','hematologi','neurologi',
+      'infektion','reumatologi','dermatologi','psykiatri','obstetrik','gynekologi','pediatrik','kirurgi',
+      'ortopedi','onkologi','urologi','öron', 'öga'
+    ];
+
+    // Helpful extracted features
+    const hasNumbers = match(/\b\d+(,\d+|\.\d+)?\s?(mmhg|mmol\/l|mg\/l|µ?mol\/l|bpm|°c|kpa|ml\/min|%|g\/dl)\b/);
+    const looksLikeList = match(/(^|\n)[\-•\d\)]\s+/m) || (text.match(/,\s?/g) || []).length >= 5;
+
+    // Try to infer the main concept (very lightweight)
+    const mainConcept = (() => {
+      // pick frequent capitalized tokens from the original (best-effort)
+      const raw = textContent.match(/([A-ZÅÄÖ][A-Za-zÅÄÖåäö\-]{2,})(?:\s+[A-ZÅÄÖ][A-Za-zÅÄÖåäö\-]{2,})?/g) || [];
+      const candidate = raw.map((s) => s.trim()).sort((a,b) => a.length - b.length)[0];
+      return candidate || '';
+    })();
+
+    // Special modalities
+    if (containsAny(sectionSignals.ekg)) {
+      return 'Tolka EKG‑fynden: vilka diagnostiska kriterier och akuta åtgärder är relevanta i detta fall?';
+    }
+    if (containsAny(sectionSignals.imaging)) {
+      return 'Vilka bilddiagnostiska fynd förväntas här och hur påverkar de handläggning och vidare utredning?';
     }
 
-    // Extract specific medical terms and concepts
+    // Section‑driven templates (prioritized)
+    if (containsAny(sectionSignals.diagnostics)) {
+      return mainConcept
+        ? `Hur ställs diagnosen ${mainConcept}? Ange nyckelkriterier, viktiga prover och eventuella bildfynd.`
+        : 'Hur ställs diagnosen? Ange kriterier, relevanta prover och eventuella bildfynd.';
+    }
+    if (containsAny(sectionSignals.treatment)) {
+      return mainConcept
+        ? `Hur handläggs och behandlas ${mainConcept}? Prioritera akuta åtgärder, förstahandsbehandling och uppföljning.`
+        : 'Hur handläggs tillståndet? Beskriv akuta åtgärder, förstahandsbehandling och uppföljning.';
+    }
+    if (containsAny(sectionSignals.symptoms)) {
+      return mainConcept
+        ? `Vilka kardinalsymtom och statusfynd är typiska för ${mainConcept}, och vilka röda flaggor kräver akut åtgärd?`
+        : 'Vilka kardinalsymtom och statusfynd är typiska, och vilka röda flaggor kräver akut åtgärd?';
+    }
+    if (containsAny(sectionSignals.etiology) || containsAny(sectionSignals.risk)) {
+      return mainConcept
+        ? `Vilka är de viktigaste orsakerna och riskfaktorerna till ${mainConcept}, och hur kopplas dessa till patofysiologin?`
+        : 'Vilka är de viktigaste orsakerna och riskfaktorerna, och hur kopplas dessa till patofysiologin?';
+    }
+    if (containsAny(sectionSignals.ddx)) {
+      return mainConcept
+        ? `Vilka är de viktigaste differentialdiagnoserna till ${mainConcept} och hur särskiljer du dem kliniskt och laboratoriemässigt?`
+        : 'Vilka är de viktigaste differentialdiagnoserna och hur särskiljer du dem?';
+    }
+    if (containsAny(sectionSignals.complications)) {
+      return mainConcept
+        ? `Vilka komplikationer är vanligast vid ${mainConcept} och hur kan de förebyggas respektive upptäckas tidigt?`
+        : 'Vilka komplikationer är vanligast och hur förebyggs respektive upptäcks de tidigt?';
+    }
+
+    // System‑level prompts
+    if (containsAny(['graviditet','obstetrik','placenta','förlossning','puerperium','preeklampsi','eclampsi'])) {
+      if (containsAny(['fysiologi','patofysiologi'])) {
+        return 'Förklara de centrala fysiologiska och patofysiologiska förändringarna vid graviditet och deras kliniska betydelse.';
+      }
+      return 'Vilka är de viktigaste kliniska prioriteringarna och röda flaggorna vid graviditet i detta sammanhang?';
+    }
+    if (containsAny(['hjärta','kardiologi','ischemi','infarkt','svikt','klaff','arytmi'])) {
+      return 'Redogör för patofysiologi, typiska symtom/status samt diagnostik och initial handläggning i kardiologiskt fokus.';
+    }
+    if (containsAny(['lungor','pneumoni','kols','astma','andningssvikt','embol'])) {
+      return 'Vilka fynd styr misstanke och hur bekräftas diagnosen? Beskriv även akuta åtgärder och syrgas/ventilationsstrategi.';
+    }
+    if (containsAny(['infektion','sepsis','antibiotika','feber'])) {
+      return 'Hur riskstratifierar du och väljer empirisk antibiotika? Ange nyckelprover och omedelbara åtgärder.';
+    }
+
+    // Numeric thresholds or long lists suggest enumeration questions
+    if (hasNumbers) {
+      return 'Vilka centrala gränsvärden, kriterier eller målvärden gäller här och hur påverkar de diagnos respektive behandling?';
+    }
+    if (looksLikeList) {
+      return 'Nämn de viktigaste punkterna i listan och förklara varför de är kliniskt relevanta.';
+    }
+
+    // Knowledge‑backed generic fallbacks
     const medicalTerms = extractMedicalTerms(text);
-    const mainTopics = extractMainTopics(text);
-    
-    // Generate pedagogically intelligent questions for medical learning
-    
-    // Physiology and Mechanisms
-    if (text.includes('graviditet') && text.includes('fysiologi')) {
-      return 'Hur kan du förklara de fysiologiska mekanismerna bakom graviditetsförändringarna och varför är denna förståelse kritisk för klinisk bedömning?';
-    }
-    
-    if (text.includes('placenta') && text.includes('funktion')) {
-      return 'Vilka är placentas viktigaste funktioner som endokrint organ och hur påverkar dessa funktioner både mor och fostrets hälsa?';
-    }
-    
-    if (text.includes('cirkulation') && text.includes('blod')) {
-      return 'Vilka cirkulatoriska anpassningar sker under graviditet och hur påverkar dessa förändringar både normal graviditet och potentiella komplikationer?';
-    }
-    
-    if (text.includes('hjärta') && text.includes('hjärtfrekvens')) {
-      return 'Hur förändras hjärtats funktion under graviditet och vilka kliniska tecken kan du förvänta dig att se hos en gravid patient?';
-    }
-    
-    if (text.includes('blodvolym') && text.includes('plasma')) {
-      return 'Vilka mekanismer styr blodvolymsförändringarna under graviditet och hur påverkar detta både mor och fostrets cirkulation?';
-    }
-    
-    // Clinical Assessment and Differential Diagnosis
-    if (text.includes('symptom') && (text.includes('ofarlig') || text.includes('farlig'))) {
-      return 'Hur skiljer du mellan normala graviditetssymptom och tecken på potentiella komplikationer? Vilka röda flaggor bör du vara uppmärksam på?';
-    }
-    
-    if (text.includes('varför') && text.includes('viktigt')) {
-      return 'Varför är det viktigt att förstå graviditetsfysiologi i klinisk praxis och när kan gravida patienter inte behandlas som icke-gravida?';
-    }
-    
-    // Endocrine System
-    if (text.includes('endokrin') && text.includes('system')) {
-      return 'Vilka endokrina förändringar sker under graviditet och hur påverkar dessa förändringar både mor och fostrets utveckling?';
-    }
-    
-    if (text.includes('tyreoidea') || text.includes('sköldkörtel')) {
-      return 'Hur påverkar graviditet sköldkörtelns funktion och vilka kliniska implikationer har detta för både mor och fostret?';
-    }
-    
-    if (text.includes('hypofys') || text.includes('prolaktin')) {
-      return 'Vilka hypofysrelaterade förändringar sker under graviditet och hur förbereder dessa kroppen för amning?';
-    }
-    
-    if (text.includes('binjurar') || text.includes('kortisol')) {
-      return 'Hur påverkar graviditet binjurarnas funktion och vilka kliniska konsekvenser kan detta ha för både mor och fostret?';
-    }
-    
-    // Respiratory System
-    if (text.includes('andning') || text.includes('respiratorisk')) {
-      return 'Vilka respiratoriska förändringar sker under graviditet och hur påverkar dessa både mor och fostrets syresättning?';
-    }
-    
-    // Gastrointestinal System
-    if (text.includes('mage') || text.includes('gastrointestinal')) {
-      return 'Vilka gastrointestinala förändringar sker under graviditet och hur påverkar dessa både mor och fostrets näringstillförsel?';
-    }
-    
-    // Renal System
-    if (text.includes('urin') || text.includes('renal')) {
-      return 'Vilka renala förändringar sker under graviditet och hur påverkar dessa både mor och fostrets vätske- och elektrolytbalans?';
-    }
-    
-    // Clinical Reasoning and Application
-    if (text.includes('bedömning') || text.includes('klinisk')) {
-      return 'Hur använder du din förståelse för graviditetsfysiologi i klinisk bedömning och vilka faktorer är viktiga att beakta?';
-    }
-    
-    if (text.includes('komplikation') || text.includes('risk')) {
-      return 'Vilka riskfaktorer och komplikationer kan uppstå under graviditet och hur identifierar du tidiga tecken på potentiella problem?';
-    }
-    
-    if (text.includes('behandling') || text.includes('intervention')) {
-      return 'Hur påverkar graviditetsfysiologi val av behandling och vilka särskilda överväganden måste göras för gravida patienter?';
-    }
-
-    // Create detailed learning questions with extracted terms
-    if (medicalTerms.length > 0) {
+    if (medicalTerms.length >= 2) {
       const termsList = medicalTerms.slice(0, 3).join(', ');
-      return `Vilka är de viktigaste aspekterna av ${termsList} under graviditet och hur påverkar dessa både mor och fostret kliniskt?`;
+      return `Syntetisera innehållet: hur hänger ${termsList} ihop patofysiologiskt och hur påverkar det diagnostik och handläggning?`;
     }
 
-    // Fallback with main topics for learning
+    const mainTopics = extractMainTopics(text);
     if (mainTopics.length > 0) {
       const topicsList = mainTopics.slice(0, 2).join(' och ');
-      return `Hur förstår du ${topicsList} under graviditet och vilka kliniska implikationer har denna kunskap?`;
+      return `Förklara huvuddragen i ${topicsList} och ange hur det omsätts i praktisk handläggning.`;
     }
 
-    // Generic but pedagogically focused question
-    const firstFewWords = keyWords.slice(0, 3).join(', ');
-    return `Vilka är de viktigaste lärdomarna om ${firstFewWords} under graviditet och hur tillämpar du denna kunskap i klinisk praxis?`;
+    // Last‑resort
+    return 'Vad är den viktigaste kliniska lärdomen från denna sida och hur påverkar den diagnostik eller behandling?';
   };
 
-  // Extract medical terms from text
+  // Extract medical terms from text (Swedish, broad med‑school set)
   const extractMedicalTerms = (text: string): string[] => {
     const medicalTerms = [
-      'graviditet', 'fysiologi', 'placenta', 'cirkulation', 'blod', 'hjärta', 'symptom',
-      'endokrin', 'system', 'tyreoidea', 'sköldkörtel', 'hypofys', 'prolaktin',
-      'binjurar', 'kortisol', 'estrogen', 'renin', 'angiotensin', 'aldosteron',
-      'hjärtfrekvens', 'slagvolym', 'hjärtminutvolym', 'blodvolym', 'plasma',
-      'perifer', 'resistens', 'blodtryck', 'ofarlig', 'farlig', 'bedömning'
+      // Core physiology & patho
+      'fysiologi','patofysiologi','homeostas','inflammation','ischemi','hypoxi','nekros','apoptos',
+      // Systems & organs
+      'hjärta','lungor','lever','njure','hjärna','pankreas','magsäck','tarm','mjälte','sköldkörtel','binjurar','hypofys',
+      // Common conditions
+      'infarkt','angina','hjärtsvikt','arytmi','pneumoni','kols','astma','sepsis','diabetes','ketoacidos',
+      'hypertyreos','hypotyreos','njursvikt','levercirros','ulcerös kolit','crohn',
+      // OBGYN
+      'graviditet','placenta','preeklampsi','eclampsi','puerperium','amning',
+      // Diagnostics & therapy
+      'ekg','röntgen','ultraljud','ct','mr','angiografi','prover','lab',
+      'antibiotika','antikoagulantia','ace‑hämmare','betablockerare','diuretika','insulin','metformin',
+      // Misc
+      'riskfaktor','differentialdiagnos','komplikation','behandling','handläggning','uppföljning'
     ];
-    
-    return medicalTerms.filter(term => text.includes(term));
+    return medicalTerms.filter((term) => text.includes(term));
   };
 
-  // Extract main topics from text
+  // Extract main topics from text (phrases commonly found in med school notes)
   const extractMainTopics = (text: string): string[] => {
     const topics = [
-      'normal graviditet', 'graviditetsfysiologi', 'placenta-fysiologi',
-      'cirkulationsförändringar', 'hjärtrelaterade förändringar', 'blodvolymsförändringar',
-      'graviditetssymptom', 'klinisk bedömning', 'endokrina systemet'
+      'diagnostiska kriterier','klinisk bedömning','initial handläggning','behandlingsprinciper','differentialdiagnoser',
+      'komplikationer och uppföljning','patofysiologi och mekanismer','riskfaktorer och prevention',
+      'bilddiagnostik','ekg‑tolkning','akut omhändertagande'
     ];
-    
-    return topics.filter(topic => text.includes(topic));
+    return topics.filter((topic) => text.includes(topic));
   };
 
   // Group pages intelligently based on content similarity and AI questions
@@ -804,6 +830,11 @@ const ClientPdfViewer: React.FC = () => {
       // Use current processing result from state
       const currentResult = result;
       console.log('📋 Processing result:', currentResult);
+
+      // Scope summary
+      const totalGroups = currentResult.groupedContent.length;
+      const totalGroupedPages = currentResult.groupedContent.reduce((acc, g) => acc + g.pages.length, 0);
+      pushProgress(`Scope: ${totalGroups} grupp(er) • ${totalGroupedPages} sidor i grupper`);
 
       // Optional pre-upload of images to shrink payload size
       const uploadImage = async (dataUrl: string): Promise<string | null> => {
@@ -1168,6 +1199,13 @@ const ClientPdfViewer: React.FC = () => {
                 Download All
               </Button>
             </Box>
+          </Box>
+
+          {/* Grouping overview for sync scope */}
+          <Box style={{ marginBottom: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Chip label={`Grupper att synka: ${result.groupedContent.length}`} color="primary" />
+            <Chip label={`Totalt sidor i grupper: ${result.groupedContent.reduce((a,g)=>a+g.pages.length,0)}`} variant="outlined" />
+            <Chip label={`Medel sidor/grupp: ${(result.groupedContent.reduce((a,g)=>a+g.pages.length,0) / Math.max(1,result.groupedContent.length)).toFixed(1)}`} variant="outlined" />
           </Box>
 
           {/* Processing Stats */}

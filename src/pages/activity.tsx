@@ -26,7 +26,9 @@ import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
 import DoneAllIcon from '@material-ui/icons/DoneAll';
 import EditIcon from '@material-ui/icons/Edit';
 import NoteAddIcon from '@material-ui/icons/NoteAdd';
-import { format, parseISO, formatDistanceToNow, addDays, subDays, startOfDay, getDay } from 'date-fns';
+import { format, parseISO, formatDistanceToNow, addDays, subDays, startOfDay, getDay, isAfter, isBefore } from 'date-fns';
+import { coursePeriods } from 'utils/coursePeriods';
+import { isCourseActive } from 'utils/processLectures';
 import { sv } from 'date-fns/locale';
 import { getProfilePicUrl } from 'utils/profilePicMapper';
 
@@ -162,7 +164,7 @@ const useStyles = makeStyles((theme: Theme) =>
     right: { color: '#bbb', fontSize: '0.85rem' },
     typeChip: { color: 'white' },
     avatar: { width: 28, height: 28, fontSize: 14 },
-    // 3D chart styles
+    // Small-multiples distribution chart
     threeDWrap: {
       background: 'rgba(44,44,44,0.9)',
       border: '1px solid #404040',
@@ -178,50 +180,37 @@ const useStyles = makeStyles((theme: Theme) =>
       color: '#ddd',
       fontWeight: 600,
     },
-    threeDScene: {
-      perspective: 700,
-      overflowX: 'auto' as const,
-      paddingBottom: 8,
-    },
-    threeDRow: {
-      display: 'flex',
+    smScene: { overflowX: 'auto' as const, paddingBottom: 6 },
+    smRow: {
+      display: 'grid',
+      gridTemplateColumns: '100px 1fr',
+      alignItems: 'center',
       gap: 12,
-      transform: 'rotateX(55deg) rotateZ(45deg)',
-      transformOrigin: 'left bottom',
-      height: 140,
+      margin: '8px 0',
     },
-    threeDCol: {
+    smRowLabel: { color: '#ccc' },
+    smBars: {
       display: 'flex',
       alignItems: 'flex-end',
-      gap: 6,
-      height: '100%',
-    },
-    bar: {
+      gap: 4,
       position: 'relative' as const,
-      width: 14,
-      minHeight: 2,
+      minHeight: 60,
+    },
+    smCol: { display: 'flex', alignItems: 'flex-end', width: 10 },
+    smBar: {
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column-reverse' as const,
       border: '1px solid #1f1f1f',
       background: '#2a2a2a',
     },
-    barTop: {
+    smSeg: { width: '100%' },
+    smWeekTick: {
       position: 'absolute' as const,
-      left: 0,
-      top: -6,
-      width: '100%',
-      height: 6,
-      background: 'rgba(0,0,0,0.25)',
-      transform: 'skewX(-45deg)',
-      transformOrigin: 'bottom left',
-    },
-    barSide: {
-      position: 'absolute' as const,
-      right: -6,
+      bottom: 0,
       top: 0,
-      width: 6,
-      height: '100%',
-      background: 'rgba(0,0,0,0.3)',
-      transform: 'skewY(-45deg)',
-      transformOrigin: 'top left',
+      width: 1,
+      background: 'rgba(255,255,255,0.06)',
     },
     legendRow: {
       display: 'flex',
@@ -411,14 +400,33 @@ export default function ActivityPage() {
     return { columns, total: filtered.length };
   }, [filtered]);
 
-  // 3D bar data (per action/person per day, last 14 weeks)
+  // Distribution chart data (per action/person per day) – span limited to active course window
   const threeDData = useMemo(() => {
     const persons = ['Mattias', 'Albin', 'David'] as const;
     const actions = ['selected', 'unselected', 'completed'] as const;
-    const today = startOfDay(new Date());
-    const span = 14 * 7;
+    // Determine active course period
+    const now = new Date();
+    const active = coursePeriods.find((c) => isCourseActive(c.title, now));
+    let start = startOfDay(now);
+    let end = startOfDay(now);
+    if (active) {
+      start = startOfDay(parseISO(active.startDate));
+      end = startOfDay(parseISO(active.endDate));
+    } else {
+      // fallback to min/max of current filtered data
+      const times = filtered.map((a) => startOfDay(parseISO(a.timestamp)).getTime());
+      if (times.length > 0) {
+        start = new Date(Math.min(...times));
+        end = new Date(Math.max(...times));
+      }
+    }
+    // Build day list from start to end inclusive
     const days: Date[] = [];
-    for (let i = span - 1; i >= 0; i--) days.push(subDays(today, i));
+    let cursor = start;
+    while (!isAfter(cursor, end)) {
+      days.push(cursor);
+      cursor = addDays(cursor, 1);
+    }
 
     const key = (d: Date) => startOfDay(d).toISOString();
     const byDate: Record<string, any> = {};
@@ -432,7 +440,7 @@ export default function ActivityPage() {
     });
     filtered.forEach((a) => {
       const k = key(parseISO(a.timestamp));
-      if (!byDate[k]) return;
+      if (!byDate[k]) return; // outside of active window
       if ((['selected', 'unselected', 'completed'] as string[]).includes(a.type) && a.person) {
         const p = (['Mattias', 'Albin', 'David'] as string[]).includes(a.person) ? a.person : null;
         if (p) {
@@ -440,7 +448,15 @@ export default function ActivityPage() {
         }
       }
     });
-    return { days, columns: days.map((d) => byDate[key(d)]), persons, actions };
+    const columns = days.map((d) => byDate[key(d)]);
+    let maxTotal = 1;
+    columns.forEach((col) => {
+      (['selected','unselected','completed'] as const).forEach((act) => {
+        const total = col[act].Mattias + col[act].Albin + col[act].David;
+        if (total > maxTotal) maxTotal = total;
+      });
+    });
+    return { days, columns, persons, actions, maxTotal };
   }, [filtered]);
 
   return (
@@ -496,43 +512,53 @@ export default function ActivityPage() {
           </Box>
         </Box>
 
-        {/* 3D activity distribution */}
+        {/* Distribution chart: clearer small multiples */}
         <Box className={classes.threeDWrap}>
           <Box className={classes.threeDHeader}>
-            <span>3D-översikt: handling × person × tid</span>
+            <span>Aktivitetsfördelning (handling × person × tid)</span>
             <Box className={classes.legendRow}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 12, height: 12, background: '#4caf50', display: 'inline-block' }} /> selected
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 12, height: 12, background: '#9e9e9e', display: 'inline-block' }} /> unselected
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 12, height: 12, background: '#64b5f6', display: 'inline-block' }} /> completed
-              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#42a5f5', display: 'inline-block' }} /> Mattias</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#ab47bc', display: 'inline-block' }} /> Albin</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#ff7043', display: 'inline-block' }} /> David</span>
+              <Divider orientation="vertical" flexItem style={{ borderColor: '#3a3a3a' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#4caf50', display: 'inline-block' }} /> selected</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#9e9e9e', display: 'inline-block' }} /> unselected</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#64b5f6', display: 'inline-block' }} /> completed</span>
             </Box>
           </Box>
-          <div className={classes.threeDScene}>
-            <div className={classes.threeDRow}>
-              {threeDData.columns.map((col, idx) => (
-                <div key={idx} className={classes.threeDCol}>
-                  {(['selected','unselected','completed'] as const).map((act) => (
-                    <Tooltip key={act} title={`${format(col.date, 'd MMM', { locale: sv })} • ${act}`}>
-                      <div
-                        className={classes.bar}
-                        style={{
-                          height: 6 + 12 * (col[act].Mattias + col[act].Albin + col[act].David),
-                          background: act === 'selected' ? '#4caf50' : act === 'unselected' ? '#9e9e9e' : '#64b5f6',
-                        }}
-                      >
-                        <div className={classes.barTop} />
-                        <div className={classes.barSide} />
-                      </div>
-                    </Tooltip>
-                  ))}
+          <div className={classes.smScene}>
+            {(['selected','unselected','completed'] as const).map((act) => (
+              <div key={act} className={classes.smRow}>
+                <div className={classes.smRowLabel}>{act}</div>
+                <div className={classes.smBars}>
+                  {threeDData.columns.map((col, idx) => {
+                    const total = col[act].Mattias + col[act].Albin + col[act].David;
+                    const height = total === 0 ? 0 : Math.max(4, Math.round((total / threeDData.maxTotal) * 60));
+                    const tip = `${format(col.date, 'EEE d MMM', { locale: sv })} • ${act}\nMattias: ${col[act].Mattias}  Albin: ${col[act].Albin}  David: ${col[act].David}`;
+                    return (
+                      <Tooltip key={idx} title={<span style={{ whiteSpace: 'pre-line' }}>{tip}</span>}>
+                        <div className={classes.smCol}>
+                          <div className={classes.smBar} style={{ height }}>
+                            {/* stacked segments per person */}
+                            {col[act].Mattias > 0 && (
+                              <div className={classes.smSeg} style={{ height: `${(col[act].Mattias / total) * 100}%`, background: '#42a5f5' }} />
+                            )}
+                            {col[act].Albin > 0 && (
+                              <div className={classes.smSeg} style={{ height: `${(col[act].Albin / total) * 100}%`, background: '#ab47bc' }} />
+                            )}
+                            {col[act].David > 0 && (
+                              <div className={classes.smSeg} style={{ height: `${(col[act].David / total) * 100}%`, background: '#ff7043' }} />
+                            )}
+                          </div>
+                          {/* weekly ticks */}
+                          {idx % 7 === 6 && <span className={classes.smWeekTick} />}
+                        </div>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </Box>
 
