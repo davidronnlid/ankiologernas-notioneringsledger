@@ -1,4 +1,4 @@
-// Netlify Function: Store image to Netlify Blobs (or MongoDB as fallback) and return a public HTTPS URL
+// Netlify Function: Store image to Netlify Blobs (primary) and return a public HTTPS URL
 // NOTE: This file intentionally exports EXACTLY ONE handler.
 
 const crypto = require('crypto');
@@ -79,7 +79,8 @@ exports.handler = async (event) => {
     // Compute a content hash to deduplicate identical images
     const contentHash = crypto.createHash('sha256').update(parsed.buffer).digest('hex');
 
-    // Prefer Netlify Blobs if available
+    const blobsOnly = (process.env.USE_BLOBS_ONLY || 'true').toLowerCase() === 'true';
+    // Prefer Netlify Blobs if available (default: true). This is revertible via USE_BLOBS_ONLY=false
     if (blobsStore) {
       const blobKey = `${contentHash}.${parsed.mimeType.split('/')[1] || 'bin'}`;
       await blobsStore.set(blobKey, parsed.buffer, {
@@ -90,7 +91,12 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, storage: 'blobs', key: blobKey, url: publicUrl, prettyUrl: publicUrl }) };
     }
 
-    // Fallback to MongoDB storage
+    if (blobsOnly) {
+      // Explicitly fail if blobs not available and we are configured to use blobs only
+      return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ errorType: 'StorageError', errorMessage: 'Netlify Blobs not available and USE_BLOBS_ONLY=true' }) };
+    }
+
+    // Fallback to MongoDB storage (revertible behavior)
     const db = await getDb(event);
     const col = db.collection('notion_images');
     try { await col.createIndex({ hash: 1 }, { unique: true }); } catch (_) {}

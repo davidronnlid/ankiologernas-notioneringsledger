@@ -238,26 +238,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
                 
                 if (externalUrl && /^https:\/\//i.test(externalUrl)) {
-                  // Validate URL is reachable before sending to Notion
-                  try {
-                    const testResp = await fetch(externalUrl, { method: 'HEAD' });
-                    if (testResp.ok) {
-                      logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
-                      imageBlocks.push({ 
-                        object: 'block', 
-                        type: 'image', 
-                        image: { 
-                          type: 'external', 
-                          external: { url: externalUrl },
-                          caption: []
-                        } 
-                      });
-                    } else {
-                      logs.push(`⚠️ Image URL not reachable (${testResp.status}): ${externalUrl}`);
-                    }
-                  } catch (urlErr) {
-                    logs.push(`⚠️ Image URL test failed: ${externalUrl} - ${urlErr}`);
-                  }
+                  logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
+                  imageBlocks.push({ 
+                    object: 'block', 
+                    type: 'image', 
+                    image: { 
+                      type: 'external', 
+                      external: { url: externalUrl },
+                      caption: []
+                    } 
+                  });
                 } else if (externalUrl) {
                   logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
                 }

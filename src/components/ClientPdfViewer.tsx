@@ -849,7 +849,7 @@ const ClientPdfViewer: React.FC = () => {
           const envBase = (window as any)?.PUBLIC_IMAGE_BASE_URL || undefined;
           const base = envBase || origin;
           const storeUrl = `${base}/.netlify/functions/storeImage`;
-          pushProgress(`⬆️ Laddar upp bild till MongoDB… (${storeUrl})`);
+          pushProgress(`⬆️ Laddar upp bild (Netlify Blobs)… (${storeUrl})`);
           const resp = await fetch(storeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
