@@ -82,6 +82,20 @@ const ClientPdfViewer: React.FC = () => {
   const [dragOver, setDragOver] = useState(false);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
   const [includeImages, setIncludeImages] = useState<boolean>(false);
+  const [syncProgressOpen, setSyncProgressOpen] = useState<boolean>(false);
+  const [syncMessages, setSyncMessages] = useState<string[]>([]);
+  const progressEndRef = useRef<HTMLDivElement | null>(null);
+
+  const pushProgress = (message: string) => {
+    const ts = new Date().toLocaleTimeString();
+    setSyncMessages((prev) => [...prev, `[${ts}] ${message}`]);
+  };
+
+  useEffect(() => {
+    if (progressEndRef.current) {
+      progressEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [syncMessages]);
   
   // Lecture selector state
   const [selectedLecture, setSelectedLecture] = useState<LectureWithCourse | null>(null);
@@ -783,6 +797,9 @@ const ClientPdfViewer: React.FC = () => {
 
     try {
       console.log('🔄 Starting flashcard sync to Notion...');
+      setSyncProgressOpen(true);
+      setSyncMessages([]);
+      pushProgress('Starting flashcard sync…');
       console.log('📋 Selected lecture:', selectedLecture);
       // Use current processing result from state
       const currentResult = result;
@@ -816,6 +833,7 @@ const ClientPdfViewer: React.FC = () => {
           const page = group.pages[i];
           if (includeImages) {
             console.log(`🖼️ Uploading image ${i + 1}/${group.pages.length} for group ${group.id}...`);
+            pushProgress(`Uploading image ${i + 1}/${group.pages.length} for group ${group.id}…`);
             const uploadedUrl = await uploadImage(page.imageUrl);
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl || undefined });
           } else {
@@ -847,6 +865,7 @@ const ClientPdfViewer: React.FC = () => {
       const payloadStr = JSON.stringify(payload);
       console.log('📤 Sending sync data:', { ...payload, flashcardGroups: `Array(${flashcardGroups.length})` });
       console.log(`📦 Payload size: ~${(payloadStr.length / 1024).toFixed(1)} KB`);
+      pushProgress(`Sending sync (mode: ${includeImages ? 'full' : 'text-only'})… payload ~${(payloadStr.length / 1024).toFixed(1)} KB`);
 
       // Prefer Next API route for better reliability on current plan
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -858,11 +877,13 @@ const ClientPdfViewer: React.FC = () => {
       let response = await doRequest(nextEndpoint);
       if (!response.ok && (response.type === 'opaque' || response.status === 0)) {
         console.warn('⚠️ Next API route blocked/redirected. Retrying via Netlify Functions endpoint...');
+        pushProgress('Next API blocked; retrying via Netlify Functions endpoint…');
         response = await doRequest(netlifyEndpoint);
       }
       if (!response.ok) {
         const raw = await response.text();
         console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
+        pushProgress(`HTTP error ${response.status}: ${response.statusText}`);
         // Auto-fallback: send a tiny dry-run request (no append) with text-only and 1 group for diagnostics
         try {
           const diagPayload = JSON.stringify({
@@ -882,6 +903,7 @@ const ClientPdfViewer: React.FC = () => {
             }))
           });
           console.log('🧪 Retrying in dry-run (text-only, 1 group) to fetch detailed logs...');
+          pushProgress('Retrying in dry‑run (text-only, 1 group) to collect diagnostics…');
           let diagResp = await fetch(nextEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
           if (!diagResp.ok && (diagResp.type === 'opaque' || diagResp.status === 0)) {
             diagResp = await fetch(netlifyEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
@@ -889,12 +911,16 @@ const ClientPdfViewer: React.FC = () => {
           const diagJson = await diagResp.json().catch(() => ({}));
           console.groupCollapsed('🧪 Dry-run diagnostic response');
           console.log(diagJson);
+          pushProgress('Received diagnostics from server.');
           if (Array.isArray(diagJson.results)) {
-            diagJson.results.forEach((r: any) => { if (r.logs) r.logs.forEach((line: string) => console.log(line)); });
+            diagJson.results.forEach((r: any) => {
+              if (r.logs) r.logs.forEach((line: string) => { console.log(line); pushProgress(line); });
+            });
           }
           console.groupEnd();
         } catch (diagErr) {
           console.warn('Dry-run diagnostic failed:', diagErr);
+          pushProgress(`Dry‑run diagnostics failed: ${diagErr instanceof Error ? diagErr.message : String(diagErr)}`);
         }
         setSyncResult({ success: false, message: `HTTP ${response.status}: ${response.statusText}` });
         return;
@@ -918,14 +944,19 @@ const ClientPdfViewer: React.FC = () => {
           if (r.logs) r.logs.forEach((line: string) => console.log(line));
           if (r.error) console.error('Error:', r.error);
           console.groupEnd();
+          pushProgress(`Result for ${r.user}: ${r.success ? 'success' : 'failed'}`);
+          if (r.logs) r.logs.forEach((line: string) => pushProgress(line));
+          if (r.error) pushProgress(`Error: ${r.error}`);
         });
       }
       console.groupEnd();
 
       if (syncResponse.success) {
         setSyncResult({ success: true, message: syncResponse.message });
+        pushProgress(`✅ ${syncResponse.message}`);
       } else {
         setSyncResult({ success: false, message: syncResponse.message || 'Sync failed' });
+        pushProgress(`❌ ${syncResponse.message || 'Sync failed'}`);
       }
 
     } catch (error) {
@@ -1331,6 +1362,27 @@ const ClientPdfViewer: React.FC = () => {
           </Box>
         </Box>
       )}
+
+      {/* Sync progress modal */}
+      <Dialog open={syncProgressOpen} onClose={() => setSyncProgressOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Notion sync progress
+          <IconButton style={{ position: 'absolute', right: 8, top: 8 }} onClick={() => setSyncProgressOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box style={{ fontFamily: 'monospace', fontSize: 13, maxHeight: 400, overflowY: 'auto' }}>
+            {syncMessages.map((m, idx) => (
+              <div key={idx}>{m}</div>
+            ))}
+            <div ref={progressEndRef} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSyncProgressOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Full Screen Dialog */}
       <Dialog

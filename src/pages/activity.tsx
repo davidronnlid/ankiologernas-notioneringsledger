@@ -26,7 +26,7 @@ import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
 import DoneAllIcon from '@material-ui/icons/DoneAll';
 import EditIcon from '@material-ui/icons/Edit';
 import NoteAddIcon from '@material-ui/icons/NoteAdd';
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import { format, parseISO, formatDistanceToNow, addDays, subDays, startOfDay, getDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getProfilePicUrl } from 'utils/profilePicMapper';
 
@@ -62,6 +62,55 @@ const useStyles = makeStyles((theme: Theme) =>
       gridTemplateColumns: '1fr 220px 220px 120px',
       gap: theme.spacing(1),
       marginBottom: theme.spacing(2),
+    },
+    heatmapWrap: {
+      background: 'rgba(44,44,44,0.9)',
+      border: '1px solid #404040',
+      borderRadius: 12,
+      padding: theme.spacing(2),
+      marginBottom: theme.spacing(2),
+    },
+    heatmapHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing(1.5),
+      color: '#ddd',
+      fontWeight: 600,
+    },
+    heatmapLegend: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      color: '#aaa',
+    },
+    heatmapGrid: {
+      display: 'grid',
+      gridAutoFlow: 'column',
+      gridAutoColumns: 'min-content',
+      gap: 2,
+      maxWidth: '100%',
+      overflowX: 'auto' as const,
+      paddingBottom: 4,
+    },
+    heatmapCol: {
+      display: 'grid',
+      gridTemplateRows: 'repeat(7, 12px)',
+      gap: 2,
+    },
+    heatmapCell: {
+      width: 12,
+      height: 12,
+      borderRadius: 2,
+      border: '1px solid #2b2b2b',
+      position: 'relative' as const,
+    },
+    userDot: {
+      position: 'absolute' as const,
+      left: 2,
+      width: 8,
+      height: 2,
+      borderRadius: 1,
     },
     surface: {
       background: 'rgba(44,44,44,0.9)',
@@ -113,6 +162,73 @@ const useStyles = makeStyles((theme: Theme) =>
     right: { color: '#bbb', fontSize: '0.85rem' },
     typeChip: { color: 'white' },
     avatar: { width: 28, height: 28, fontSize: 14 },
+    // 3D chart styles
+    threeDWrap: {
+      background: 'rgba(44,44,44,0.9)',
+      border: '1px solid #404040',
+      borderRadius: 12,
+      padding: theme.spacing(2),
+      marginBottom: theme.spacing(2),
+    },
+    threeDHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing(1.5),
+      color: '#ddd',
+      fontWeight: 600,
+    },
+    threeDScene: {
+      perspective: 700,
+      overflowX: 'auto' as const,
+      paddingBottom: 8,
+    },
+    threeDRow: {
+      display: 'flex',
+      gap: 12,
+      transform: 'rotateX(55deg) rotateZ(45deg)',
+      transformOrigin: 'left bottom',
+      height: 140,
+    },
+    threeDCol: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 6,
+      height: '100%',
+    },
+    bar: {
+      position: 'relative' as const,
+      width: 14,
+      minHeight: 2,
+      border: '1px solid #1f1f1f',
+      background: '#2a2a2a',
+    },
+    barTop: {
+      position: 'absolute' as const,
+      left: 0,
+      top: -6,
+      width: '100%',
+      height: 6,
+      background: 'rgba(0,0,0,0.25)',
+      transform: 'skewX(-45deg)',
+      transformOrigin: 'bottom left',
+    },
+    barSide: {
+      position: 'absolute' as const,
+      right: -6,
+      top: 0,
+      width: 6,
+      height: '100%',
+      background: 'rgba(0,0,0,0.3)',
+      transform: 'skewY(-45deg)',
+      transformOrigin: 'top left',
+    },
+    legendRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      color: '#aaa',
+    },
   })
 );
 
@@ -228,6 +344,105 @@ export default function ActivityPage() {
     return Array.from(map.entries());
   }, [filtered]);
 
+  // Heatmap preparation (last 26 weeks, Mon–Sun)
+  const heatmap = useMemo(() => {
+    const WEEKS = 26;
+    const today = new Date();
+    const weekday = getDay(today); // 0 Sun .. 6 Sat
+    const diffToMonday = (weekday + 6) % 7; // days since Monday
+    const end = startOfDay(today);
+    const start = subDays(end, WEEKS * 7 + diffToMonday - 1);
+
+    const days: Date[] = [];
+    let cur = start;
+    while (cur <= end) {
+      days.push(cur);
+      cur = addDays(cur, 1);
+    }
+
+    // Aggregate by person and count per day
+    const persons = ['Mattias', 'Albin', 'David'];
+    const counts = new Map<string, number>();
+    const byPerson: Record<string, Map<string, number>> = {
+      Mattias: new Map(),
+      Albin: new Map(),
+      David: new Map(),
+    };
+    filtered.forEach((a) => {
+      const dayKey = startOfDay(parseISO(a.timestamp)).toISOString();
+      counts.set(dayKey, (counts.get(dayKey) || 0) + 1);
+      const p = a.person && persons.includes(a.person) ? a.person : undefined;
+      if (p) {
+        const map = byPerson[p];
+        map.set(dayKey, (map.get(dayKey) || 0) + 1);
+      }
+    });
+
+    const colorFor = (n: number): string => {
+      if (!n) return '#2a2a2a';
+      if (n === 1) return '#1b5e20';
+      if (n === 2) return '#2e7d32';
+      if (n === 3) return '#43a047';
+      return '#66bb6a';
+    };
+
+    // Build columns of 7 days
+    const columns: { date: Date; count: number; color: string; per: Record<string, number> }[][] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      const col: { date: Date; count: number; color: string; per: Record<string, number> }[] = [];
+      for (let r = 0; r < 7 && i + r < days.length; r++) {
+        const d = days[i + r];
+        const key = startOfDay(d).toISOString();
+        const c = counts.get(key) || 0;
+        col.push({
+          date: d,
+          count: c,
+          color: colorFor(c),
+          per: {
+            Mattias: byPerson.Mattias.get(key) || 0,
+            Albin: byPerson.Albin.get(key) || 0,
+            David: byPerson.David.get(key) || 0,
+          },
+        });
+      }
+      columns.push(col);
+    }
+
+    return { columns, total: filtered.length };
+  }, [filtered]);
+
+  // 3D bar data (per action/person per day, last 14 weeks)
+  const threeDData = useMemo(() => {
+    const persons = ['Mattias', 'Albin', 'David'] as const;
+    const actions = ['selected', 'unselected', 'completed'] as const;
+    const today = startOfDay(new Date());
+    const span = 14 * 7;
+    const days: Date[] = [];
+    for (let i = span - 1; i >= 0; i--) days.push(subDays(today, i));
+
+    const key = (d: Date) => startOfDay(d).toISOString();
+    const byDate: Record<string, any> = {};
+    days.forEach((d) => {
+      byDate[key(d)] = {
+        date: d,
+        selected: { Mattias: 0, Albin: 0, David: 0 },
+        unselected: { Mattias: 0, Albin: 0, David: 0 },
+        completed: { Mattias: 0, Albin: 0, David: 0 },
+      };
+    });
+    filtered.forEach((a) => {
+      const k = key(parseISO(a.timestamp));
+      if (!byDate[k]) return;
+      if ((['selected', 'unselected', 'completed'] as string[]).includes(a.type) && a.person) {
+        const p = (['Mattias', 'Albin', 'David'] as string[]).includes(a.person) ? a.person : null;
+        if (p) {
+          byDate[k][a.type][p] += 1;
+        }
+      }
+    });
+    return { days, columns: days.map((d) => byDate[key(d)]), persons, actions };
+  }, [filtered]);
+
   return (
     <Layout title="Aktivitetsflöde" description="Senaste händelser" keywords="activity, feed">
       <Box className={classes.container}>
@@ -240,6 +455,85 @@ export default function ActivityPage() {
               <RefreshIcon />
             </IconButton>
           </Tooltip>
+        </Box>
+
+        {/* Heatmap overview */}
+        <Box className={classes.heatmapWrap}>
+          <Box className={classes.heatmapHeader}>
+            <span>Aktivitet senaste 26 veckorna</span>
+            <Box className={classes.heatmapLegend}>
+              <span style={{ marginRight: 6 }}>Färre</span>
+              {[0, 1, 2, 3, 4].map((lvl) => (
+                <span key={lvl} className={classes.heatmapCell as any} style={{ background: ['#2a2a2a','#1b5e20','#2e7d32','#43a047','#66bb6a'][lvl] }} />
+              ))}
+              <span style={{ marginLeft: 6 }}>Fler</span>
+            </Box>
+          </Box>
+          <Box className={classes.heatmapGrid}>
+            {heatmap.columns.map((col, ci) => (
+              <Box key={ci} className={classes.heatmapCol}>
+                {col.map((cell, ri) => {
+                  const tip = `${format(cell.date, 'EEE d MMM', { locale: sv })}: ${cell.count} händelse(r)\nMattias: ${cell.per.Mattias || 0}\nAlbin: ${cell.per.Albin || 0}\nDavid: ${cell.per.David || 0}`;
+                  return (
+                    <Tooltip key={`${ci}-${ri}`} title={<span style={{ whiteSpace: 'pre-line' }}>{tip}</span>}>
+                      <span className={classes.heatmapCell} style={{ background: cell.color }}>
+                        {/* micro-bands to indicate per-user presence */}
+                        {cell.per.Mattias ? (
+                          <span className={classes.userDot} style={{ top: 2, background: '#42a5f5' }} />
+                        ) : null}
+                        {cell.per.Albin ? (
+                          <span className={classes.userDot} style={{ top: 5, background: '#ab47bc' }} />
+                        ) : null}
+                        {cell.per.David ? (
+                          <span className={classes.userDot} style={{ top: 8, background: '#ff7043' }} />
+                        ) : null}
+                      </span>
+                    </Tooltip>
+                  );
+                })}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {/* 3D activity distribution */}
+        <Box className={classes.threeDWrap}>
+          <Box className={classes.threeDHeader}>
+            <span>3D-översikt: handling × person × tid</span>
+            <Box className={classes.legendRow}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 12, height: 12, background: '#4caf50', display: 'inline-block' }} /> selected
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 12, height: 12, background: '#9e9e9e', display: 'inline-block' }} /> unselected
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 12, height: 12, background: '#64b5f6', display: 'inline-block' }} /> completed
+              </span>
+            </Box>
+          </Box>
+          <div className={classes.threeDScene}>
+            <div className={classes.threeDRow}>
+              {threeDData.columns.map((col, idx) => (
+                <div key={idx} className={classes.threeDCol}>
+                  {(['selected','unselected','completed'] as const).map((act) => (
+                    <Tooltip key={act} title={`${format(col.date, 'd MMM', { locale: sv })} • ${act}`}>
+                      <div
+                        className={classes.bar}
+                        style={{
+                          height: 6 + 12 * (col[act].Mattias + col[act].Albin + col[act].David),
+                          background: act === 'selected' ? '#4caf50' : act === 'unselected' ? '#9e9e9e' : '#64b5f6',
+                        }}
+                      >
+                        <div className={classes.barTop} />
+                        <div className={classes.barSide} />
+                      </div>
+                    </Tooltip>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </Box>
 
         <Box className={classes.controlsBar}>
