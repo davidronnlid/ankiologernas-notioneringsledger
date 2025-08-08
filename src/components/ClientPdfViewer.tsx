@@ -81,7 +81,7 @@ const ClientPdfViewer: React.FC = () => {
   const [selectedPage, setSelectedPage] = useState<PageScreenshot | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
-  const [includeImages, setIncludeImages] = useState<boolean>(false);
+  const [includeImages, setIncludeImages] = useState<boolean>(true);
   const [syncProgressOpen, setSyncProgressOpen] = useState<boolean>(false);
   const [syncMessages, setSyncMessages] = useState<string[]>([]);
   const progressEndRef = useRef<HTMLDivElement | null>(null);
@@ -161,8 +161,21 @@ const ClientPdfViewer: React.FC = () => {
   // Current user (used when syncing to Notion)
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
-  // Load data on component mount
+  // Load data on component mount and restore persisted UI state
   useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedInclude = window.localStorage.getItem('pdfToNotion.includeImages');
+        if (savedInclude !== null) setIncludeImages(savedInclude === 'true');
+        const savedLecture = window.localStorage.getItem('pdfToNotion.selectedLecture');
+        if (savedLecture) {
+          try { setSelectedLecture(JSON.parse(savedLecture)); } catch {}
+        }
+        const savedSearch = window.localStorage.getItem('pdfToNotion.lectureSearchTerm');
+        if (savedSearch !== null) setLectureSearchTerm(savedSearch);
+      }
+    } catch {}
+
     if (!lecturesData || lecturesData.length === 0) {
       console.log("🔄 ClientPdfViewer: No lectures data, fetching...");
       fetchDataAndDispatch();
@@ -170,6 +183,17 @@ const ClientPdfViewer: React.FC = () => {
       console.log("✅ ClientPdfViewer: Lectures data already available:", lecturesData.length, "weeks");
     }
   }, [lecturesData]);
+
+  // Persist UI state
+  useEffect(() => {
+    try { if (typeof window !== 'undefined') window.localStorage.setItem('pdfToNotion.includeImages', String(includeImages)); } catch {}
+  }, [includeImages]);
+  useEffect(() => {
+    try { if (typeof window !== 'undefined') window.localStorage.setItem('pdfToNotion.lectureSearchTerm', lectureSearchTerm); } catch {}
+  }, [lectureSearchTerm]);
+  useEffect(() => {
+    try { if (typeof window !== 'undefined') window.localStorage.setItem('pdfToNotion.selectedLecture', JSON.stringify(selectedLecture)); } catch {}
+  }, [selectedLecture]);
   
   // Get current date for active course determination
   const currentDate = new Date();
@@ -393,8 +417,11 @@ const ClientPdfViewer: React.FC = () => {
             .replace(/\s+/g, ' ')
             .trim();
           
-          // Generate AI question based on page content
-          const aiQuestion = generateAIQuestion(pageText, pageNum);
+          // Generate AI question based on page content (self‑contained)
+          const aiQuestion = makeSelfContainedQuestion(
+            generateAIQuestion(pageText, pageNum),
+            pageText
+          );
           
           // Convert canvas to data URL
           const imageUrl = canvas.toDataURL('image/png', 1.0);
@@ -604,6 +631,27 @@ const ClientPdfViewer: React.FC = () => {
     return 'Vad är den viktigaste kliniska lärdomen och hur påverkar den diagnostik eller behandling?';
   };
 
+  // Ensure each question stands alone without referring to the page
+  const makeSelfContainedQuestion = (question: string, sourceText: string): string => {
+    let q = (question || '').replace(/\s+/g, ' ').trim();
+    // Remove deictic references that rely on context like "denna/den här sidan"
+    q = q
+      .replace(/\b(denna|detta|det här|den här|här|ovan|nedan|sidan|denna sida|den här sidan)\b/gi, '')
+      .replace(/\s{2,}/g, ' ') // collapse double spaces left behind
+      .trim();
+    // Ensure it ends with a question mark
+    if (!q.endsWith('?')) q = `${q}?`;
+    // If the question lacks a clear topic, prefix one inferred from the text
+    const terms = extractMedicalTerms(sourceText);
+    const topics = extractMainTopics(sourceText);
+    const topic = terms[0] || topics[0] || '';
+    if (topic && !q.toLowerCase().includes(topic.toLowerCase())) {
+      const cap = topic.charAt(0).toUpperCase() + topic.slice(1);
+      q = `${cap} – ${q}`;
+    }
+    return q;
+  };
+
   // Extract medical terms from text (Swedish, broad med‑school set)
   const extractMedicalTerms = (text: string): string[] => {
     const medicalTerms = [
@@ -641,10 +689,13 @@ const ClientPdfViewer: React.FC = () => {
     
     if (screenshots.length === 0) return groups;
 
-    // First pass: Generate questions for all pages
+    // First pass: Generate questions for all pages (self-contained)
     const pagesWithQuestions = screenshots.map(page => ({
       ...page,
-      aiQuestion: generateAIQuestion(page.textContent, page.pageNumber)
+      aiQuestion: makeSelfContainedQuestion(
+        generateAIQuestion(page.textContent, page.pageNumber),
+        page.textContent
+      )
     }));
 
     // Second pass: Group ONLY consecutive pages intelligently
@@ -942,6 +993,22 @@ const ClientPdfViewer: React.FC = () => {
         pushProgress('Next API blocked; retrying via Netlify Functions endpoint…');
         response = await doRequest(netlifyEndpoint);
       }
+      // Retry once on server errors/timeouts by switching endpoint
+      if (!response.ok && [500, 502, 504].includes(response.status)) {
+        const triedNext = response.url?.includes('/api/syncFlashcardsToNotion');
+        const alt = triedNext ? netlifyEndpoint : nextEndpoint;
+        pushProgress(`Primary endpoint returned ${response.status}. Retrying once via alternate endpoint…`);
+        try {
+          const second = await doRequest(alt);
+          if (second.ok) {
+            response = second;
+          } else {
+            // keep original response for downstream error context
+          }
+        } catch (e) {
+          // swallow and continue to diagnostics
+        }
+      }
       if (!response.ok) {
         const raw = await response.text();
         console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
@@ -988,7 +1055,10 @@ const ClientPdfViewer: React.FC = () => {
           console.warn('Dry-run diagnostic failed:', diagErr);
           pushProgress(`Dry‑run diagnostics failed: ${diagErr instanceof Error ? diagErr.message : String(diagErr)}`);
         }
-        setSyncResult({ success: false, message: `HTTP ${response.status}: ${response.statusText}` });
+        // User-facing guidance (504/timeout-like errors are often non-fatal; Notion may still update)
+        const friendly = `Det här kan vara en tillfällig timeout (t.ex. ${response.status}). Synken kan ändå ha gått igenom i bakgrunden. \n\nGör så här:\n1) Öppna Notion och kontrollera att rätt föreläsningssida har fått nya block.\n2) Om inget syns: ladda om sidan här och försök synka igen.\n3) Om det fortfarande inte fungerar: kontakta David och skicka hela texten från rutan \"Notion sync progress\".`;
+        pushProgress(friendly);
+        setSyncResult({ success: false, message: friendly });
         return;
       }
 
@@ -1051,10 +1121,9 @@ const ClientPdfViewer: React.FC = () => {
 
     } catch (error) {
       console.error('❌ Error during flashcard sync:', error);
-      setSyncResult({
-        success: false,
-        message: `Sync error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
+      const friendly = `Synken avbröts eller nätverket svarade inte. Det kan ändå ha gått igenom i bakgrunden. \n\n1) Kontrollera i Notion om blocken finns.\n2) Om inte: ladda om sidan och försök igen.\n3) Kontakta David och skicka \"Notion sync progress\"-texten om problemet kvarstår.`;
+      pushProgress(friendly);
+      setSyncResult({ success: false, message: friendly });
     } finally {
       setIsSyncing(false);
     }
@@ -1087,30 +1156,34 @@ const ClientPdfViewer: React.FC = () => {
         />
         {filteredLectures.length > 0 && (
           <Box style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 4 }}>
-            {filteredLectures.slice(0, 10).map((lecture, index) => (
-              <Box
-                key={lecture.id}
-                onClick={() => setSelectedLecture(lecture)}
-                style={{
-                  padding: 12,
-                  borderBottom: index < filteredLectures.slice(0, 10).length - 1 ? '1px solid #f0f0f0' : 'none',
-                  cursor: 'pointer',
-                  backgroundColor: selectedLecture?.id === lecture.id ? '#f5f5f5' : 'transparent'
-                }}
-              >
-                <Typography variant="body1" style={{ fontWeight: 'bold' }}>
-                  {lecture.lectureNumber}. {lecture.title}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {lecture.date} • {lecture.time} • {lecture.subjectArea || 'Inget ämnesområde'}
-                </Typography>
-                {lecture.lecturer && (
-                  <Typography variant="body2" color="textSecondary">
-                    Föreläsare: {lecture.lecturer}
+            {filteredLectures.slice(0, 10).map((lecture, index) => {
+              const isSelected = selectedLecture?.id === lecture.id;
+              return (
+                <Box
+                  key={lecture.id}
+                  onClick={() => setSelectedLecture(lecture)}
+                  style={{
+                    padding: 12,
+                    borderBottom: index < filteredLectures.slice(0, 10).length - 1 ? '1px solid #f0f0f0' : 'none',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? '#f5f5f5' : 'transparent',
+                    color: isSelected ? '#000000' : 'inherit'
+                  }}
+                >
+                  <Typography variant="body1" style={{ fontWeight: 'bold', color: isSelected ? '#000000' : 'inherit' }}>
+                    {lecture.lectureNumber}. {lecture.title}
                   </Typography>
-                )}
-              </Box>
-            ))}
+                  <Typography variant="body2" style={{ color: isSelected ? '#000000' : undefined }}>
+                    {lecture.date} • {lecture.time} • {lecture.subjectArea || 'Inget ämnesområde'}
+                  </Typography>
+                  {lecture.lecturer && (
+                    <Typography variant="body2" style={{ color: isSelected ? '#000000' : undefined }}>
+                      Föreläsare: {lecture.lecturer}
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })}
           </Box>
         )}
         {selectedLecture && (

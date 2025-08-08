@@ -2025,7 +2025,8 @@ export default function Index() {
             </Typography>
           </div>
 
-          {/* This Week Preview (toggleable) */}
+          {/* This Week Preview (toggleable) - render only if there are lectures this week */}
+          {currentWeekLectures.length > 0 && (
           <Box className={classes.weekPreviewWrapper} style={{ marginBottom: 24 }}>
             <Box className={classes.weekPreviewHeader}>
               <Typography variant="h6" style={{ color: "white", fontWeight: 600 }}>
@@ -2039,11 +2040,6 @@ export default function Index() {
             </Box>
             {showWeekPreview && (
               <>
-                {currentWeekLectures.length === 0 && (
-                  <Typography variant="body2" style={{ color: "#ccc" }}>
-                    Inga föreläsningar denna vecka.
-                  </Typography>
-                )}
                 {/* Group by weekday (Mon-Fri) */}
                 {(() => {
                   const days: { [key: string]: typeof currentWeekLectures } = {};
@@ -2094,6 +2090,7 @@ export default function Index() {
               </>
             )}
           </Box>
+          )}
 
 
 

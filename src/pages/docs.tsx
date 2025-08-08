@@ -43,6 +43,39 @@ const DocsPage: React.FC = () => {
       ]
     },
     {
+      title: '📄 Notiondoc från PDF',
+      icon: null,
+      description: 'Skapa färdiga Notion‑block från en PDF och synka till vald föreläsning',
+      features: [
+        'Ladda upp PDF och generera sidbilder + AI‑frågor grupperade per ämne',
+        'Välj föreläsning från aktiva kurser och klicka “Sync to Notion”',
+        '“Include images” är aktiverat som standard och kan sparas som preferens',
+        'Bilder lagras i Netlify Blobs (stabila https‑URL:er), sedan bäddas de in externt i Notion',
+        'Om du ser 5xx/timeout: synken kan ändå ha gått igenom – kontrollera i Notion, ladda om och försök igen'
+      ]
+    },
+    {
+      title: '⏱️ Pomodoro',
+      icon: null,
+      description: 'Fokustimer med studielogik anpassad för kursarbetet',
+      features: [
+        'Starta/pausa fokussessioner och kort/lång vila',
+        'Snabb översikt över pågående session och nästa steg',
+        'Utformad för att stödja kontinuerlig repetition och fokus',
+        'Tracka över tid hur lång tid du lägger på att notionera föreläsningar jämfört med föreläsningens duration'
+      ]
+    },
+    {
+      title: '📰 Aktivitetsflöde',
+      icon: null,
+      description: 'En tidslinje över de senaste händelserna i systemet',
+      features: [
+        'Visar relevanta händelser kopplade till föreläsningar',
+        'Snabb navigering till berörda sidor',
+        'Hjälper dig att se vad som hänt utan att leta runt'
+      ]
+    },
+    {
       title: '📋 Notion-synkronisering',
       icon: null,
       description: 'Synka dina föreläsningar till Notion',
