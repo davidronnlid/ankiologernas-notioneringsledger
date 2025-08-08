@@ -199,6 +199,13 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedLecture, setSelectedLecture] = useState<Lecture>(lecture);
+  // Defensive cleanup for any accidental "undefined." prefixes
+  const sanitizeMessage = (text: string): string => {
+    return (text || '')
+      .replace(/^undefined[\.,:\-]?\s*/i, '')
+      .trim();
+  };
+
 
   const allUsers = ["Mattias", "Albin", "David"];
   // Map username to person (handles special cases like dronnlid -> David)
@@ -232,7 +239,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
     // Default message without undefined prefix
     const defaultMessage = `${lecture.lectureNumber}. ${lecture.title} färdignotionerad! 💪🔥`;
     const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
-    setMessage(enhancedMessage);
+    setMessage(sanitizeMessage(enhancedMessage));
   };
 
   const handleClose = () => {
@@ -246,7 +253,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
     // Update message to reflect the new lecture
     const defaultMessage = `${newLecture.lectureNumber}. ${newLecture.title} färdignotionerad! 💪🔥`;
     const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
-    setMessage(enhancedMessage);
+    setMessage(sanitizeMessage(enhancedMessage));
   };
 
   const handleCloseSuccess = () => {
@@ -254,7 +261,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   };
 
   const handleSendNotifications = async () => {
-    if (!message.trim()) return;
+    if (!sanitizeMessage(message).trim()) return;
 
     setIsLoading(true);
 
@@ -265,7 +272,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
           id: `${Date.now()}-${userName}-${lecture.id}`, // Deterministic ID to prevent hydration mismatches
           type: "lecture_notified" as const,
           title: `${currentUserName} har notifierat dig`,
-          message: message,
+          message: sanitizeMessage(message),
           fromUser: currentUserName,
           toUser: userName,
           lectureId: selectedLecture.id,
@@ -280,7 +287,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
       // Send to group chat (Discord/Facebook Messenger/Slack)
       const groupChatSuccess = await sendToGroupChat({
         title: `${currentUserName} har notifierat dig`,
-        message: message,
+        message: sanitizeMessage(message),
         fromUser: currentUserName,
         lectureTitle: selectedLecture.title,
         type: 'lecture_notified'

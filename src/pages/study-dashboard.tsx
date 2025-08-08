@@ -113,11 +113,9 @@ export default function StudyDashboardPage() {
       (w.lectures || []).forEach((lec: any) => {
         const ts = parseISO(lec.date);
         if ((isAfter(ts, start) || isSameWeek(ts, start, { weekStartsOn: 1 })) && (isBefore(ts, end) || isSameWeek(ts, end, { weekStartsOn: 1 }))) {
-          const isMine = personName && lec.checkboxState?.[personName]?.confirm;
-          if (isMine) {
-            const weekLabel = format(startOfWeek(ts, { weekStartsOn: 1 }), 'EEEE d MMMM', { locale: sv });
-            results.push({ id: lec.id, title: `${lec.lectureNumber}. ${lec.title}`, date: lec.date, time: lec.time, weekLabel });
-          }
+          // Include ALL lectures within the interval so prod users can always filter & select
+          const weekLabel = format(startOfWeek(ts, { weekStartsOn: 1 }), 'EEEE d MMMM', { locale: sv });
+          results.push({ id: lec.id, title: `${lec.lectureNumber}. ${lec.title}`, date: lec.date, time: lec.time, weekLabel });
         }
       });
     });

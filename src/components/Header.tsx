@@ -32,6 +32,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import HomeIcon from "@mui/icons-material/Home";
 
 import UserPreferencesDialog from "./UserPreferencesDialog";
 import { useTheme } from "../contexts/ThemeContext";
@@ -513,6 +514,13 @@ export default function Header() {
                     }
                   }}
                 >
+                  {/* Home link at the top for quick navigation */}
+                  <MenuItem onClick={() => { router.push('/'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <HomeIcon style={{ color: '#ffffff' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Hem" />
+                  </MenuItem>
                   {/* Sync to Notion moved to top for quick access */}
                   <MenuItem onClick={handleSyncToNotion}>
                     <ListItemIcon>
