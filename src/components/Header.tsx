@@ -513,6 +513,13 @@ export default function Header() {
                     }
                   }}
                 >
+                  {/* Sync to Notion moved to top for quick access */}
+                  <MenuItem onClick={handleSyncToNotion}>
+                    <ListItemIcon>
+                      <SyncIcon style={{ color: '#4caf50' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Sync all to Notion" />
+                  </MenuItem>
                   <MenuItem onClick={() => { router.push('/pdf-to-notion'); handleCloseMenu(); }}>
                     <ListItemIcon>
                       <PictureAsPdfIcon style={{ color: '#4caf50' }} />
@@ -543,12 +550,6 @@ export default function Header() {
                       <SettingsIcon style={{ color: '#2196f3' }} />
                     </ListItemIcon>
                     <ListItemText primary="AI-rekommendationsinställningar" />
-                  </MenuItem>
-                  <MenuItem onClick={handleSyncToNotion}>
-                    <ListItemIcon>
-                      <SyncIcon style={{ color: '#4caf50' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Sync all to Notion" />
                   </MenuItem>
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
