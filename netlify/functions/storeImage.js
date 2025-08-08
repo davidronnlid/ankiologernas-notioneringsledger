@@ -2,13 +2,13 @@
 // NOTE: This file intentionally exports EXACTLY ONE handler.
 
 const crypto = require('crypto');
-let blobsClient = null;
+let blobsStore = null;
 try {
-  // Lazy require – available on Netlify
-  const { createClient } = require('@netlify/blobs');
-  blobsClient = createClient({ token: process.env.NETLIFY_BLOBS_TOKEN });
+  // In Netlify Functions you can access blobs directly without a token
+  const { getStore } = require('@netlify/blobs');
+  blobsStore = getStore('notion-images');
 } catch (_) {
-  // Blobs may not be available locally; we will fallback to MongoDB path
+  // Blobs may not be available in local dev; fallback to MongoDB path
 }
 const { MongoClient } = require('mongodb');
 
@@ -80,18 +80,14 @@ exports.handler = async (event) => {
     const contentHash = crypto.createHash('sha256').update(parsed.buffer).digest('hex');
 
     // Prefer Netlify Blobs if available
-    if (blobsClient) {
-      const store = blobsClient.store('notion-images');
+    if (blobsStore) {
       const blobKey = `${contentHash}.${parsed.mimeType.split('/')[1] || 'bin'}`;
-      // Idempotent put – blobs are content-addressable by our key
-      await store.set(blobKey, parsed.buffer, { contentType: parsed.mimeType, cacheControl: 'public, max-age=31536000, immutable' });
-      const siteUrl = resolveSiteBaseUrl(event);
-      if (!siteUrl) {
-        return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'No public https base URL resolved. Set PUBLIC_IMAGE_BASE_URL to your site origin.' }) };
-      }
-      const publicUrl = `${siteUrl}/.netlify/blobs/${encodeURIComponent('notion-images')}/${encodeURIComponent(blobKey)}`;
-      const prettyUrl = publicUrl; // Blobs URL already includes extension
-      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, storage: 'blobs', key: blobKey, url: prettyUrl, prettyUrl }) };
+      await blobsStore.set(blobKey, parsed.buffer, {
+        contentType: parsed.mimeType,
+        cacheControl: 'public, max-age=31536000, immutable'
+      });
+      const publicUrl = blobsStore.getPublicUrl(blobKey);
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, storage: 'blobs', key: blobKey, url: publicUrl, prettyUrl: publicUrl }) };
     }
 
     // Fallback to MongoDB storage
