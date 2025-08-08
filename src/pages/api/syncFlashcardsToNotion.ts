@@ -207,12 +207,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               try {
                 let externalUrl: string | null = null;
                 if ((page as any).imageUrl) {
+                  // Use the pre-uploaded URL from client-side storeImage call
                   externalUrl = (page as any).imageUrl as string;
-                  logs.push(`🖼️ Using pre-uploaded image URL`);
-                } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/')) {
+                  logs.push(`🖼️ Using pre-uploaded image URL: ${externalUrl}`);
+                } else if (page.imageDataUrl && page.imageDataUrl.startsWith('data:image/') && !(page as any).clientUploadFailed) {
+                  // Fallback: only upload if client-side upload wasn't attempted/failed
                   if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
                     logs.push('Skipping image upload (localhost) – Notion kräver publik URL');
                   } else {
+                    logs.push('⚠️ Client upload missing, attempting server-side upload...');
                     const storeUrl = `${baseUrl}/.netlify/functions/storeImage`;
                     const storeResp = await fetch(storeUrl, {
                       method: 'POST',
@@ -225,10 +228,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                       if (url) externalUrl = url;
                     } else {
                       const txt = await storeResp.text();
-                      logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,300)}`);
+                      logs.push(`⚠️ Server-side image store failed: ${storeResp.status} ${txt.slice(0,300)}`);
                     }
                   }
+                } else if ((page as any).clientUploadFailed) {
+                  logs.push('⚠️ Skipping image: client upload failed and no fallback imageDataUrl');
                 }
+                
                 if (externalUrl && /^https:\/\//i.test(externalUrl)) {
                   logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
                   children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
@@ -236,7 +242,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
                 }
               } catch (imgErr: any) {
-                logs.push(`⚠️ Image store exception: ${imgErr?.message || String(imgErr)}`);
+                logs.push(`⚠️ Image processing exception: ${imgErr?.message || String(imgErr)}`);
               }
             }
           }

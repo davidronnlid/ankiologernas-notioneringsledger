@@ -889,8 +889,8 @@ const ClientPdfViewer: React.FC = () => {
                 pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl });
               } else {
                 hadUploadError = true;
-                // Fall back to text-only for this page
-                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
+                // Still include imageDataUrl for server-side fallback, but mark as failed client upload
+                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageDataUrl: page.imageUrl, clientUploadFailed: true });
               }
           } else {
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
