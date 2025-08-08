@@ -196,9 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Build children for a specific group (paragraph + optional image per page)
         const buildChildrenForGroup = async (group: any, logs: string[]): Promise<any[]> => {
           const children: any[] = [];
-          const baseProto = (req.headers['x-forwarded-proto'] as string) || 'https';
-          const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
-          const baseUrl = `${baseProto}://${host}`;
+          const baseUrl = (process.env.PUBLIC_IMAGE_BASE_URL as string) || `${(req.headers['x-forwarded-proto'] as string) || 'https'}://${(req.headers['x-forwarded-host'] as string) || req.headers.host || ''}`;
             for (const page of group.pages) {
             children.push({
               object: 'block',

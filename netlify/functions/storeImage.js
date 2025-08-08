@@ -77,13 +77,29 @@ exports.handler = async (event) => {
     // Best-effort: ensure unique index on hash (ignore errors if it already exists)
     try { await col.createIndex({ hash: 1 }, { unique: true }); } catch (_) {}
 
-    // Idempotent upsert by hash
-    const upsertRes = await col.findOneAndUpdate(
-      { hash: contentHash },
-      { $setOnInsert: { mimeType: parsed.mimeType, data: parsed.buffer, createdAt: new Date(), hash: contentHash } },
-      { upsert: true, returnDocument: 'after' }
-    );
-    const id = (upsertRes.value && upsertRes.value._id ? upsertRes.value._id : upsertRes.lastErrorObject?.upserted) .toString();
+    // Idempotent insert by hash with duplicate-key recovery
+    let id;
+    const existing = await col.findOne({ hash: contentHash });
+    if (existing && existing._id) {
+      id = existing._id.toString();
+    } else {
+      try {
+        const insertRes = await col.insertOne({ mimeType: parsed.mimeType, data: parsed.buffer, createdAt: new Date(), hash: contentHash });
+        id = insertRes.insertedId && insertRes.insertedId.toString ? insertRes.insertedId.toString() : String(insertRes.insertedId);
+      } catch (e) {
+        // If someone inserted concurrently (E11000 duplicate key), fetch the existing doc
+        if (e && (e.code === 11000 || /E11000/.test(String(e.message)))) {
+          const fallback = await col.findOne({ hash: contentHash });
+          if (fallback && fallback._id) {
+            id = fallback._id.toString();
+          } else {
+            throw e; // unexpected – rethrow
+          }
+        } else {
+          throw e;
+        }
+      }
+    }
 
     const siteUrl = resolveSiteBaseUrl(event);
     if (!siteUrl) {

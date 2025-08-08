@@ -845,7 +845,10 @@ const ClientPdfViewer: React.FC = () => {
             pushProgress('Skipping image upload in development (localhost) – Notion kräver publik URL.');
             return null;
           }
-          const storeUrl = `${origin}/.netlify/functions/storeImage`;
+          // Determine base URL robustly: prefer PUBLIC_IMAGE_BASE_URL if present in the page
+          const envBase = (window as any)?.PUBLIC_IMAGE_BASE_URL || undefined;
+          const base = envBase || origin;
+          const storeUrl = `${base}/.netlify/functions/storeImage`;
           pushProgress(`⬆️ Laddar upp bild till MongoDB… (${storeUrl})`);
           const resp = await fetch(storeUrl, {
             method: 'POST',
