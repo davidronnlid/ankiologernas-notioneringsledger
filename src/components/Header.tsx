@@ -525,6 +525,12 @@ export default function Header() {
                     </ListItemIcon>
                     <ListItemText primary="Aktivitetsflöde" />
                   </MenuItem>
+                  <MenuItem onClick={() => { router.push('/study-dashboard'); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <EventNoteIcon style={{ color: '#64b5f6' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Studiepanel (Pomodoro)" />
+                  </MenuItem>
                   <MenuItem onClick={handleDocsClick}>
                     <ListItemIcon>
                       <MenuBookIcon style={{ color: '#ff9800' }} />

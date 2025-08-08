@@ -266,12 +266,12 @@ const ClientPdfViewer: React.FC = () => {
   const filteredLectures: LectureWithCourse[] = React.useMemo(() => {
     console.log('🔍 Debug: activeLectures count:', activeLectures.length);
     console.log('🔍 Debug: lectureSearchTerm:', lectureSearchTerm);
-
+    
     if (!lectureSearchTerm) {
       console.log('✅ Debug: No search term, returning all active lectures');
       return activeLectures;
     }
-
+    
     const q = normalize(lectureSearchTerm);
 
     const result = activeLectures.filter((lecture) => {
@@ -296,7 +296,7 @@ const ClientPdfViewer: React.FC = () => {
 
       return fields.some((f) => f.includes(q));
     });
-
+    
     console.log('✅ Debug: Filtered lectures found:', result.length);
     return result;
   }, [activeLectures, lectureSearchTerm]);
@@ -882,10 +882,10 @@ const ClientPdfViewer: React.FC = () => {
           }
         }
         flashcardGroups.push({
-          id: group.id,
-          question: group.aiQuestion,
+        id: group.id,
+        question: group.aiQuestion,
           pages,
-          summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
+        summary: `📋 Denna grupp innehåller sidorna: ${group.pages.map(p => p.pageNumber).join(', ')}. Totalt ${group.pages.length} sidor som behandlar samma ämne.`
         });
       }
 

@@ -196,7 +196,7 @@ const useStyles = makeStyles((theme: Theme) =>
       position: 'relative' as const,
       minHeight: 60,
     },
-    smCol: { display: 'flex', alignItems: 'flex-end', width: 10 },
+    smCol: { display: 'flex', alignItems: 'flex-end', width: '100%' },
     smBar: {
       width: '100%',
       display: 'flex',
@@ -211,6 +211,23 @@ const useStyles = makeStyles((theme: Theme) =>
       top: 0,
       width: 1,
       background: 'rgba(255,255,255,0.06)',
+    },
+    smAxis: {
+      display: 'grid',
+      gridTemplateColumns: '100px 1fr',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 8,
+    },
+    smAxisLabels: {
+      display: 'flex',
+      gap: 4,
+    },
+    smAxisCell: {
+      width: 10,
+      textAlign: 'center' as const,
+      color: '#9aa0a6',
+      fontSize: '0.65rem',
     },
     legendRow: {
       display: 'flex',
@@ -348,25 +365,30 @@ export default function ActivityPage() {
 
   // Heatmap removed from UI (kept intentionally empty)
 
-  // Distribution chart data (per action/person per day) – span limited to active course window
+  // Distribution chart data (per action/person per day) – adapt range to cover available data
   const threeDData = useMemo(() => {
     const persons = ['Mattias', 'Albin', 'David'] as const;
     const actions = ['selected', 'unselected', 'completed'] as const;
-    // Determine active course period
-    const now = new Date();
-    const active = coursePeriods.find((c) => isCourseActive(c.title, now));
-    let start = startOfDay(now);
-    let end = startOfDay(now);
-    if (active) {
-      start = startOfDay(parseISO(active.startDate));
-      end = startOfDay(parseISO(active.endDate));
-    } else {
-      // fallback to min/max of current filtered data
-      const times = filtered.map((a) => startOfDay(parseISO(a.timestamp)).getTime());
-      if (times.length > 0) {
-        start = new Date(Math.min(...times));
-        end = new Date(Math.max(...times));
+    // Derive min/max from the filtered events to ensure all mock data shows
+    let start = startOfDay(new Date());
+    let end = startOfDay(new Date());
+    const times = filtered
+      .map((a) => {
+        try { return startOfDay(parseISO(a.timestamp)).getTime(); } catch { return null as any; }
+      })
+      .filter((t) => typeof t === 'number') as number[];
+    if (times.length > 0) {
+      start = new Date(Math.min(...times));
+      end = new Date(Math.max(...times));
+      // If range is very small, extend to 28 days to make bars visible
+      const daysSpan = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
+      if (daysSpan < 28) {
+        end = addDays(start, 28);
       }
+    } else {
+      // No data → show last 28 days
+      start = addDays(startOfDay(new Date()), -28);
+      end = startOfDay(new Date());
     }
     // Build day list from start to end inclusive
     const days: Date[] = [];
@@ -387,7 +409,9 @@ export default function ActivityPage() {
       };
     });
     filtered.forEach((a) => {
-      const k = key(parseISO(a.timestamp));
+      let d: Date;
+      try { d = parseISO(a.timestamp); } catch { return; }
+      const k = key(d);
       if (!byDate[k]) return; // outside of active window
       if ((['selected', 'unselected', 'completed'] as string[]).includes(a.type) && a.person) {
         const p = (['Mattias', 'Albin', 'David'] as string[]).includes(a.person) ? a.person : null;
@@ -431,10 +455,6 @@ export default function ActivityPage() {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#42a5f5', display: 'inline-block' }} /> Mattias</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#ab47bc', display: 'inline-block' }} /> Albin</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#ff7043', display: 'inline-block' }} /> David</span>
-              <Divider orientation="vertical" flexItem style={{ borderColor: '#3a3a3a' }} />
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#4caf50', display: 'inline-block' }} /> selected</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#9e9e9e', display: 'inline-block' }} /> unselected</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#64b5f6', display: 'inline-block' }} /> completed</span>
             </Box>
           </Box>
           <div className={classes.smScene}>
@@ -448,7 +468,7 @@ export default function ActivityPage() {
                     const tip = `${format(col.date, 'EEE d MMM', { locale: sv })} • ${act}\nMattias: ${col[act].Mattias}  Albin: ${col[act].Albin}  David: ${col[act].David}`;
                     return (
                       <Tooltip key={idx} title={<span style={{ whiteSpace: 'pre-line' }}>{tip}</span>}>
-                        <div className={classes.smCol}>
+                        <div className={classes.smCol} style={{ width: `${100 / threeDData.columns.length}%` }}>
                           <div className={classes.smBar} style={{ height }}>
                             {/* stacked segments per person */}
                             {col[act].Mattias > 0 && (
@@ -470,6 +490,21 @@ export default function ActivityPage() {
                 </div>
               </div>
             ))}
+          </div>
+          {/* X-axis labels (time) */}
+          <div className={classes.smAxis}>
+            <div />
+            <div className={classes.smAxisLabels}>
+              {threeDData.columns.map((col, idx) => (
+                idx % 7 === 0 ? (
+                  <span key={idx} className={classes.smAxisCell} style={{ width: `${100 / threeDData.columns.length}%` }}>
+                    {format(col.date, 'd/M', { locale: sv })}
+                  </span>
+                ) : (
+                  <span key={idx} className={classes.smAxisCell} style={{ width: `${100 / threeDData.columns.length}%` }} />
+                )
+              ))}
+            </div>
           </div>
         </Box>
 

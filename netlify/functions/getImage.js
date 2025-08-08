@@ -2,7 +2,14 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 exports.handler = async (event) => {
   try {
-    const id = event.queryStringParameters && event.queryStringParameters.id;
+    let id = event.queryStringParameters && event.queryStringParameters.id;
+    // Support pretty URLs: /.netlify/functions/getImage/:id(.ext)
+    if (!id && event.path) {
+      const m = event.path.match(/getImage\/(.+)$/);
+      if (m && m[1]) {
+        id = m[1].split('.')[0];
+      }
+    }
     if (!id) {
       return { statusCode: 400, body: 'Missing id' };
     }
