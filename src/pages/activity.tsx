@@ -406,6 +406,8 @@ export default function ActivityPage() {
         selected: { Mattias: 0, Albin: 0, David: 0 },
         unselected: { Mattias: 0, Albin: 0, David: 0 },
         completed: { Mattias: 0, Albin: 0, David: 0 },
+        created: { Mattias: 0, Albin: 0, David: 0 },
+        edited: { Mattias: 0, Albin: 0, David: 0 },
       };
     });
     filtered.forEach((a) => {
@@ -413,7 +415,7 @@ export default function ActivityPage() {
       try { d = parseISO(a.timestamp); } catch { return; }
       const k = key(d);
       if (!byDate[k]) return; // outside of active window
-      if ((['selected', 'unselected', 'completed'] as string[]).includes(a.type) && a.person) {
+      if ((['selected', 'unselected', 'completed', 'created', 'edited'] as string[]).includes(a.type) && a.person) {
         const p = (['Mattias', 'Albin', 'David'] as string[]).includes(a.person) ? a.person : null;
         if (p) {
           byDate[k][a.type][p] += 1;
@@ -423,7 +425,7 @@ export default function ActivityPage() {
     const columns = days.map((d) => byDate[key(d)]);
     let maxTotal = 1;
     columns.forEach((col) => {
-      (['selected','unselected','completed'] as const).forEach((act) => {
+      (['selected','unselected','completed','created','edited'] as const).forEach((act) => {
         const total = col[act].Mattias + col[act].Albin + col[act].David;
         if (total > maxTotal) maxTotal = total;
       });
@@ -458,14 +460,24 @@ export default function ActivityPage() {
             </Box>
           </Box>
           <div className={classes.smScene}>
-            {(['selected','unselected','completed'] as const).map((act) => (
+            {(['selected','unselected','completed','created','edited'] as const).map((act) => (
               <div key={act} className={classes.smRow}>
-                <div className={classes.smRowLabel}>{act}</div>
+                <div className={classes.smRowLabel}>
+                  {act === 'selected' && 'Vald'}
+                  {act === 'unselected' && 'Avvald'}
+                  {act === 'completed' && 'Färdignotionerad'}
+                  {act === 'created' && 'Skapad'}
+                  {act === 'edited' && 'Redigerad'}
+                </div>
                 <div className={classes.smBars}>
                   {threeDData.columns.map((col, idx) => {
                     const total = col[act].Mattias + col[act].Albin + col[act].David;
                     const height = total === 0 ? 0 : Math.max(4, Math.round((total / threeDData.maxTotal) * 60));
-                    const tip = `${format(col.date, 'EEE d MMM', { locale: sv })} • ${act}\nMattias: ${col[act].Mattias}  Albin: ${col[act].Albin}  David: ${col[act].David}`;
+                    const tipLabel = act === 'selected' ? 'Vald'
+                      : act === 'unselected' ? 'Avvald'
+                      : act === 'completed' ? 'Färdignotionerad'
+                      : act === 'created' ? 'Skapad' : 'Redigerad';
+                    const tip = `${format(col.date, 'EEE d MMM', { locale: sv })} • ${tipLabel}\nMattias: ${col[act].Mattias}  Albin: ${col[act].Albin}  David: ${col[act].David}`;
                     return (
                       <Tooltip key={idx} title={<span style={{ whiteSpace: 'pre-line' }}>{tip}</span>}>
                         <div className={classes.smCol} style={{ width: `${100 / threeDData.columns.length}%` }}>

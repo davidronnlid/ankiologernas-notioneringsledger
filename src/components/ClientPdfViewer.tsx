@@ -892,6 +892,14 @@ const ClientPdfViewer: React.FC = () => {
       // Get current user from Redux store
       const user = currentUser?.full_name || 'David Rönnlid';
 
+      // Decide mode: disable images automatically on localhost to prevent Notion errors
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+      const effectiveMode: 'text-only' | 'full' = includeImages && !isLocal ? 'full' : 'text-only';
+      if (includeImages && isLocal) {
+        pushProgress('⚠️ Images disabled automatically on localhost. Switching to text-only mode.');
+      }
+
       const syncData = {
         selectedLecture: {
           title: selectedLecture.title,
@@ -902,14 +910,13 @@ const ClientPdfViewer: React.FC = () => {
         user
       };
 
-      const payload = { ...syncData, mode: includeImages ? 'full' : 'text-only' };
+      const payload = { ...syncData, mode: effectiveMode };
       const payloadStr = JSON.stringify(payload);
       console.log('📤 Sending sync data:', { ...payload, flashcardGroups: `Array(${flashcardGroups.length})` });
       console.log(`📦 Payload size: ~${(payloadStr.length / 1024).toFixed(1)} KB`);
-      pushProgress(`Sending sync (mode: ${includeImages ? 'full' : 'text-only'})… payload ~${(payloadStr.length / 1024).toFixed(1)} KB`);
+      pushProgress(`Sending sync (mode: ${effectiveMode})… payload ~${(payloadStr.length / 1024).toFixed(1)} KB`);
 
       // Prefer Next API route for better reliability on current plan
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const nextEndpoint = `${origin}/api/syncFlashcardsToNotion`;
       const netlifyEndpoint = `${origin}/.netlify/functions/syncFlashcardsToNotion`;
 
@@ -925,6 +932,7 @@ const ClientPdfViewer: React.FC = () => {
         const raw = await response.text();
         console.error('❌ Sync HTTP error:', response.status, response.statusText, raw);
         pushProgress(`HTTP error ${response.status}: ${response.statusText}`);
+        if (raw) pushProgress(`Server said: ${raw.slice(0, 400)}`);
         // Auto-fallback: send a tiny dry-run request (no append) with text-only and 1 group for diagnostics
         try {
           const diagPayload = JSON.stringify({
@@ -949,15 +957,18 @@ const ClientPdfViewer: React.FC = () => {
           if (!diagResp.ok && (diagResp.type === 'opaque' || diagResp.status === 0)) {
             diagResp = await fetch(netlifyEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: diagPayload });
           }
-          const diagJson = await diagResp.json().catch(() => ({}));
+          const diagRaw = await diagResp.text();
+          let diagJson: any = {};
+          try { diagJson = JSON.parse(diagRaw); } catch {}
           console.groupCollapsed('🧪 Dry-run diagnostic response');
-          console.log(diagJson);
+          console.log(diagJson || diagRaw);
           pushProgress('Received diagnostics from server.');
           if (Array.isArray(diagJson.results)) {
             diagJson.results.forEach((r: any) => {
               if (r.logs) r.logs.forEach((line: string) => { console.log(line); pushProgress(line); });
             });
           }
+          if (diagJson.error) pushProgress(`Server error: ${diagJson.error}`);
           console.groupEnd();
         } catch (diagErr) {
           console.warn('Dry-run diagnostic failed:', diagErr);
@@ -996,8 +1007,10 @@ const ClientPdfViewer: React.FC = () => {
         setSyncResult({ success: true, message: syncResponse.message });
         pushProgress(`✅ ${syncResponse.message}`);
       } else {
-        setSyncResult({ success: false, message: syncResponse.message || 'Sync failed' });
-        pushProgress(`❌ ${syncResponse.message || 'Sync failed'}`);
+        const more = syncResponse?.results?.map((r: any) => r?.error).filter(Boolean).join(' | ');
+        const message = syncResponse.message || more || 'Sync failed';
+        setSyncResult({ success: false, message });
+        pushProgress(`❌ ${message}`);
       }
 
     } catch (error) {
