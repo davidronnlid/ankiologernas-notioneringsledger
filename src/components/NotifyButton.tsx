@@ -229,8 +229,8 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   const handleOpen = () => {
     setOpen(true);
     setSelectedLecture(lecture); // Set the clicked lecture as default
-    // Set default message with lecture number and team emojis
-    const defaultMessage = `${lecture.lectureNumber}. ${lecture.title} färdignotionerad! <3`;
+    // Default message without undefined prefix
+    const defaultMessage = `${lecture.lectureNumber}. ${lecture.title} färdignotionerad! 💪🔥`;
     const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
     setMessage(enhancedMessage);
   };
@@ -244,7 +244,7 @@ const NotifyButton: React.FC<NotifyButtonProps> = ({
   const handleLectureChange = (newLecture: Lecture) => {
     setSelectedLecture(newLecture);
     // Update message to reflect the new lecture
-    const defaultMessage = `${newLecture.lectureNumber}. ${newLecture.title} färdignotionerad! <3`;
+    const defaultMessage = `${newLecture.lectureNumber}. ${newLecture.title} färdignotionerad! 💪🔥`;
     const enhancedMessage = addTeamEmojisIfNeeded(defaultMessage);
     setMessage(enhancedMessage);
   };

@@ -1,3 +1,90 @@
+const { MongoClient, GridFSBucket } = require('mongodb');
+
+let cachedClient = null;
+let cachedDb = null;
+
+async function getDb() {
+  if (cachedDb) return cachedDb;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('Missing MONGODB_URI');
+  cachedClient = await MongoClient.connect(uri, { maxPoolSize: 5 });
+  const dbName = process.env.MONGODB_DB || new URL(uri).pathname.replace('/', '') || 'notioneringsledger';
+  cachedDb = cachedClient.db(dbName);
+  return cachedDb;
+}
+
+function parseDataUrl(dataUrl) {
+  // data:image/png;base64,XXXX
+  const match = /^data:(.+?);base64,(.+)$/i.exec(dataUrl || '');
+  if (!match) return null;
+  const contentType = match[1];
+  const buffer = Buffer.from(match[2], 'base64');
+  return { contentType, buffer };
+}
+
+exports.handler = async (event) => {
+  try {
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        },
+        body: ''
+      };
+    }
+
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: 'Method not allowed' };
+    }
+
+    const { imageDataUrl } = JSON.parse(event.body || '{}');
+    if (!imageDataUrl) {
+      return { statusCode: 400, body: 'Missing imageDataUrl' };
+    }
+
+    const parsed = parseDataUrl(imageDataUrl);
+    if (!parsed) {
+      return { statusCode: 400, body: 'Invalid data URL' };
+    }
+
+    const db = await getDb();
+    const bucket = new GridFSBucket(db, { bucketName: process.env.GRIDFS_BUCKET || 'images' });
+
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const uploadStream = bucket.openUploadStream(filename, {
+      contentType: parsed.contentType,
+      metadata: { contentType: parsed.contentType }
+    });
+    await new Promise((resolve, reject) => {
+      uploadStream.end(parsed.buffer, (err) => (err ? reject(err) : resolve()));
+    });
+
+    const id = uploadStream.id.toString();
+
+    // Construct a public https URL to the serving function
+    const base = process.env.URL || (event.headers && (event.headers['x-forwarded-host'] || event.headers.host) ? `https://${event.headers['x-forwarded-host'] || event.headers.host}` : '');
+    const prettyUrl = base ? `${base}/.netlify/functions/getImage?id=${encodeURIComponent(id)}` : null;
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id, url: prettyUrl, prettyUrl })
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
+
 const { MongoClient, ObjectId } = require('mongodb');
 
 const headers = {
@@ -45,24 +132,31 @@ exports.handler = async (event) => {
 
     const id = insertResult.insertedId.toString();
     // Build a stable, public HTTPS base URL. Notion requires a publicly accessible https URL.
-    const envBase = process.env.PUBLIC_IMAGE_BASE_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || '';
+    const envBase = (process.env.PUBLIC_IMAGE_BASE_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || '').trim();
     const proto = (event.headers && (event.headers['x-forwarded-proto'] || event.headers['X-Forwarded-Proto'])) || 'https';
     const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers['X-Forwarded-Host'] || event.headers.host)) || '';
     const headerBase = host ? `${proto}://${host}` : '';
     let siteUrl = envBase || headerBase;
-    // If running locally or protocol is not https, prefer env base or coerce to https
+    // Normalize and force https; drop trailing slash
+    if (siteUrl && siteUrl.startsWith('http://')) siteUrl = siteUrl.replace('http://', 'https://');
+    if (siteUrl.endsWith('/')) siteUrl = siteUrl.slice(0, -1);
+    // If still empty or local, try headerBase; if still local, bail with clear error
     if (!siteUrl || /localhost|127\.0\.0\.1/i.test(siteUrl)) {
-      siteUrl = headerBase && !/localhost|127\.0\.0\.1/i.test(headerBase) ? headerBase : envBase;
+      if (headerBase && !/localhost|127\.0\.0\.1/i.test(headerBase)) {
+        siteUrl = headerBase.replace('http://', 'https://');
+      }
     }
-    if (siteUrl && siteUrl.startsWith('http://')) {
-      siteUrl = siteUrl.replace('http://', 'https://');
+    if (!siteUrl || !/^https:\/\//i.test(siteUrl)) {
+      // Explicitly guide caller to set PUBLIC_IMAGE_BASE_URL
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'No public https base URL resolved. Set PUBLIC_IMAGE_BASE_URL to your site origin (e.g. https://your-site.netlify.app).' }) };
     }
     const publicUrl = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
+    const prettyUrl = `${siteUrl}/.netlify/functions/getImage/${id}.png`;
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, id, url: publicUrl }),
+      body: JSON.stringify({ success: true, id, url: publicUrl, prettyUrl }),
     };
   } catch (error) {
     console.error('storeImage error:', error);

@@ -3,6 +3,8 @@ import Layout from '@/components/Layout';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store/types';
 import { Box, Chip, IconButton, InputAdornment, MenuItem, Paper, Select, TextField, Typography, Button } from '@material-ui/core';
+import NotifyButton from '@/components/NotifyButton';
+import Lecture from 'types/lecture';
 import { addDays, endOfWeek, format, isAfter, isBefore, isSameWeek, parseISO, startOfWeek } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import SearchIcon from '@mui/icons-material/Search';
@@ -293,6 +295,14 @@ export default function StudyDashboardPage() {
                   )}
                   <Chip label={`Notionerat ${Math.floor((tracked[lec.id] || 0) / 60)} min`} size="small" style={{ background: '#424242', color: 'white' }} />
                   <Chip label="vald" size="small" style={{ background: '#4caf50', color: 'white' }} />
+                  {/* Notify button matching the homepage feature */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <NotifyButton
+                      lecture={{ ...(lec as any as Lecture) }}
+                      allLectures={selectedLectures as any as Lecture[]}
+                      onNotificationSent={() => { /* no-op */ }}
+                    />
+                  </div>
                 </Box>
               </Box>
             ))

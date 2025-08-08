@@ -846,6 +846,7 @@ const ClientPdfViewer: React.FC = () => {
             return null;
           }
           const storeUrl = `${origin}/.netlify/functions/storeImage`;
+          pushProgress('⬆️ Laddar upp bild till MongoDB…');
           const resp = await fetch(storeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -853,6 +854,9 @@ const ClientPdfViewer: React.FC = () => {
           });
           if (!resp.ok) return null;
           const { url } = await resp.json();
+          if (url) {
+            pushProgress(`✅ Sparad bild-URL: ${url}`);
+          }
           if (url && /^http:\/\//i.test(url)) {
             return url.replace('http://', 'https://');
           }

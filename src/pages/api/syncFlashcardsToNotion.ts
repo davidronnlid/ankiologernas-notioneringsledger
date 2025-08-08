@@ -217,8 +217,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                       body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
                     });
                     if (storeResp.ok) {
-                      const { url } = await storeResp.json();
-                      if (url) externalUrl = url;
+                      const storeJson = await storeResp.json();
+                      const { url, prettyUrl } = storeJson || {};
+                      if (prettyUrl && /^https:\/\//i.test(prettyUrl)) {
+                        externalUrl = prettyUrl;
+                      } else if (url) {
+                        externalUrl = url;
+                      }
                     } else {
                       const txt = await storeResp.text();
                       logs.push(`⚠️ Image store failed: ${storeResp.status} ${txt.slice(0,120)}`);
@@ -226,7 +231,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     }
                   }
                   // Notion requires a fully-qualified, publicly accessible URL
-                  if (externalUrl && /^https:\/\//i.test(externalUrl)) {
+                   if (externalUrl && /^https:\/\//i.test(externalUrl)) {
+                    logs.push(`➡️ Skickar bild-URL till Notion: ${externalUrl}`);
                     children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: externalUrl } } });
                   } else if (externalUrl) {
                     logs.push(`⚠️ Skipping image: not a valid absolute URL → ${externalUrl}`);
