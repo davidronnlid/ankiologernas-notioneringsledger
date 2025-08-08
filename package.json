@@ -3,6 +3,7 @@
   "version": "4.0.0",
   "private": true,
   "dependencies": {
+    "@netlify/blobs": "^7.0.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@material-ui/core": "latest",

@@ -233,7 +233,22 @@ exports.handler = async (event, context) => {
 
             // Persist image to MongoDB (via Netlify function) and add image block with external URL
             try {
-              if (page.imageDataUrl && typeof page.imageDataUrl === 'string' && page.imageDataUrl.startsWith('data:image/')) {
+              // Prefer already uploaded imageUrl if provided
+              const finalImageUrl = page.imageUrl && /^https?:\/\//i.test(page.imageUrl)
+                ? page.imageUrl
+                : null;
+
+              if (finalImageUrl) {
+                flashcardBlocks.push({
+                  object: 'block',
+                  type: 'image',
+                  image: {
+                    type: 'external',
+                    external: { url: finalImageUrl }
+                  }
+                });
+              } else if (page.imageDataUrl && typeof page.imageDataUrl === 'string' && page.imageDataUrl.startsWith('data:image/')) {
+                // Fallback: upload data URL to our storeImage function which uses Netlify Blobs
                 const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers.host)) || '';
                 const base = process.env.URL || (host ? `https://${host}` : null);
                 const storeUrl = base ? `${base}/.netlify/functions/storeImage` : null;
@@ -241,9 +256,9 @@ exports.handler = async (event, context) => {
                   console.warn('No base URL available for storeImage; skipping image upload');
                 } else {
                   const storeResp = await fetch(storeUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageDataUrl: page.imageDataUrl })
                   });
                   if (storeResp.ok) {
                     const { url } = await storeResp.json();

@@ -865,10 +865,8 @@ const ClientPdfViewer: React.FC = () => {
           if (url) {
             pushProgress(`✅ Sparad bild-URL: ${url}`);
           }
-          if (url && /^http:\/\//i.test(url)) {
-            return url.replace('http://', 'https://');
-          }
-          return url || null;
+          // Netlify Blobs returns https public URLs via getPublicUrl
+          return (url && typeof url === 'string') ? url.replace('http://', 'https://') : null;
         } catch (e) {
           console.warn('Pre-upload image failed:', e);
           return null;
@@ -878,7 +876,7 @@ const ClientPdfViewer: React.FC = () => {
       // Prepare flashcard groups for sync
       const flashcardGroups: any[] = [];
       let hadUploadError = false;
-      for (const group of currentResult.groupedContent) {
+        for (const group of currentResult.groupedContent) {
         const pages: any[] = [];
         for (let i = 0; i < group.pages.length; i++) {
           const page = group.pages[i];
