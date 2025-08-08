@@ -1,3 +1,72 @@
+// Single Netlify function to persist an image in MongoDB and return a public HTTPS URL
+// IMPORTANT: Must export exactly one handler to avoid "Identifier has already been declared" errors
+
+const { MongoClient } = require('mongodb');
+
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+  }
+
+  try {
+    const { imageDataUrl } = JSON.parse(event.body || '{}');
+    if (!imageDataUrl || typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid imageDataUrl' }) };
+    }
+
+    const mimeMatch = imageDataUrl.match(/^data:(image\/[A-Za-z0-9.+-]+);base64,/);
+    if (!mimeMatch) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unsupported data URL format' }) };
+    }
+
+    const mimeType = mimeMatch[1];
+    const base64Data = imageDataUrl.split(',')[1];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const uri = process.env.MONGODB_URI;
+    if (!uri) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Missing MONGODB_URI' }) };
+    const dbName = process.env.MONGODB_DB || 'ankiologernasnotioneringsledger';
+    const client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db(dbName);
+    const col = db.collection('notion_images');
+
+    const doc = { mimeType, data: buffer, createdAt: new Date() };
+    const insertResult = await col.insertOne(doc);
+    await client.close();
+
+    const id = insertResult.insertedId.toString();
+
+    // Resolve a public https base URL for the function
+    const envBase = (process.env.PUBLIC_IMAGE_BASE_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || '').trim();
+    const proto = (event.headers && (event.headers['x-forwarded-proto'] || event.headers['X-Forwarded-Proto'])) || 'https';
+    const host = (event.headers && (event.headers['x-forwarded-host'] || event.headers['X-Forwarded-Host'] || event.headers.host)) || '';
+    const headerBase = host ? `${proto}://${host}` : '';
+    let siteUrl = envBase || headerBase;
+    if (siteUrl && siteUrl.startsWith('http://')) siteUrl = siteUrl.replace('http://', 'https://');
+    if (siteUrl.endsWith('/')) siteUrl = siteUrl.slice(0, -1);
+    if (!/^https:\/\//i.test(siteUrl)) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'No public https base URL resolved. Set PUBLIC_IMAGE_BASE_URL to your site origin.' }) };
+    }
+    const publicUrl = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
+
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, id, url: publicUrl }) };
+  } catch (error) {
+    console.error('storeImage error:', error);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message || 'Server error' }) };
+  }
+};
+
 const { MongoClient, GridFSBucket } = require('mongodb');
 
 let cachedClient = null;
