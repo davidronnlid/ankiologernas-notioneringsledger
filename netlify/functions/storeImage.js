@@ -1,8 +1,15 @@
-// Netlify Function: Store image to MongoDB and return a public HTTPS URL
+// Netlify Function: Store image to Netlify Blobs (or MongoDB as fallback) and return a public HTTPS URL
 // NOTE: This file intentionally exports EXACTLY ONE handler.
-// It also reuses a single MongoDB client across warm invocations to avoid redeclaration/connection issues.
 
 const crypto = require('crypto');
+let blobsClient = null;
+try {
+  // Lazy require – available on Netlify
+  const { createClient } = require('@netlify/blobs');
+  blobsClient = createClient({ token: process.env.NETLIFY_BLOBS_TOKEN });
+} catch (_) {
+  // Blobs may not be available locally; we will fallback to MongoDB path
+}
 const { MongoClient } = require('mongodb');
 
 const CORS_HEADERS = {
@@ -72,42 +79,41 @@ exports.handler = async (event) => {
     // Compute a content hash to deduplicate identical images
     const contentHash = crypto.createHash('sha256').update(parsed.buffer).digest('hex');
 
+    // Prefer Netlify Blobs if available
+    if (blobsClient) {
+      const store = blobsClient.store('notion-images');
+      const blobKey = `${contentHash}.${parsed.mimeType.split('/')[1] || 'bin'}`;
+      // Idempotent put – blobs are content-addressable by our key
+      await store.set(blobKey, parsed.buffer, { contentType: parsed.mimeType, cacheControl: 'public, max-age=31536000, immutable' });
+      const siteUrl = resolveSiteBaseUrl(event);
+      if (!siteUrl) {
+        return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'No public https base URL resolved. Set PUBLIC_IMAGE_BASE_URL to your site origin.' }) };
+      }
+      const publicUrl = `${siteUrl}/.netlify/blobs/${encodeURIComponent('notion-images')}/${encodeURIComponent(blobKey)}`;
+      const prettyUrl = publicUrl; // Blobs URL already includes extension
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, storage: 'blobs', key: blobKey, url: prettyUrl, prettyUrl }) };
+    }
+
+    // Fallback to MongoDB storage
     const db = await getDb(event);
     const col = db.collection('notion_images');
-    // Best-effort: ensure unique index on hash (ignore errors if it already exists)
     try { await col.createIndex({ hash: 1 }, { unique: true }); } catch (_) {}
-
-    // Idempotent insert by hash with duplicate-key recovery
     let id;
     const existing = await col.findOne({ hash: contentHash });
     if (existing && existing._id) {
       id = existing._id.toString();
     } else {
-      try {
-        const insertRes = await col.insertOne({ mimeType: parsed.mimeType, data: parsed.buffer, createdAt: new Date(), hash: contentHash });
-        id = insertRes.insertedId && insertRes.insertedId.toString ? insertRes.insertedId.toString() : String(insertRes.insertedId);
-      } catch (e) {
-        // If someone inserted concurrently (E11000 duplicate key), fetch the existing doc
-        if (e && (e.code === 11000 || /E11000/.test(String(e.message)))) {
-          const fallback = await col.findOne({ hash: contentHash });
-          if (fallback && fallback._id) {
-            id = fallback._id.toString();
-          } else {
-            throw e; // unexpected – rethrow
-          }
-        } else {
-          throw e;
-        }
-      }
+      const insertRes = await col.insertOne({ mimeType: parsed.mimeType, data: parsed.buffer, createdAt: new Date(), hash: contentHash });
+      id = insertRes.insertedId && insertRes.insertedId.toString ? insertRes.insertedId.toString() : String(insertRes.insertedId);
     }
-
     const siteUrl = resolveSiteBaseUrl(event);
     if (!siteUrl) {
       return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'No public https base URL resolved. Set PUBLIC_IMAGE_BASE_URL to your site origin.' }) };
     }
-    const publicUrl = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
-
-    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, id, url: publicUrl }) };
+    const ext = parsed.mimeType.split('/')[1] || 'png';
+    const urlQuery = `${siteUrl}/.netlify/functions/getImage?id=${id}`;
+    const prettyUrl = `${siteUrl}/.netlify/functions/getImage/${id}.${ext}`;
+    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ success: true, storage: 'mongodb', id, url: prettyUrl, prettyUrl }) };
   } catch (error) {
     console.error('storeImage error:', error);
     // Include more detail for UI logs
