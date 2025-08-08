@@ -1000,6 +1000,28 @@ const ClientPdfViewer: React.FC = () => {
           if (r.logs) r.logs.forEach((line: string) => pushProgress(line));
           if (r.error) pushProgress(`Error: ${r.error}`);
         });
+
+        // Summarize common errors in a human‑friendly way for the progress UI
+        try {
+          const allLogText = syncResponse.results
+            .map((r: any) => (r.logs || []).join('\n'))
+            .join('\n');
+          const invalidImgMatches = allLogText.match(/Invalid image url/gi) || [];
+          const skippedImgMatches = allLogText.match(/Skipping image: not a valid absolute URL/gi) || [];
+          const totalInvalid = invalidImgMatches.length + skippedImgMatches.length;
+          if (totalInvalid > 0) {
+            pushProgress(`ℹ️ Detekterade ${totalInvalid} ogiltiga bild‑URL:er i Notion‑svaret.`);
+            pushProgress(
+              '⬇️ Förklaring: Notion kräver publika https‑URL:er för bildblock. Data‑URL:er eller lokala URL:er accepteras inte.'
+            );
+            if (window?.location?.host?.includes('localhost')) {
+              pushProgress('💡 Du kör lokalt: bilder kan inte bäddas in. Skicka i text‑only läge eller deploya till en publik miljö.');
+            } else {
+              pushProgress('💡 Kontrollera att funktionen \/.netlify\/functions\/storeImage returnerar en publik https‑länk.');
+            }
+            pushProgress('✅ Workaround: avmarkera "Include images" och synka igen (text‑only).');
+          }
+        } catch {}
       }
       console.groupEnd();
 

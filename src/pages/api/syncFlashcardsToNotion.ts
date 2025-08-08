@@ -278,10 +278,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       } catch (error) {
         console.error(`❌ Error for ${userName}:`, error);
+        // Include error details in results so client can show them in the modal
         results.push({
           user: userName,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          logs: [
+            'Server exception while appending blocks to Notion.',
+            (error as any)?.body ? JSON.stringify((error as any).body) : String(error)
+          ]
         });
       }
     }

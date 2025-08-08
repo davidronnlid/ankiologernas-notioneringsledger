@@ -152,7 +152,7 @@ export default function StudyDashboardPage() {
   }, [running, isStudy, selectedLectureId]);
 
   return (
-    <Layout title="Studiepanel" description="Personlig studiepanel" keywords="studie, pomodoro, plan">
+    <Layout title="Pomodoro" description="Pomodoro med Notion-spårning" keywords="pomodoro, notion, plan">
       <Box style={{ maxWidth: 1100, margin: '24px auto', padding: '0 16px' }}>
         {/* Pomodoro */}
         <Paper style={{ padding: 16, marginBottom: 16, background: '#2c2c2c', border: '1px solid #404040', borderRadius: 12 }}>
@@ -228,14 +228,29 @@ export default function StudyDashboardPage() {
                 <Box>
                   <Typography style={{ color: 'white' }}>{lec.title}</Typography>
                   <Typography variant="body2" style={{ color: '#aaa' }}>
-                    {format(parseISO(lec.date), 'EEE d MMM HH:mm', { locale: sv })} {lec.time ? `• ${lec.time}` : ''}
+                    {(() => {
+                      const base = format(parseISO(lec.date), 'EEE d MMM', { locale: sv });
+                      if (!lec.time) return base;
+                      const m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(lec.time.trim());
+                      if (!m) return `${base} • ${lec.time}`;
+                      const startH = Number(m[1]);
+                      const startM = Number(m[2]);
+                      const endH = Number(m[3]);
+                      const endM = Number(m[4]);
+                      const durationMin = (endH * 60 + endM) - (startH * 60 + startM);
+                      const durationHours = Math.max(0, durationMin) / 60;
+                      const durationText = `${Math.round(durationHours * 10) / 10} h`;
+                      const spentSeconds = tracked[lec.id] || 0;
+                      const spentHours = Math.round((spentSeconds / 3600) * 10) / 10;
+                      return `${base} • ${durationText} • Notionerat ${spentHours}/${Math.round(durationHours * 10) / 10} h`;
+                    })()}
                   </Typography>
                 </Box>
                 <Box display="flex" alignItems="center" gridGap={8 as any}>
                   {selectedLectureId === lec.id && (
                     <Chip label="spårar" size="small" style={{ background: '#64b5f6', color: 'white' }} />
                   )}
-                  <Chip label={`studerat ${Math.floor((tracked[lec.id] || 0) / 60)} min`} size="small" style={{ background: '#424242', color: 'white' }} />
+                  <Chip label={`Notionerat ${Math.floor((tracked[lec.id] || 0) / 60)} min`} size="small" style={{ background: '#424242', color: 'white' }} />
                   <Chip label="vald" size="small" style={{ background: '#4caf50', color: 'white' }} />
                 </Box>
               </Box>
@@ -247,7 +262,7 @@ export default function StudyDashboardPage() {
         <Box mt={1}>
           {selectedLectureId && (
             <Typography variant="body2" style={{ color: '#9aa' }}>
-              Spårar tid för föreläsning: {selectedLectures.find((l) => l.id === selectedLectureId)?.title || selectedLectureId} — totalt {Math.floor((tracked[selectedLectureId] || 0) / 60)} min
+              Spårar tid för föreläsning: {selectedLectures.find((l) => l.id === selectedLectureId)?.title || selectedLectureId} — totalt Notionerat {Math.floor((tracked[selectedLectureId] || 0) / 60)} min
             </Typography>
           )}
         </Box>

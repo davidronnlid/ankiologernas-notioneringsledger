@@ -529,7 +529,7 @@ export default function Header() {
                     <ListItemIcon>
                       <EventNoteIcon style={{ color: '#64b5f6' }} />
                     </ListItemIcon>
-                    <ListItemText primary="Studiepanel (Pomodoro)" />
+                    <ListItemText primary="Pomodoro" />
                   </MenuItem>
                   <MenuItem onClick={handleDocsClick}>
                     <ListItemIcon>
