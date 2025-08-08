@@ -852,7 +852,11 @@ const ClientPdfViewer: React.FC = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageDataUrl: dataUrl })
           });
-          if (!resp.ok) return null;
+          if (!resp.ok) {
+            const txt = await resp.text();
+            pushProgress(`❌ Upload failed ${resp.status}: ${txt.slice(0,120)}`);
+            return null;
+          }
           const { url } = await resp.json();
           if (url) {
             pushProgress(`✅ Sparad bild-URL: ${url}`);
@@ -880,8 +884,8 @@ const ClientPdfViewer: React.FC = () => {
               if (uploadedUrl) {
                 pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageUrl: uploadedUrl });
               } else {
-                // Fall back to text-only when no public URL is available
-                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
+                // Fall back to server-side upload using original data URL
+                pages.push({ pageNumber: page.pageNumber, textContent: page.textContent, imageDataUrl: page.imageUrl });
               }
           } else {
             pages.push({ pageNumber: page.pageNumber, textContent: page.textContent });
